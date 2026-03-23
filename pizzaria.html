@@ -88,93 +88,178 @@
     .add-btn.adding { opacity:.6; cursor:not-allowed !important; }
     .hide-scrollbar::-webkit-scrollbar { display:none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ── NEW HEADER LAYOUT ── */
+    #app-header {
+      background: #fff;
+      border-bottom: 1px solid #e3beb8;
+      position: sticky; top: 0; z-index: 50;
+      box-shadow: 0 1px 12px rgba(97,0,0,0.07);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    #app-header .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; height: 60px; gap: 16px;
+    }
+    .header-logo { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+    .header-logo-icon { font-size:26px; line-height:1; }
+    .header-logo-text { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px; color:#8B0000; letter-spacing:-0.02em; line-height:1; }
+    .header-logo-sub { font-size:10px; color:#8d6562; font-weight:500; letter-spacing:0.02em; }
+    .header-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    #biz-header-btn {
+      display: flex; align-items: center; gap: 7px;
+      background: #1a1a2e; color: #D4AF37;
+      border: 1.5px solid #2d2d4a; border-radius: 10px;
+      padding: 8px 14px; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.2s; white-space: nowrap;
+    }
+    #biz-header-btn:hover { background: #252540; border-color: #D4AF37; }
+    #biz-header-btn.active { background: #D4AF37; color: #1a1a2e; border-color: #D4AF37; }
+    #biz-header-btn .material-symbols-outlined { font-size: 16px; }
+
+    /* ── DESKTOP STAFF TAB BAR ── */
+    #staff-tab-bar {
+      background: #fff;
+      border-bottom: 1px solid #e3beb8;
+      position: sticky; top: 60px; z-index: 40;
+      box-shadow: 0 1px 4px rgba(97,0,0,0.04);
+    }
+    #staff-tab-bar .tabs-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; padding: 0 20px;
+      overflow-x: auto; gap: 0;
+    }
+    #staff-tab-bar .tab-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 16px; height: 48px;
+      border: none; border-bottom: 3px solid transparent;
+      background: none; cursor: pointer;
+      font-size: 13px; font-weight: 500; font-family: inherit;
+      color: #5a403c; white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    #staff-tab-bar .tab-btn:hover { color: #8B0000; }
+    #staff-tab-bar .tab-btn.tab-active {
+      color: #610000; font-weight: 700;
+      border-bottom-color: #610000;
+    }
+    #staff-tab-bar .tab-btn .material-symbols-outlined { font-size: 17px; }
+
+    /* ── MOBILE BOTTOM NAV ── */
+    #mobile-bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(227,190,184,0.4);
+      box-shadow: 0 -4px 20px rgba(97,0,0,0.07);
+      padding: 6px 4px 20px;
+      display: flex; align-items: center; justify-content: space-around;
+    }
+    .mob-nav-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 6px 4px; min-width: 48px; max-width: 72px;
+      border: none; background: none; cursor: pointer;
+      font-size: 9px; font-weight: 500; color: #5a403c;
+      font-family: inherit; transition: color .15s; border-radius: 10px;
+    }
+    .mob-nav-btn .material-symbols-outlined { font-size: 20px; transition: color .15s; }
+    .mob-nav-btn.mob-active {
+      color: #610000; font-weight: 700;
+      background: #fff0ee;
+    }
+    .mob-nav-btn.mob-active .material-symbols-outlined { color: #8B0000; }
+    #mob-biz-btn {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 6px 8px;
+      border: 1.5px solid #2d2d4a; background: #1a1a2e;
+      border-radius: 12px; cursor: pointer;
+      font-size: 9px; font-weight: 700; color: #D4AF37;
+      font-family: inherit; transition: all .15s;
+    }
+    #mob-biz-btn .material-symbols-outlined { font-size: 18px; color: #D4AF37; }
+    #mob-biz-btn.mob-biz-active { background: #D4AF37; border-color: #D4AF37; color: #1a1a2e; }
+    #mob-biz-btn.mob-biz-active .material-symbols-outlined { color: #1a1a2e; }
+
+    /* ── BUSINESS DARK MODE ── */
+    body.biz-mode { background: #0d0d1a !important; color: #e0e0f0 !important; }
+    body.biz-mode #app-header { background: #12122a; border-bottom-color: #2d2d4a; box-shadow: 0 1px 12px rgba(0,0,0,0.4); }
+    body.biz-mode #app-header .header-logo-text { color: #D4AF37; }
+    body.biz-mode #app-header .header-logo-sub { color: #8888aa; }
+    body.biz-mode #staff-tab-bar { display: none; }
+    body.biz-mode #mobile-bottom-nav { background: rgba(18,18,42,0.95); border-top-color: rgba(45,45,74,0.6); }
+    body.biz-mode #panel-business { background: #0d0d1a; min-height: 60vh; }
+    body:not(.biz-mode) #staff-tab-bar { display: block; }
   </style>
 </head>
 <body style="background-color:#fff8f6;color:#261816;min-height:100vh;">
 
 <!-- ═══ HEADER ═══ -->
-<header style="background-color:#fff8f6;border-bottom:1px solid #e3beb8;position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;padding:0 24px;height:64px;box-shadow:0 1px 8px rgba(97,0,0,0.06);">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <span class="material-symbols-outlined" style="color:#8B0000;font-size:24px;">restaurant</span>
-    <span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:#8B0000;letter-spacing:-0.02em;">Pizzeria Einkauf</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#93000a;">
-      <span class="material-symbols-outlined" style="font-size:15px">warning</span>
-      <span id="header-badge-text"></span>
+<header id="app-header">
+  <div class="header-inner">
+    <!-- Logo -->
+    <div class="header-logo">
+      <span class="header-logo-icon">🍕</span>
+      <div>
+        <div class="header-logo-text">Pizzeria Ali Shama KG</div>
+        <div class="header-logo-sub">EINKAUF & MANAGEMENT</div>
+      </div>
     </div>
-    <button id="notif-bell-btn" onclick="showLowStockPopup()" style="border:none;background:transparent;cursor:pointer;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.15s;" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='transparent'">
-      <span class="material-symbols-outlined" style="color:#8B0000;font-size:22px;">notifications</span>
-    </button>
+
+    <!-- Right Actions -->
+    <div class="header-right">
+      <!-- Low-stock badge -->
+      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#93000a;">
+        <span class="material-symbols-outlined" style="font-size:15px">warning</span>
+        <span id="header-badge-text"></span>
+      </div>
+      <!-- Bell -->
+      <button id="notif-bell-btn" onclick="showLowStockPopup()"
+        style="border:none;background:transparent;cursor:pointer;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.15s;"
+        onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='transparent'">
+        <span class="material-symbols-outlined" style="color:#8B0000;font-size:22px;">notifications</span>
+      </button>
+      <!-- Business Button -->
+      <button id="biz-header-btn" onclick="switchTab('business')">
+        <span class="material-symbols-outlined" id="biz-lock-icon">lock</span>
+        <span class="hidden sm:inline">Business</span>
+      </button>
+    </div>
   </div>
 </header>
 
-<!-- ═══ DESKTOP TAB BAR ═══ -->
-<nav class="hidden md:block sticky top-16 z-40" style="background-color:#fff8f6;border-bottom:1px solid #e3beb8;">
-  <div class="mx-auto px-6 flex" style="max-width:1200px;">
-    <button data-nav-tab="produkte" onclick="switchTab('produkte')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">inventory_2</span>
-      Produkte
-      <span class="tab-indicator" style="display:none"></span>
+<!-- ═══ DESKTOP STAFF TAB BAR ═══ -->
+<nav id="staff-tab-bar" class="hidden md:block">
+  <div class="tabs-inner hide-scrollbar">
+    <button data-nav-tab="produkte" onclick="switchTab('produkte')" class="tab-btn">
+      <span class="material-symbols-outlined">inventory_2</span>Produkte
     </button>
-    <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">store</span>
-      Geschäfte
-      <span class="tab-indicator" style="display:none"></span>
+    <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte')" class="tab-btn">
+      <span class="material-symbols-outlined">store</span>Geschäfte
     </button>
-    <button data-nav-tab="kombis" onclick="switchTab('kombis')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm transition-colors"
-      style="color:#610000;font-weight:700;border-bottom:3px solid #610000;">
-      <span class="material-symbols-outlined" style="font-size:18px">lightbulb</span>
-      Kombis
-      <span id="kombis-tab-badge" class="flex items-center justify-center w-5 h-5 rounded-full text-white text-xs font-bold" style="background:#8B0000;display:none"></span>
-      <span class="tab-indicator"></span>
+    <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn tab-active">
+      <span class="material-symbols-outlined">lightbulb</span>Kombis
+      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
     </button>
-    <button data-nav-tab="suche" onclick="switchTab('suche')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">search</span>
-      Suche
-      <span class="tab-indicator" style="display:none"></span>
+    <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
+      <span class="material-symbols-outlined">search</span>Suche
     </button>
-    <button data-nav-tab="upload" onclick="switchTab('upload')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">photo_camera</span>
-      Upload
-      <span class="tab-indicator" style="display:none"></span>
+    <button data-nav-tab="upload" onclick="switchTab('upload')" class="tab-btn">
+      <span class="material-symbols-outlined">photo_camera</span>Upload
     </button>
-    <button data-nav-tab="verlauf" onclick="switchTab('verlauf')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">bar_chart</span>
-      Verlauf
-      <span class="tab-indicator" style="display:none"></span>
+    <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="tab-btn">
+      <span class="material-symbols-outlined">bar_chart</span>Verlauf
     </button>
-    <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">badge</span>
-      Mitarbeiter
-      <span class="tab-indicator" style="display:none"></span>
-    </button>
-    <button data-nav-tab="business" onclick="switchTab('business')"
-      class="relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-colors"
-      style="color:#5a403c;border-bottom:3px solid transparent;">
-      <span class="material-symbols-outlined" style="font-size:18px">business_center</span>
-      Business
-      <span class="material-symbols-outlined" id="biz-lock-icon" style="font-size:14px;color:#8B0000;margin-left:-4px">lock</span>
-      <span class="tab-indicator" style="display:none"></span>
+    <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')" class="tab-btn">
+      <span class="material-symbols-outlined">badge</span>Mitarbeiter
     </button>
   </div>
 </nav>
 
 <!-- ═══ PANELS ═══ -->
-<main class="mx-auto px-4 md:px-6" style="max-width:1200px;padding-top:32px;padding-bottom:120px;">
+<main id="app-main" class="mx-auto px-4 md:px-6" style="max-width:1200px;padding-top:28px;padding-bottom:120px;">
   <div id="panel-produkte" style="display:none"></div>
   <div id="panel-geschaefte" style="display:none"></div>
   <div id="panel-kombis" style="display:block"></div>
@@ -186,48 +271,32 @@
 </main>
 
 <!-- ═══ MOBILE BOTTOM NAV ═══ -->
-<nav class="md:hidden hide-scrollbar" id="mobile-nav" style="position:fixed;bottom:0;left:0;width:100%;background:rgba(255,248,246,0.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(227,190,184,0.3);box-shadow:0 -4px 20px rgba(97,0,0,0.06);z-index:50;padding:8px 8px 20px;display:flex;justify-content:space-around;align-items:center;">
-    <button data-bottom-nav="produkte" onclick="switchTab('produkte')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s">
-      <span class="material-symbols-outlined" style="font-size:20px">inventory_2</span>
-      Produkte
-    </button>
-    <button data-bottom-nav="geschaefte" onclick="switchTab('geschaefte')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s">
-      <span class="material-symbols-outlined" style="font-size:20px">store</span>
-      Geschäfte
-    </button>
-    <button data-bottom-nav="kombis" onclick="switchTab('kombis')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:700;border:none;background:linear-gradient(135deg,#610000,#8b0000);color:white;cursor:pointer;font-family:inherit;border-radius:12px;">
-      <span class="material-symbols-outlined" style="font-size:20px">lightbulb</span>
-      Kombis
-    </button>
-    <button data-bottom-nav="suche" onclick="switchTab('suche')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s">
-      <span class="material-symbols-outlined" style="font-size:20px">search</span>
-      Suche
-    </button>
-    <button data-bottom-nav="upload" onclick="switchTab('upload')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s">
-      <span class="material-symbols-outlined" style="font-size:20px">photo_camera</span>
-      Upload
-    </button>
-    <button data-bottom-nav="verlauf" onclick="switchTab('verlauf')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s">
-      <span class="material-symbols-outlined" style="font-size:20px">bar_chart</span>
-      Verlauf
-    </button>
-    <button data-bottom-nav="mitarbeiter" onclick="switchTab('mitarbeiter')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s">
-      <span class="material-symbols-outlined" style="font-size:20px">badge</span>
-      Mitarbeiter
-    </button>
-    <button data-bottom-nav="business" onclick="switchTab('business')"
-      style="min-width:64px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 8px;font-size:10px;font-weight:500;color:#5a403c;border:none;background:none;cursor:pointer;font-family:inherit;transition:color .15s;position:relative">
-      <span class="material-symbols-outlined" style="font-size:20px">business_center</span>
-      Business
-      <span style="position:absolute;top:4px;right:8px;font-size:10px;color:#8B0000" class="material-symbols-outlined">lock</span>
-    </button>
+<nav id="mobile-bottom-nav" class="md:hidden hide-scrollbar">
+  <button data-bottom-nav="produkte" onclick="switchTab('produkte')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">inventory_2</span>Produkte
+  </button>
+  <button data-bottom-nav="geschaefte" onclick="switchTab('geschaefte')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">store</span>Geschäfte
+  </button>
+  <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
+    <span class="material-symbols-outlined">lightbulb</span>Kombis
+  </button>
+  <button data-bottom-nav="suche" onclick="switchTab('suche')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">search</span>Suche
+  </button>
+  <button data-bottom-nav="upload" onclick="switchTab('upload')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">photo_camera</span>Upload
+  </button>
+  <button data-bottom-nav="verlauf" onclick="switchTab('verlauf')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">bar_chart</span>Verlauf
+  </button>
+  <button data-bottom-nav="mitarbeiter" onclick="switchTab('mitarbeiter')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">badge</span>Mitarbeiter
+  </button>
+  <button id="mob-biz-btn" onclick="switchTab('business')">
+    <span class="material-symbols-outlined" id="mob-biz-lock">lock</span>
+    <span>Business</span>
+  </button>
 </nav>
 
 <script>
@@ -841,35 +910,53 @@ function renderSingleCombo(combo, rank) {
 // ═══════════════════════════════════════════════════════════════
 
 function switchTab(tab) {
+  const isBiz = tab === 'business';
+
+  // ── panels ──
   ['produkte','geschaefte','kombis','suche','upload','verlauf','mitarbeiter','business'].forEach(t => {
     document.getElementById('panel-'+t).style.display = t === tab ? 'block' : 'none';
   });
-  document.querySelectorAll('[data-nav-tab]').forEach(el => {
-    const active = el.dataset.navTab === tab;
-    el.style.color = active ? '#610000' : '#5a403c';
-    el.style.fontWeight = active ? '700' : '500';
-    el.style.borderBottom = active ? '3px solid #610000' : '3px solid transparent';
-    const ind = el.querySelector('.tab-indicator');
-    if (ind) ind.style.display = active ? 'block' : 'none';
+
+  // ── desktop staff tabs ──
+  document.querySelectorAll('#staff-tab-bar [data-nav-tab]').forEach(el => {
+    el.classList.toggle('tab-active', el.dataset.navTab === tab);
   });
+
+  // ── mobile staff buttons ──
   document.querySelectorAll('[data-bottom-nav]').forEach(el => {
-    const active = el.dataset.bottomNav === tab;
-    el.style.background = active ? 'linear-gradient(135deg,#610000,#8b0000)' : '';
-    el.style.color = active ? 'white' : '#5a403c';
-    el.style.borderRadius = active ? '12px' : '';
-    el.style.padding = active ? '6px 16px' : '7px 8px';
+    el.classList.toggle('mob-active', el.dataset.bottomNav === tab);
   });
-  if (tab === 'produkte')   renderProductsTab();
-  if (tab === 'geschaefte') renderShopsTab();
-  if (tab === 'kombis')     renderKombisTab();
-  if (tab === 'suche')      renderSucheTab();
+
+  // ── business button states ──
+  const bizBtn    = document.getElementById('biz-header-btn');
+  const mobBizBtn = document.getElementById('mob-biz-btn');
+  if (bizBtn)    bizBtn.classList.toggle('active', isBiz);
+  if (mobBizBtn) mobBizBtn.classList.toggle('mob-biz-active', isBiz);
+
+  // ── dark mode body class ──
+  document.body.classList.toggle('biz-mode', isBiz);
+  document.body.style.backgroundColor = isBiz ? '' : '#fff8f6';
+
+  // ── render content ──
+  if (tab === 'produkte')    renderProductsTab();
+  if (tab === 'geschaefte')  renderShopsTab();
+  if (tab === 'kombis')      renderKombisTab();
+  if (tab === 'suche')       renderSucheTab();
   if (tab === 'upload')      renderUploadTab();
   if (tab === 'verlauf')     renderVerlaufTab();
   if (tab === 'mitarbeiter') renderMitarbeiterTab();
-  if (tab === 'business') {
-    const lockIcon = document.getElementById('biz-lock-icon');
-    if (!bizIsAuth()) { renderBizLocked(); if (lockIcon) lockIcon.textContent='lock'; }
-    else { renderBusinessTab(); if (lockIcon) lockIcon.textContent='lock_open'; }
+  if (isBiz) {
+    const lockIcon    = document.getElementById('biz-lock-icon');
+    const mobLockIcon = document.getElementById('mob-biz-lock');
+    if (!bizIsAuth()) {
+      renderBizLocked();
+      if (lockIcon)    lockIcon.textContent = 'lock';
+      if (mobLockIcon) mobLockIcon.textContent = 'lock';
+    } else {
+      renderBusinessTab();
+      if (lockIcon)    lockIcon.textContent = 'lock_open';
+      if (mobLockIcon) mobLockIcon.textContent = 'lock_open';
+    }
   }
 }
 
@@ -4626,10 +4713,13 @@ function bizShowToast(msg) {
   setTimeout(() => t.remove(), 2800);
 }
 
-// Set correct lock icon on load
+// Set correct lock icons on load
 document.addEventListener('DOMContentLoaded', () => {
-  const lockIcon = document.getElementById('biz-lock-icon');
-  if (lockIcon) lockIcon.textContent = bizIsAuth() ? 'lock_open' : 'lock';
+  const unlocked = bizIsAuth();
+  const li1 = document.getElementById('biz-lock-icon');
+  const li2 = document.getElementById('mob-biz-lock');
+  if (li1) li1.textContent = unlocked ? 'lock_open' : 'lock';
+  if (li2) li2.textContent = unlocked ? 'lock_open' : 'lock';
 });
 </script>
 </body>
