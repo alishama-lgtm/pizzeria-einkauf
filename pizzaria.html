@@ -73,107 +73,241 @@
     }
   </script>
   <style>
+    /* ════ RESET & BASE ════ */
+    *, *::before, *::after { box-sizing: border-box; }
     .material-symbols-outlined {
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle; user-select: none;
     }
     .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    body { font-family: 'Inter', sans-serif; background-color: #fff8f6; color: #261816; }
-    h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f4f6;
+      color: #1e1e2e;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    h1, h2, h3, h4, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* ════ ANIMATIONS ════ */
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spinner { width:40px; height:40px; border:3px solid #e3beb8; border-top-color:#610000; border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 16px; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .spinner { width:40px; height:40px; border:3px solid #ddd; border-top-color:#8B0000; border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 16px; }
     .spinner-sm { width:18px; height:18px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:inline-block; vertical-align:middle; }
     .progress-fill { transition: width .3s ease; }
-    .tab-indicator { position:absolute; bottom:0; left:0; right:0; height:3px; background:#610000; border-radius:3px 3px 0 0; }
+    .tab-indicator { position:absolute; bottom:0; left:0; right:0; height:3px; background:#8B0000; border-radius:3px 3px 0 0; }
     .add-btn.added { background:#dfe0ff !important; color:#0d2ccc !important; border-color:#c7c9f9 !important; cursor:default; }
     .add-btn.adding { opacity:.6; cursor:not-allowed !important; }
     .hide-scrollbar::-webkit-scrollbar { display:none; }
-    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .hide-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
 
-    /* ── NEW HEADER LAYOUT ── */
+    /* ════ WEBSITE CARDS ════ */
+    .ws-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8e8ed;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      padding: 24px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .ws-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.10); }
+    .ws-card-sm { padding: 18px; border-radius: 14px; }
+
+    /* ════ STAT CARDS ════ */
+    .stat-card {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e8e8ed;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 22px 24px;
+      display: flex; align-items: center; gap: 18px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.10); }
+    .stat-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; flex-shrink: 0;
+    }
+    .stat-icon-red { background: #fff0ee; color: #8B0000; }
+    .stat-icon-green { background: #e8f5e9; color: #2e7d32; }
+    .stat-icon-amber { background: #fff8e1; color: #f57f17; }
+    .stat-icon-blue { background: #e3f2fd; color: #1565c0; }
+    .stat-num { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 32px; font-weight: 800; line-height: 1; color: #1e1e2e; }
+    .stat-label { font-size: 13px; color: #6b7280; font-weight: 500; margin-top: 3px; }
+    .stat-sub { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; display: inline-block; margin-top: 4px; }
+    .stat-sub-red { background: #ffdad6; color: #93000a; }
+    .stat-sub-green { background: #e8f5e9; color: #1b5e20; }
+    .stat-sub-amber { background: #fff8e1; color: #e65100; }
+
+    /* ════ WEBSITE TABLES ════ */
+    .ws-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .ws-table thead tr { background: #f8f8fa; }
+    .ws-table thead th {
+      padding: 14px 20px; text-align: left;
+      font-size: 12px; font-weight: 700; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      border-bottom: 2px solid #e8e8ed;
+    }
+    .ws-table tbody tr { border-bottom: 1px solid #f0f0f5; transition: background .1s; }
+    .ws-table tbody tr:hover { background: #fafafa; }
+    .ws-table tbody tr:last-child { border-bottom: none; }
+    .ws-table tbody td { padding: 14px 20px; color: #1e1e2e; height: 52px; vertical-align: middle; }
+    .ws-table tbody tr:nth-child(even) td { background: #fafafa; }
+
+    /* ════ WEBSITE BUTTONS ════ */
+    .ws-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 24px; border-radius: 10px; border: none;
+      font-size: 14px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: all 0.18s; white-space: nowrap;
+    }
+    .ws-btn .material-symbols-outlined { font-size: 18px; }
+    .ws-btn-primary { background: #8B0000; color: #fff; }
+    .ws-btn-primary:hover { background: #6a0000; box-shadow: 0 4px 12px rgba(139,0,0,0.3); }
+    .ws-btn-secondary { background: #fff; color: #8B0000; border: 1.5px solid #e3beb8; }
+    .ws-btn-secondary:hover { background: #fff0ee; border-color: #8B0000; }
+    .ws-btn-ghost { background: transparent; color: #6b7280; border: 1.5px solid #e8e8ed; }
+    .ws-btn-ghost:hover { background: #f4f4f6; color: #1e1e2e; }
+    .ws-btn-sm { padding: 7px 16px; font-size: 13px; }
+    .ws-btn-sm .material-symbols-outlined { font-size: 15px; }
+
+    /* ════ SECTION HEADERS ════ */
+    .ws-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .ws-section-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 20px; font-weight: 800; color: #1e1e2e;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .ws-section-title .material-symbols-outlined { font-size: 22px; color: #8B0000; }
+    .ws-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .ws-badge-red { background: #ffdad6; color: #93000a; }
+    .ws-badge-green { background: #e8f5e9; color: #1b5e20; }
+    .ws-badge-amber { background: #fff8e1; color: #c66900; }
+
+    /* ════ INPUT / FORM ════ */
+    .ws-input {
+      width: 100%; padding: 11px 14px;
+      border-radius: 10px; border: 1.5px solid #e2e2e8;
+      font-size: 14px; font-family: inherit; color: #1e1e2e;
+      background: #fff; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .ws-input:focus { border-color: #8B0000; box-shadow: 0 0 0 3px rgba(139,0,0,0.08); }
+    .ws-label { display: block; font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 5px; }
+
+    /* ════ HEADER ════ */
     #app-header {
       background: #fff;
-      border-bottom: 1px solid #e3beb8;
+      border-bottom: 1px solid #e2e2e8;
       position: sticky; top: 0; z-index: 50;
-      box-shadow: 0 1px 12px rgba(97,0,0,0.07);
-      transition: background 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      transition: background .3s, box-shadow .3s;
     }
     #app-header .header-inner {
-      max-width: 1200px; margin: 0 auto;
+      max-width: 1400px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 20px; height: 60px; gap: 16px;
+      padding: 0 40px; height: 70px; gap: 20px;
     }
-    .header-logo { display:flex; align-items:center; gap:10px; flex-shrink:0; }
-    .header-logo-icon { font-size:26px; line-height:1; }
-    .header-logo-text { font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px; color:#8B0000; letter-spacing:-0.02em; line-height:1; }
-    .header-logo-sub { font-size:10px; color:#8d6562; font-weight:500; letter-spacing:0.02em; }
-    .header-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .header-logo { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+    .header-logo-icon { font-size:34px; line-height:1; }
+    .header-logo-text {
+      font-family: 'Plus Jakarta Sans',sans-serif;
+      font-weight: 800; font-size: 22px; color: #8B0000;
+      letter-spacing: -0.03em; line-height: 1.1;
+    }
+    .header-logo-sub {
+      font-size: 11px; color: #9ca3af; font-weight: 500;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .header-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+    .header-bell-btn {
+      border: none; background: transparent; cursor: pointer;
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s; color: #8B0000;
+    }
+    .header-bell-btn:hover { background: #fff0ee; }
     #biz-header-btn {
-      display: flex; align-items: center; gap: 7px;
+      display: flex; align-items: center; gap: 8px;
       background: #1a1a2e; color: #D4AF37;
       border: 1.5px solid #2d2d4a; border-radius: 10px;
-      padding: 8px 14px; font-size: 13px; font-weight: 700;
+      padding: 9px 18px; font-size: 13px; font-weight: 700;
       cursor: pointer; font-family: inherit;
-      transition: all 0.2s; white-space: nowrap;
+      transition: all .2s; white-space: nowrap;
     }
     #biz-header-btn:hover { background: #252540; border-color: #D4AF37; }
     #biz-header-btn.active { background: #D4AF37; color: #1a1a2e; border-color: #D4AF37; }
     #biz-header-btn .material-symbols-outlined { font-size: 16px; }
 
-    /* ── DESKTOP STAFF TAB BAR ── */
+    /* ════ STAFF TAB BAR ════ */
     #staff-tab-bar {
       background: #fff;
-      border-bottom: 1px solid #e3beb8;
-      position: sticky; top: 60px; z-index: 40;
-      box-shadow: 0 1px 4px rgba(97,0,0,0.04);
+      border-bottom: 2px solid #e8e8ed;
+      position: sticky; top: 70px; z-index: 40;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     #staff-tab-bar .tabs-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: flex; padding: 0 20px;
-      overflow-x: auto; gap: 0;
+      max-width: 1400px; margin: 0 auto;
+      display: flex; padding: 0 40px;
+      overflow-x: auto; gap: 4px; align-items: flex-end;
     }
     #staff-tab-bar .tab-btn {
-      display: flex; align-items: center; gap: 6px;
-      padding: 0 16px; height: 48px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 24px; height: 56px;
       border: none; border-bottom: 3px solid transparent;
       background: none; cursor: pointer;
-      font-size: 13px; font-weight: 500; font-family: inherit;
-      color: #5a403c; white-space: nowrap;
-      transition: color 0.15s, border-color 0.15s;
-      position: relative;
+      font-size: 15px; font-weight: 500; font-family: inherit;
+      color: #6b7280; white-space: nowrap;
+      transition: color .15s, border-color .15s;
+      position: relative; margin-bottom: -2px;
     }
-    #staff-tab-bar .tab-btn:hover { color: #8B0000; }
+    #staff-tab-bar .tab-btn:hover { color: #8B0000; background: #fff5f5; border-radius: 8px 8px 0 0; }
     #staff-tab-bar .tab-btn.tab-active {
-      color: #610000; font-weight: 700;
-      border-bottom-color: #610000;
+      color: #8B0000; font-weight: 700;
+      border-bottom: 3px solid #8B0000;
+      background: #fff0ee; border-radius: 8px 8px 0 0;
     }
-    #staff-tab-bar .tab-btn .material-symbols-outlined { font-size: 17px; }
+    #staff-tab-bar .tab-btn .material-symbols-outlined { font-size: 20px; }
 
-    /* ── MOBILE BOTTOM NAV ── */
+    /* ════ STATS BAR ════ */
+    #stats-dashboard {
+      background: transparent;
+      padding: 28px 0 8px;
+    }
+    #stats-dashboard.hidden { display: none; }
+
+    /* ════ MOBILE BOTTOM NAV ════ */
     #mobile-bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(227,190,184,0.4);
-      box-shadow: 0 -4px 20px rgba(97,0,0,0.07);
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(232,232,237,0.8);
+      box-shadow: 0 -4px 24px rgba(0,0,0,0.08);
       padding: 6px 4px 20px;
       display: flex; align-items: center; justify-content: space-around;
     }
     .mob-nav-btn {
       flex: 1; display: flex; flex-direction: column; align-items: center;
-      gap: 2px; padding: 6px 4px; min-width: 48px; max-width: 72px;
+      gap: 2px; padding: 6px 2px; min-width: 42px; max-width: 68px;
       border: none; background: none; cursor: pointer;
-      font-size: 9px; font-weight: 500; color: #5a403c;
+      font-size: 9px; font-weight: 500; color: #9ca3af;
       font-family: inherit; transition: color .15s; border-radius: 10px;
     }
-    .mob-nav-btn .material-symbols-outlined { font-size: 20px; transition: color .15s; }
-    .mob-nav-btn.mob-active {
-      color: #610000; font-weight: 700;
-      background: #fff0ee;
-    }
+    .mob-nav-btn .material-symbols-outlined { font-size: 22px; transition: color .15s; }
+    .mob-nav-btn.mob-active { color: #8B0000; font-weight: 700; background: #fff0ee; }
     .mob-nav-btn.mob-active .material-symbols-outlined { color: #8B0000; }
     #mob-biz-btn {
       flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
-      gap: 2px; padding: 6px 8px;
+      gap: 2px; padding: 6px 10px;
       border: 1.5px solid #2d2d4a; background: #1a1a2e;
       border-radius: 12px; cursor: pointer;
       font-size: 9px; font-weight: 700; color: #D4AF37;
@@ -183,18 +317,44 @@
     #mob-biz-btn.mob-biz-active { background: #D4AF37; border-color: #D4AF37; color: #1a1a2e; }
     #mob-biz-btn.mob-biz-active .material-symbols-outlined { color: #1a1a2e; }
 
-    /* ── BUSINESS DARK MODE ── */
+    /* ════ FOOTER ════ */
+    #app-footer {
+      background: #fff;
+      border-top: 1px solid #e8e8ed;
+      padding: 16px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: #9ca3af; flex-wrap: wrap; gap: 8px;
+    }
+    #app-footer strong { color: #6b7280; }
+    body.biz-mode #app-footer { display: none; }
+
+    /* ════ BUSINESS DARK MODE ════ */
     body.biz-mode { background: #0d0d1a !important; color: #e0e0f0 !important; }
-    body.biz-mode #app-header { background: #12122a; border-bottom-color: #2d2d4a; box-shadow: 0 1px 12px rgba(0,0,0,0.4); }
+    body.biz-mode #app-header { background: #12122a; border-bottom-color: #2d2d4a; box-shadow: 0 1px 12px rgba(0,0,0,.4); }
     body.biz-mode #app-header .header-logo-text { color: #D4AF37; }
     body.biz-mode #app-header .header-logo-sub { color: #8888aa; }
-    body.biz-mode #staff-tab-bar { display: none; }
-    body.biz-mode #mobile-bottom-nav { background: rgba(18,18,42,0.95); border-top-color: rgba(45,45,74,0.6); }
+    body.biz-mode #staff-tab-bar { display: none !important; }
+    body.biz-mode #stats-dashboard { display: none !important; }
+    body.biz-mode #mobile-bottom-nav { background: rgba(18,18,42,.95); border-top-color: rgba(45,45,74,.6); }
     body.biz-mode #panel-business { background: #0d0d1a; min-height: 60vh; }
     body:not(.biz-mode) #staff-tab-bar { display: block; }
+
+    /* ════ RESPONSIVE ════ */
+    @media (max-width: 1024px) {
+      #app-header .header-inner { padding: 0 24px; }
+      #staff-tab-bar .tabs-inner { padding: 0 24px; }
+      #app-main { padding-left: 24px !important; padding-right: 24px !important; }
+      #app-footer { padding: 14px 24px; }
+    }
+    @media (max-width: 640px) {
+      #app-header .header-inner { padding: 0 16px; height: 60px; }
+      .header-logo-text { font-size: 18px; }
+      .header-logo-icon { font-size: 26px; }
+      .header-logo-sub { display: none; }
+    }
   </style>
 </head>
-<body style="background-color:#fff8f6;color:#261816;min-height:100vh;">
+<body style="background-color:#f4f4f6;color:#1e1e2e;min-height:100vh;">
 
 <!-- ═══ HEADER ═══ -->
 <header id="app-header">
@@ -204,27 +364,25 @@
       <span class="header-logo-icon">🍕</span>
       <div>
         <div class="header-logo-text">Pizzeria Ali Shama KG</div>
-        <div class="header-logo-sub">EINKAUF & MANAGEMENT</div>
+        <div class="header-logo-sub">Einkauf &amp; Warenverwaltung</div>
       </div>
     </div>
 
     <!-- Right Actions -->
     <div class="header-right">
       <!-- Low-stock badge -->
-      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#93000a;">
-        <span class="material-symbols-outlined" style="font-size:15px">warning</span>
+      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#93000a;">
+        <span class="material-symbols-outlined" style="font-size:16px">warning</span>
         <span id="header-badge-text"></span>
       </div>
       <!-- Bell -->
-      <button id="notif-bell-btn" onclick="showLowStockPopup()"
-        style="border:none;background:transparent;cursor:pointer;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background 0.15s;"
-        onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='transparent'">
-        <span class="material-symbols-outlined" style="color:#8B0000;font-size:22px;">notifications</span>
+      <button id="notif-bell-btn" class="header-bell-btn" onclick="showLowStockPopup()">
+        <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
       </button>
       <!-- Business Button -->
       <button id="biz-header-btn" onclick="switchTab('business')">
         <span class="material-symbols-outlined" id="biz-lock-icon">lock</span>
-        <span class="hidden sm:inline">Business</span>
+        💼 Business
       </button>
     </div>
   </div>
@@ -241,7 +399,7 @@
     </button>
     <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn tab-active">
       <span class="material-symbols-outlined">lightbulb</span>Kombis
-      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
     </button>
     <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
       <span class="material-symbols-outlined">search</span>Suche
@@ -258,8 +416,15 @@
   </div>
 </nav>
 
+<!-- ═══ STATS DASHBOARD (nur Staff-Bereich) ═══ -->
+<div id="stats-dashboard">
+  <div style="max-width:1400px;margin:0 auto;padding:0 40px;">
+    <div id="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
+  </div>
+</div>
+
 <!-- ═══ PANELS ═══ -->
-<main id="app-main" class="mx-auto px-4 md:px-6" style="max-width:1200px;padding-top:28px;padding-bottom:120px;">
+<main id="app-main" style="max-width:1400px;margin:0 auto;padding:20px 40px 140px;">
   <div id="panel-produkte" style="display:none"></div>
   <div id="panel-geschaefte" style="display:none"></div>
   <div id="panel-kombis" style="display:block"></div>
@@ -269,6 +434,15 @@
   <div id="panel-mitarbeiter" style="display:none"></div>
   <div id="panel-business" style="display:none"></div>
 </main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer id="app-footer">
+  <div><strong>Pizzeria Ali Shama KG</strong> &copy; 2024 — Internes Einkaufssystem</div>
+  <div id="footer-last-update" style="display:flex;align-items:center;gap:6px;">
+    <span class="material-symbols-outlined" style="font-size:14px">update</span>
+    Letzte Aktualisierung: <span id="footer-time">—</span>
+  </div>
+</footer>
 
 <!-- ═══ MOBILE BOTTOM NAV ═══ -->
 <nav id="mobile-bottom-nav" class="md:hidden hide-scrollbar">
@@ -933,9 +1107,18 @@ function switchTab(tab) {
   if (bizBtn)    bizBtn.classList.toggle('active', isBiz);
   if (mobBizBtn) mobBizBtn.classList.toggle('mob-biz-active', isBiz);
 
-  // ── dark mode body class ──
+  // ── dark mode / light mode ──
   document.body.classList.toggle('biz-mode', isBiz);
-  document.body.style.backgroundColor = isBiz ? '' : '#fff8f6';
+  document.body.style.backgroundColor = isBiz ? '' : '#f4f4f6';
+
+  // ── stats dashboard ──
+  const statsDash = document.getElementById('stats-dashboard');
+  if (statsDash) statsDash.classList.toggle('hidden', isBiz);
+  if (!isBiz) renderStatsDashboard();
+
+  // ── footer time ──
+  const ft = document.getElementById('footer-time');
+  if (ft) ft.textContent = new Date().toLocaleTimeString('de-AT', {hour:'2-digit',minute:'2-digit'}) + ' Uhr';
 
   // ── render content ──
   if (tab === 'produkte')    renderProductsTab();
@@ -958,6 +1141,67 @@ function switchTab(tab) {
       if (mobLockIcon) mobLockIcon.textContent = 'lock_open';
     }
   }
+}
+
+// ════ STATS DASHBOARD ════
+function renderStatsDashboard() {
+  const grid = document.getElementById('stats-grid');
+  if (!grid) return;
+
+  const low = getLowStockProducts();
+  const total = PRODUCTS.length;
+  const okCount = total - low.length;
+  const { y, m } = typeof bizCurrentMonth === 'function' ? bizCurrentMonth() : { y: new Date().getFullYear(), m: new Date().getMonth()+1 };
+  const monthStr = y + '-' + String(m).padStart(2,'0');
+  const kassa = typeof bizGetKassa === 'function' ? bizGetKassa() : [];
+  const monthRev = kassa.filter(e => e.date.startsWith(monthStr)).reduce((s,e) => s+(e.gesamt||0), 0);
+  const historyThisMonth = HISTORY.filter(e => e.datum && e.datum.startsWith(monthStr));
+  const einkaufMonth = historyThisMonth.reduce((s,e) => s+(e.preis||0), 0);
+
+  const now = new Date();
+  const dayName = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][now.getDay()];
+
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-${low.length>0?'red':'green'}">
+        <span class="material-symbols-outlined filled" style="font-size:28px">${low.length>0?'warning':'check_circle'}</span>
+      </div>
+      <div>
+        <div class="stat-num">${low.length}</div>
+        <div class="stat-label">Produkte unter Minimum</div>
+        <span class="stat-sub ${low.length>0?'stat-sub-red':'stat-sub-green'}">${low.length>0?'Nachbestellen!':'Alle OK'}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-blue">
+        <span class="material-symbols-outlined filled" style="font-size:28px">inventory_2</span>
+      </div>
+      <div>
+        <div class="stat-num">${total}</div>
+        <div class="stat-label">Produkte gesamt</div>
+        <span class="stat-sub stat-sub-green">${okCount} im grünen Bereich</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-${monthRev>0?'green':'amber'}">
+        <span class="material-symbols-outlined filled" style="font-size:28px">euro</span>
+      </div>
+      <div>
+        <div class="stat-num">${monthRev>0 ? '€\u00A0'+Math.round(monthRev).toLocaleString('de-AT') : '—'}</div>
+        <div class="stat-label">Umsatz ${['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][m-1]}</div>
+        <span class="stat-sub ${monthRev>0?'stat-sub-green':'stat-sub-amber'}">${monthRev>0?'aus Kassabuch':'Kassabuch leer'}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-red">
+        <span class="material-symbols-outlined filled" style="font-size:28px">shopping_cart</span>
+      </div>
+      <div>
+        <div class="stat-num">${einkaufMonth>0 ? '€\u00A0'+Math.round(einkaufMonth).toLocaleString('de-AT') : '—'}</div>
+        <div class="stat-label">Einkauf ${['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][m-1]}</div>
+        <span class="stat-sub stat-sub-amber">${HISTORY.length} Einträge gesamt</span>
+      </div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
