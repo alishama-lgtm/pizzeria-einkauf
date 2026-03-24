@@ -1270,10 +1270,9 @@ function switchTab(tab) {
   document.body.classList.toggle('biz-mode', isBiz);
   document.body.style.backgroundColor = isBiz ? '' : '#f4f4f6';
 
-  // ── stats dashboard ──
+  // ── stats dashboard — hidden globally (dashboard is inside Kombis panel) ──
   const statsDash = document.getElementById('stats-dashboard');
-  if (statsDash) statsDash.classList.toggle('hidden', isBiz);
-  if (!isBiz) renderStatsDashboard();
+  if (statsDash) statsDash.style.display = 'none';
 
   // ── footer time ──
   const ft = document.getElementById('footer-time');
@@ -6273,7 +6272,7 @@ function renderClHistorie() {
   }).join('');
 }
 
-// Set correct lock icons on load
+// Set correct lock icons on load + render default tab
 document.addEventListener('DOMContentLoaded', () => {
   const unlocked = bizIsAuth();
   const li1 = document.getElementById('biz-lock-icon');
@@ -6282,6 +6281,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (li2) li2.textContent = unlocked ? 'lock_open' : 'lock';
   fmUpdateBadge();
   clUpdateBadge();
+  renderKombisTab(); // Render the default tab on page load
 });
 </script>
 </body>
