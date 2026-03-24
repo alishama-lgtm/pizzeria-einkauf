@@ -413,6 +413,10 @@
     <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')" class="tab-btn">
       <span class="material-symbols-outlined">badge</span>Mitarbeiter
     </button>
+    <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')" class="tab-btn">
+      <span class="material-symbols-outlined">assignment_late</span>Fehlmaterial
+      <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+    </button>
   </div>
 </nav>
 
@@ -432,6 +436,7 @@
   <div id="panel-upload" style="display:none"></div>
   <div id="panel-verlauf" style="display:none"></div>
   <div id="panel-mitarbeiter" style="display:none"></div>
+  <div id="panel-fehlmaterial" style="display:none"></div>
   <div id="panel-business" style="display:none"></div>
 </main>
 
@@ -466,6 +471,9 @@
   </button>
   <button data-bottom-nav="mitarbeiter" onclick="switchTab('mitarbeiter')" class="mob-nav-btn">
     <span class="material-symbols-outlined">badge</span>Mitarbeiter
+  </button>
+  <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">assignment_late</span>Fehlm.
   </button>
   <button id="mob-biz-btn" onclick="switchTab('business')">
     <span class="material-symbols-outlined" id="mob-biz-lock">lock</span>
@@ -1087,7 +1095,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','suche','upload','verlauf','mitarbeiter','business'].forEach(t => {
+  ['produkte','geschaefte','kombis','suche','upload','verlauf','mitarbeiter','fehlmaterial','business'].forEach(t => {
     document.getElementById('panel-'+t).style.display = t === tab ? 'block' : 'none';
   });
 
@@ -1127,7 +1135,8 @@ function switchTab(tab) {
   if (tab === 'suche')       renderSucheTab();
   if (tab === 'upload')      renderUploadTab();
   if (tab === 'verlauf')     renderVerlaufTab();
-  if (tab === 'mitarbeiter') renderMitarbeiterTab();
+  if (tab === 'mitarbeiter')   renderMitarbeiterTab();
+  if (tab === 'fehlmaterial') renderFehlmaterialTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -4957,6 +4966,639 @@ function bizShowToast(msg) {
   setTimeout(() => t.remove(), 2800);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FEHLMATERIAL
+// ═══════════════════════════════════════════════════════════════
+
+const FM_KEY = 'pizzeria_fehlmaterial';
+let FM_DATA = [];
+try { FM_DATA = JSON.parse(localStorage.getItem(FM_KEY) || '[]'); } catch(_) { FM_DATA = []; }
+
+function fmSave() {
+  try { localStorage.setItem(FM_KEY, JSON.stringify(FM_DATA)); } catch(_) {}
+}
+
+function fmGenId() {
+  return Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+function fmAdd(form) {
+  const now = new Date();
+  FM_DATA.unshift({
+    id:             fmGenId(),
+    datum:          now.toISOString().slice(0, 10),
+    uhrzeit:        now.toLocaleTimeString('de-AT', {hour:'2-digit', minute:'2-digit'}),
+    produktName:    form.produktName,
+    menge:          form.menge,
+    einheit:        form.einheit,
+    kategorie:      form.kategorie,
+    prioritaet:     form.prioritaet,
+    bemerkung:      form.bemerkung,
+    eingetragenVon: form.eingetragenVon,
+    status:         'offen',
+    statusDatum:    null,
+  });
+  fmSave();
+  fmUpdateBadge();
+}
+
+function fmSetStatus(id, newStatus) {
+  const e = FM_DATA.find(x => x.id === id);
+  if (!e) return;
+  e.status = newStatus;
+  e.statusDatum = new Date().toISOString().slice(0, 10);
+  fmSave();
+  fmUpdateBadge();
+  renderFehlmaterialTab();
+}
+
+function fmDelete(id) {
+  FM_DATA = FM_DATA.filter(x => x.id !== id);
+  fmSave();
+  fmUpdateBadge();
+  renderFehlmaterialTab();
+}
+
+function fmUpdateBadge() {
+  const openAll     = FM_DATA.filter(x => x.status === 'offen').length;
+  const openDringend = FM_DATA.filter(x => x.status === 'offen' && x.prioritaet === 'dringend').length;
+  const badge = document.getElementById('fehl-tab-badge');
+  if (!badge) return;
+  if (openAll > 0) {
+    badge.style.display = 'flex';
+    badge.textContent   = openAll;
+    badge.style.background = openDringend > 0 ? '#e53935' : '#f57f17';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+let fmCurrentSection = 'eingabe';
+const fmFilter    = { prioritaet: '', kategorie: '', status: 'offen' };
+const fmHistFilter = { search: '', person: '' };
+
+function showFmSection(id) {
+  fmCurrentSection = id;
+  renderFehlmaterialTab();
+}
+
+const FM_PRIO = {
+  dringend: { label: '🔴 Dringend', color: '#c62828', bg: '#fde8e8', border: '#f5c6c6' },
+  wichtig:  { label: '🟡 Wichtig',  color: '#e65100', bg: '#fff8e1', border: '#ffe082' },
+  normal:   { label: '🟢 Normal',   color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7' },
+};
+const FM_STATUS = {
+  offen:    { label: 'Offen',    color: '#1565c0', bg: '#e3f2fd', border: '#90caf9' },
+  bestellt: { label: 'Bestellt', color: '#e65100', bg: '#fff8e1', border: '#ffe082' },
+  erledigt: { label: 'Erledigt', color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7' },
+};
+const FM_KATEGORIEN = ['Lebensmittel', 'Getränke', 'Verpackung', 'Reinigung', 'Sonstiges'];
+const FM_EINHEITEN  = ['kg', 'Stück', 'Liter', 'Packung'];
+
+function fmFormatDatum(iso) {
+  const today     = new Date().toISOString().slice(0,10);
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if (iso === today)     return 'Heute';
+  if (iso === yesterday) return 'Gestern';
+  return new Date(iso+'T12:00:00').toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+// ════ MAIN RENDER ════
+function renderFehlmaterialTab() {
+  const panel = document.getElementById('panel-fehlmaterial');
+  if (!panel) return;
+
+  const openCount    = FM_DATA.filter(x => x.status === 'offen').length;
+  const dringendCount = FM_DATA.filter(x => x.status === 'offen' && x.prioritaet === 'dringend').length;
+
+  const sections = [
+    { id:'eingabe',    icon:'add_circle',  label:'Eingabe & Liste' },
+    { id:'historie',   icon:'history',     label:'Tageshistorie'   },
+    { id:'auswertung', icon:'bar_chart',   label:'Auswertung'      },
+  ];
+
+  const subNav = `<div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
+    ${sections.map(s => `
+      <button onclick="showFmSection('${s.id}')"
+        style="display:flex;align-items:center;gap:8px;padding:11px 20px;border-radius:10px;
+          font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s;
+          background:${fmCurrentSection===s.id?'#8B0000':'#fff'};
+          color:${fmCurrentSection===s.id?'#fff':'#6b7280'};
+          border:1.5px solid ${fmCurrentSection===s.id?'#8B0000':'#e8e8ed'}">
+        <span class="material-symbols-outlined" style="font-size:18px">${s.icon}</span>
+        ${s.label}
+        ${s.id==='eingabe'&&openCount>0
+          ? `<span style="background:${dringendCount>0?'#e53935':'#f57f17'};color:#fff;border-radius:50%;
+              width:20px;height:20px;font-size:11px;font-weight:700;
+              display:flex;align-items:center;justify-content:center">${openCount}</span>`
+          : ''}
+      </button>`).join('')}
+  </div>`;
+
+  let content = '';
+  if (fmCurrentSection === 'eingabe')    content = renderFmEingabe();
+  if (fmCurrentSection === 'historie')   content = renderFmHistorie();
+  if (fmCurrentSection === 'auswertung') content = renderFmAuswertung();
+
+  panel.innerHTML = `
+    <div class="ws-section-header" style="margin-bottom:20px">
+      <div class="ws-section-title">
+        <span class="material-symbols-outlined">assignment_late</span>
+        Fehlmaterial
+        ${dringendCount>0 ? `<span class="ws-badge ws-badge-red">${dringendCount} dringend</span>` : ''}
+      </div>
+    </div>
+    ${subNav}
+    ${content}`;
+
+  fmUpdateBadge();
+}
+
+// ════ BEREICH A: EINGABE & LISTE ════
+function renderFmEingabe() {
+  const fPrio = fmFilter.prioritaet;
+  const fKat  = fmFilter.kategorie;
+  const fStat = fmFilter.status;
+
+  const rows = FM_DATA.filter(e => {
+    if (fStat && e.status    !== fStat)  return false;
+    if (fPrio && e.prioritaet !== fPrio) return false;
+    if (fKat  && e.kategorie  !== fKat)  return false;
+    return true;
+  }).slice(0, 200);
+
+  const rowsHtml = rows.length === 0
+    ? `<tr><td colspan="7" style="text-align:center;padding:48px;color:#9ca3af;font-size:14px">
+        Keine Einträge gefunden
+       </td></tr>`
+    : rows.map(e => {
+        const prio = FM_PRIO[e.prioritaet] || FM_PRIO.normal;
+        const stat = FM_STATUS[e.status]   || FM_STATUS.offen;
+        return `
+          <tr style="${e.status==='erledigt'?'opacity:0.5':''}">
+            <td>
+              <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;
+                font-size:12px;font-weight:700;background:${prio.bg};color:${prio.color};
+                border:1px solid ${prio.border};white-space:nowrap">${prio.label}</span>
+            </td>
+            <td>
+              <div style="font-weight:700;font-size:14px;color:#1e1e2e">${e.produktName}</div>
+              ${e.bemerkung ? `<div style="font-size:12px;color:#9ca3af;margin-top:2px">${e.bemerkung}</div>` : ''}
+            </td>
+            <td style="font-size:13px;color:#6b7280;white-space:nowrap">${e.menge} ${e.einheit}</td>
+            <td>
+              <span style="background:#f0f0f5;color:#6b7280;border-radius:6px;
+                padding:2px 8px;font-size:11px;font-weight:600">${e.kategorie}</span>
+            </td>
+            <td style="font-size:12px;color:#9ca3af">
+              ${e.eingetragenVon || '—'}<br>
+              <span style="font-size:11px">${e.datum} ${e.uhrzeit}</span>
+            </td>
+            <td>
+              <span style="display:inline-flex;padding:3px 10px;border-radius:20px;
+                font-size:12px;font-weight:700;background:${stat.bg};color:${stat.color};
+                border:1px solid ${stat.border};white-space:nowrap">${stat.label}</span>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:nowrap">
+                ${e.status==='offen' ? `
+                  <button onclick="fmSetStatus('${e.id}','bestellt')"
+                    style="min-height:48px;padding:8px 12px;border-radius:8px;border:none;
+                      background:#fff8e1;color:#e65100;font-size:12px;font-weight:700;
+                      cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap">
+                    <span class="material-symbols-outlined" style="font-size:15px">shopping_cart</span>Bestellt
+                  </button>` : ''}
+                ${e.status!=='erledigt' ? `
+                  <button onclick="fmSetStatus('${e.id}','erledigt')"
+                    style="min-height:48px;padding:8px 12px;border-radius:8px;border:none;
+                      background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;
+                      cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap">
+                    <span class="material-symbols-outlined" style="font-size:15px">check_circle</span>Erledigt
+                  </button>` : ''}
+                <button onclick="if(confirm('Eintrag löschen?'))fmDelete('${e.id}')"
+                  style="min-height:48px;width:48px;border-radius:8px;border:1.5px solid #e8e8ed;
+                    background:#fff;color:#9ca3af;cursor:pointer;display:flex;
+                    align-items:center;justify-content:center">
+                  <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+      }).join('');
+
+  return `
+    <!-- FORMULAR -->
+    <div class="ws-card" style="margin-bottom:24px">
+      <div class="ws-section-header" style="margin-bottom:16px">
+        <div class="ws-section-title" style="font-size:17px">
+          <span class="material-symbols-outlined">add_circle</span>Neues Fehlmaterial melden
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:16px">
+        <div style="grid-column:1/-1">
+          <label class="ws-label">Produktname *</label>
+          <input id="fm-produktname" class="ws-input" type="text"
+            placeholder="z.B. Mozzarella, Pizzateig, Servietten..."
+            style="font-size:16px;padding:13px 16px;"
+            onkeydown="if(event.key==='Enter')document.getElementById('fm-menge').focus()">
+        </div>
+        <div>
+          <label class="ws-label">Menge *</label>
+          <input id="fm-menge" class="ws-input" type="number" min="0.1" step="0.1"
+            placeholder="z.B. 5" style="font-size:16px;padding:13px 16px;">
+        </div>
+        <div>
+          <label class="ws-label">Einheit</label>
+          <select id="fm-einheit" class="ws-input" style="font-size:15px;padding:13px 16px;">
+            ${FM_EINHEITEN.map(e => `<option value="${e}">${e}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="ws-label">Kategorie</label>
+          <select id="fm-kategorie" class="ws-input" style="font-size:15px;padding:13px 16px;">
+            ${FM_KATEGORIEN.map(k => `<option value="${k}">${k}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="ws-label">Priorität</label>
+          <select id="fm-prioritaet" class="ws-input" style="font-size:15px;padding:13px 16px;">
+            <option value="dringend">🔴 Dringend</option>
+            <option value="wichtig" selected>🟡 Wichtig</option>
+            <option value="normal">🟢 Normal</option>
+          </select>
+        </div>
+        <div>
+          <label class="ws-label">Eingetragen von *</label>
+          <input id="fm-person" class="ws-input" type="text"
+            placeholder="Dein Name" style="font-size:15px;padding:13px 16px;">
+        </div>
+        <div>
+          <label class="ws-label">Bemerkung (optional)</label>
+          <input id="fm-bemerkung" class="ws-input" type="text"
+            placeholder="z.B. für Samstag dringend" style="font-size:15px;padding:13px 16px;">
+        </div>
+      </div>
+      <button onclick="fmSubmitForm()"
+        style="min-height:52px;width:100%;border-radius:12px;border:none;background:#8B0000;color:#fff;
+          font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s"
+        onmouseover="this.style.background='#6a0000'"
+        onmouseout="this.style.background='#8B0000'">
+        <span class="material-symbols-outlined" style="font-size:22px">add_alert</span>
+        Fehlmaterial melden
+      </button>
+    </div>
+
+    <!-- FILTER + LISTE -->
+    <div class="ws-card">
+      <div class="ws-section-header">
+        <div class="ws-section-title" style="font-size:17px">
+          <span class="material-symbols-outlined">list</span>Meldungen
+          ${FM_DATA.filter(x=>x.status==='offen').length>0
+            ? `<span class="ws-badge ws-badge-red">${FM_DATA.filter(x=>x.status==='offen').length} offen</span>`
+            : ''}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
+            onchange="fmFilter.status=this.value;renderFehlmaterialTab()">
+            <option value="offen"    ${fStat==='offen'   ?'selected':''}>Offen</option>
+            <option value="bestellt" ${fStat==='bestellt'?'selected':''}>Bestellt</option>
+            <option value="erledigt" ${fStat==='erledigt'?'selected':''}>Erledigt</option>
+            <option value=""         ${fStat===''        ?'selected':''}>Alle Status</option>
+          </select>
+          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
+            onchange="fmFilter.prioritaet=this.value;renderFehlmaterialTab()">
+            <option value=""         ${fPrio===''        ?'selected':''}>Alle Prioritäten</option>
+            <option value="dringend" ${fPrio==='dringend'?'selected':''}>🔴 Dringend</option>
+            <option value="wichtig"  ${fPrio==='wichtig' ?'selected':''}>🟡 Wichtig</option>
+            <option value="normal"   ${fPrio==='normal'  ?'selected':''}>🟢 Normal</option>
+          </select>
+          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
+            onchange="fmFilter.kategorie=this.value;renderFehlmaterialTab()">
+            <option value="" ${fKat===''?'selected':''}>Alle Kategorien</option>
+            ${FM_KATEGORIEN.map(k=>`<option value="${k}" ${fKat===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto" class="hide-scrollbar">
+        <table class="ws-table" style="min-width:860px">
+          <thead>
+            <tr>
+              <th>Priorität</th>
+              <th>Produkt</th>
+              <th>Menge</th>
+              <th>Kategorie</th>
+              <th>Gemeldet von</th>
+              <th>Status</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function fmSubmitForm() {
+  const produktName    = (document.getElementById('fm-produktname')?.value||'').trim();
+  const mengeRaw       = document.getElementById('fm-menge')?.value;
+  const einheit        = document.getElementById('fm-einheit')?.value    || 'Stück';
+  const kategorie      = document.getElementById('fm-kategorie')?.value  || 'Lebensmittel';
+  const prioritaet     = document.getElementById('fm-prioritaet')?.value || 'wichtig';
+  const eingetragenVon = (document.getElementById('fm-person')?.value    || '').trim();
+  const bemerkung      = (document.getElementById('fm-bemerkung')?.value || '').trim();
+
+  if (!produktName) {
+    fmShowToast('❌ Bitte Produktname eingeben!');
+    document.getElementById('fm-produktname')?.focus(); return;
+  }
+  const menge = parseFloat(mengeRaw);
+  if (!mengeRaw || isNaN(menge) || menge <= 0) {
+    fmShowToast('❌ Bitte gültige Menge eingeben!');
+    document.getElementById('fm-menge')?.focus(); return;
+  }
+  if (!eingetragenVon) {
+    fmShowToast('❌ Bitte Namen eingeben!');
+    document.getElementById('fm-person')?.focus(); return;
+  }
+
+  fmAdd({ produktName, menge, einheit, kategorie, prioritaet, bemerkung, eingetragenVon });
+  fmShowToast('✅ Fehlmaterial gemeldet!');
+
+  // Formular leeren (Name bleibt)
+  document.getElementById('fm-produktname').value = '';
+  document.getElementById('fm-menge').value        = '';
+  document.getElementById('fm-bemerkung').value    = '';
+  document.getElementById('fm-prioritaet').value   = 'wichtig';
+  renderFehlmaterialTab();
+}
+
+// ════ BEREICH B: TAGESHISTORIE ════
+function renderFmHistorie() {
+  const search  = fmHistFilter.search.toLowerCase();
+  const person  = fmHistFilter.person.toLowerCase();
+
+  const filtered = FM_DATA.filter(e => {
+    if (search && !e.produktName.toLowerCase().includes(search))       return false;
+    if (person && !(e.eingetragenVon||'').toLowerCase().includes(person)) return false;
+    return true;
+  });
+
+  const persons = [...new Set(FM_DATA.map(e=>e.eingetragenVon).filter(Boolean))].sort();
+
+  // Gruppieren nach Datum
+  const grouped = {};
+  filtered.forEach(e => {
+    if (!grouped[e.datum]) grouped[e.datum] = [];
+    grouped[e.datum].push(e);
+  });
+  const sortedDates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
+
+  const groupsHtml = sortedDates.length === 0
+    ? `<div class="ws-card" style="text-align:center;padding:60px 20px;color:#9ca3af;font-size:14px">
+        Keine Einträge gefunden
+       </div>`
+    : sortedDates.map(date => {
+        const entries = grouped[date];
+        const dateLabel = fmFormatDatum(date);
+        const wochentag = new Date(date+'T12:00:00').toLocaleDateString('de-AT',{weekday:'long'});
+        const itemsHtml = entries.map(e => {
+          const prio = FM_PRIO[e.prioritaet] || FM_PRIO.normal;
+          const stat = FM_STATUS[e.status]   || FM_STATUS.offen;
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;
+              border-bottom:1px solid #f0f0f5;flex-wrap:wrap;min-height:52px">
+              <span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;
+                font-weight:700;background:${prio.bg};color:${prio.color};
+                border:1px solid ${prio.border};flex-shrink:0;white-space:nowrap">${prio.label}</span>
+              <div style="flex:1;min-width:100px">
+                <span style="font-weight:700;font-size:14px">${e.produktName}</span>
+                <span style="font-size:13px;color:#6b7280;margin-left:6px">${e.menge} ${e.einheit}</span>
+                ${e.bemerkung ? `<span style="font-size:12px;color:#9ca3af;margin-left:6px">${e.bemerkung}</span>` : ''}
+              </div>
+              <span style="font-size:12px;color:#9ca3af;flex-shrink:0">
+                ${e.eingetragenVon||'—'} · ${e.uhrzeit}
+              </span>
+              <span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;
+                font-weight:700;background:${stat.bg};color:${stat.color};
+                border:1px solid ${stat.border};flex-shrink:0;white-space:nowrap">${stat.label}</span>
+            </div>`;
+        }).join('');
+        return `
+          <div class="ws-card ws-card-sm" style="margin-bottom:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;
+              margin-bottom:10px;flex-wrap:wrap;gap:8px">
+              <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;
+                font-weight:800;color:#1e1e2e">${dateLabel}
+                <span style="font-size:13px;font-weight:500;color:#9ca3af;margin-left:8px">${wochentag}</span>
+              </div>
+              <span class="ws-badge" style="background:#f0f0f5;color:#6b7280">
+                ${entries.length} Meldung${entries.length!==1?'en':''}
+              </span>
+            </div>
+            <div style="border:1px solid #e8e8ed;border-radius:10px;overflow:hidden">${itemsHtml}</div>
+          </div>`;
+      }).join('');
+
+  return `
+    <div class="ws-card" style="margin-bottom:20px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:180px">
+          <label class="ws-label">Suche nach Produkt</label>
+          <input class="ws-input" type="text" placeholder="Produktname suchen..."
+            value="${fmHistFilter.search}"
+            oninput="fmHistFilter.search=this.value;renderFehlmaterialTab()">
+        </div>
+        <div style="min-width:160px">
+          <label class="ws-label">Mitarbeiter</label>
+          <select class="ws-input" onchange="fmHistFilter.person=this.value;renderFehlmaterialTab()">
+            <option value="">Alle Mitarbeiter</option>
+            ${persons.map(p=>`<option value="${p}" ${fmHistFilter.person===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <span class="ws-badge" style="background:#f0f0f5;color:#6b7280;font-size:13px">
+            ${filtered.length} Einträge
+          </span>
+        </div>
+      </div>
+    </div>
+    ${groupsHtml}`;
+}
+
+// ════ BEREICH C: AUSWERTUNG ════
+function renderFmAuswertung() {
+  if (FM_DATA.length === 0) {
+    return `<div class="ws-card" style="text-align:center;padding:60px 20px">
+      <div style="font-size:48px;margin-bottom:12px">📊</div>
+      <div style="font-size:16px;font-weight:700;color:#6b7280">Noch keine Daten vorhanden</div>
+      <div style="font-size:13px;color:#9ca3af;margin-top:6px">
+        Melde zuerst Fehlmaterial unter "Eingabe &amp; Liste"
+      </div>
+    </div>`;
+  }
+
+  // Häufigkeiten
+  const freq = {};
+  FM_DATA.forEach(e => {
+    const key = e.produktName.toLowerCase().trim();
+    if (!freq[key]) freq[key] = { name: e.produktName, count: 0, dringend: 0 };
+    freq[key].count++;
+    if (e.prioritaet === 'dringend') freq[key].dringend++;
+  });
+  const sorted = Object.values(freq).sort((a,b) => b.count - a.count);
+  const top5   = sorted.slice(0, 5);
+  const maxCount = top5[0]?.count || 1;
+
+  const top5Html = top5.length === 0
+    ? `<div style="color:#9ca3af;text-align:center;padding:20px">Keine Daten</div>`
+    : top5.map((item, i) => {
+        const isCritical = item.count >= 3;
+        const barW = Math.round((item.count / maxCount) * 100);
+        return `
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;
+            border-bottom:1px solid #f0f0f5">
+            <div style="width:26px;height:26px;border-radius:50%;flex-shrink:0;
+              display:flex;align-items:center;justify-content:center;
+              font-size:12px;font-weight:800;
+              background:${isCritical?'#fde8e8':'#f0f0f5'};
+              color:${isCritical?'#c62828':'#6b7280'}">${i+1}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <span style="font-weight:700;font-size:14px;overflow:hidden;
+                  text-overflow:ellipsis;white-space:nowrap">${item.name}</span>
+                ${isCritical
+                  ? `<span style="background:#fde8e8;color:#c62828;border-radius:4px;
+                      padding:1px 6px;font-size:11px;font-weight:700;flex-shrink:0">🔴 Kritisch</span>`
+                  : ''}
+              </div>
+              <div style="background:#f0f0f5;border-radius:4px;height:6px;overflow:hidden">
+                <div style="width:${barW}%;height:100%;border-radius:4px;
+                  background:${isCritical?'#c62828':'#8B0000'};transition:width .3s"></div>
+              </div>
+            </div>
+            <div style="font-size:14px;font-weight:800;flex-shrink:0;
+              color:${isCritical?'#c62828':'#1e1e2e'}">${item.count}×</div>
+          </div>`;
+      }).join('');
+
+  // Wochentage
+  const dayNames  = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const dayFull   = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+  const dayCounts = [0,0,0,0,0,0,0];
+  FM_DATA.forEach(e => {
+    if (e.datum) dayCounts[new Date(e.datum+'T12:00:00').getDay()]++;
+  });
+  const maxDay     = Math.max(...dayCounts) || 1;
+  const busiestDay = dayCounts.indexOf(Math.max(...dayCounts));
+  const dayHtml = dayCounts.map((count, i) => {
+    const h = Math.round((count / maxDay) * 64);
+    const isMax = count === maxDay && count > 0;
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+        <div style="font-size:12px;font-weight:700;color:${isMax?'#8B0000':'#6b7280'}">${count||''}</div>
+        <div style="width:100%;max-width:36px;height:64px;display:flex;align-items:flex-end">
+          <div style="width:100%;height:${h}px;border-radius:4px 4px 0 0;
+            background:${isMax?'#8B0000':'#e2e2e8'};min-height:${count>0?4:0}px;
+            transition:height .3s"></div>
+        </div>
+        <div style="font-size:11px;color:#9ca3af">${dayNames[i]}</div>
+      </div>`;
+  }).join('');
+
+  // Kritische Artikel (3×+)
+  const critical = sorted.filter(x => x.count >= 3);
+
+  return `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px">
+
+      <!-- Top 5 -->
+      <div class="ws-card">
+        <div class="ws-section-title" style="font-size:16px;margin-bottom:16px">
+          <span class="material-symbols-outlined">trending_up</span>Top 5 Fehlmaterialien
+        </div>
+        ${top5Html}
+      </div>
+
+      <!-- Wochentage -->
+      <div class="ws-card">
+        <div class="ws-section-title" style="font-size:16px;margin-bottom:16px">
+          <span class="material-symbols-outlined">calendar_today</span>Meldungen nach Wochentag
+        </div>
+        <div style="display:flex;gap:4px;height:80px;margin-bottom:8px">
+          ${dayHtml}
+        </div>
+        ${dayCounts[busiestDay] > 0
+          ? `<div style="text-align:center;font-size:13px;color:#6b7280;margin-top:8px">
+              Meiste Meldungen am
+              <strong style="color:#8B0000">${dayFull[busiestDay]}</strong>
+              (${dayCounts[busiestDay]}×)
+            </div>`
+          : ''}
+      </div>
+
+      <!-- Kritische Artikel -->
+      <div class="ws-card" style="grid-column:1/-1">
+        <div class="ws-section-title" style="font-size:16px;margin-bottom:16px">
+          <span class="material-symbols-outlined" style="color:#c62828">warning</span>
+          Kritische Artikel
+          <span style="font-size:13px;font-weight:500;color:#9ca3af">(3× oder öfter gefehlt)</span>
+        </div>
+        ${critical.length === 0
+          ? `<div style="text-align:center;padding:24px;color:#9ca3af;font-size:14px">
+              <span style="font-size:32px">✅</span><br>
+              Keine kritischen Artikel — sehr gut!
+            </div>`
+          : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+              ${critical.map(item => `
+                <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+                  border-radius:12px;background:#fde8e8;border:1.5px solid #f5c6c6">
+                  <span style="font-size:28px;line-height:1">🔴</span>
+                  <div>
+                    <div style="font-weight:800;font-size:14px;color:#c62828">${item.name}</div>
+                    <div style="font-size:12px;color:#e53935;font-weight:600">${item.count}× gefehlt</div>
+                  </div>
+                </div>`).join('')}
+            </div>`}
+      </div>
+
+      <!-- Gesamtstatistik -->
+      <div class="ws-card">
+        <div class="ws-section-title" style="font-size:16px;margin-bottom:16px">
+          <span class="material-symbols-outlined">analytics</span>Übersicht
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="padding:14px;border-radius:12px;background:#f0f0f5;text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#1e1e2e">${FM_DATA.length}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px">Einträge gesamt</div>
+          </div>
+          <div style="padding:14px;border-radius:12px;background:#fde8e8;text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#c62828">${FM_DATA.filter(x=>x.status==='offen').length}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px">Noch offen</div>
+          </div>
+          <div style="padding:14px;border-radius:12px;background:#fff8e1;text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#e65100">${FM_DATA.filter(x=>x.status==='bestellt').length}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px">Bestellt</div>
+          </div>
+          <div style="padding:14px;border-radius:12px;background:#e8f5e9;text-align:center">
+            <div style="font-size:28px;font-weight:800;color:#2e7d32">${FM_DATA.filter(x=>x.status==='erledigt').length}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:2px">Erledigt</div>
+          </div>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+// ════ FEHLMATERIAL TOAST ════
+function fmShowToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:#fff;padding:12px 24px;border-radius:12px;font-size:15px;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
 // Set correct lock icons on load
 document.addEventListener('DOMContentLoaded', () => {
   const unlocked = bizIsAuth();
@@ -4964,6 +5606,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const li2 = document.getElementById('mob-biz-lock');
   if (li1) li1.textContent = unlocked ? 'lock_open' : 'lock';
   if (li2) li2.textContent = unlocked ? 'lock_open' : 'lock';
+  fmUpdateBadge();
 });
 </script>
 </body>
