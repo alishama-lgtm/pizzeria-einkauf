@@ -314,8 +314,49 @@
       font-family: inherit; transition: all .15s;
     }
     #mob-biz-btn .material-symbols-outlined { font-size: 18px; color: #D4AF37; }
-    #mob-biz-btn.mob-biz-active { background: #D4AF37; border-color: #D4AF37; color: #1a1a2e; }
-    #mob-biz-btn.mob-biz-active .material-symbols-outlined { color: #1a1a2e; }
+    #mob-biz-btn.mob-biz-active { background: #D4AF37 !important; border-color: #D4AF37 !important; color: #1a1a2e !important; }
+    #mob-biz-btn.mob-biz-active .material-symbols-outlined { color: #1a1a2e !important; }
+
+    /* ════ MEHR DRAWER ════ */
+    #mehr-drawer-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 48;
+      backdrop-filter: blur(2px);
+    }
+    #mehr-drawer {
+      position: fixed;
+      bottom: 78px; left: 0; right: 0;
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+      z-index: 49;
+      padding: 8px 16px 24px;
+      transform: translateY(110%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+    #mehr-drawer.drawer-open { transform: translateY(0); }
+    .drawer-handle { width: 40px; height: 4px; background: #e2e2e8; border-radius: 2px; margin: 8px auto 16px; }
+    .drawer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .drawer-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 5px; padding: 14px 4px 12px;
+      border: 1.5px solid #e8e8ed; border-radius: 14px;
+      background: #fff; cursor: pointer;
+      font-size: 11px; font-weight: 600; color: #6b7280;
+      font-family: inherit; transition: all .15s;
+    }
+    .drawer-item.mob-active { background: #fff0ee; border-color: #e3beb8; color: #8B0000; }
+    .drawer-item .material-symbols-outlined { font-size: 24px; }
+
+    /* FM mobile badge */
+    .mob-nav-btn { position: relative; }
+
+    /* Responsive FM cards */
+    @media (min-width: 640px) {
+      .fm-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    }
 
     /* ════ FOOTER ════ */
     #app-footer {
@@ -455,39 +496,53 @@
 </footer>
 
 <!-- ═══ MOBILE BOTTOM NAV ═══ -->
-<nav id="mobile-bottom-nav" class="md:hidden hide-scrollbar">
+<nav id="mobile-bottom-nav" class="md:hidden">
+  <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
+    <span class="material-symbols-outlined">home</span>Dashboard
+  </button>
   <button data-bottom-nav="produkte" onclick="switchTab('produkte')" class="mob-nav-btn">
     <span class="material-symbols-outlined">inventory_2</span>Produkte
-  </button>
-  <button data-bottom-nav="geschaefte" onclick="switchTab('geschaefte')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">store</span>Geschäfte
-  </button>
-  <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
-    <span class="material-symbols-outlined">lightbulb</span>Kombis
   </button>
   <button data-bottom-nav="suche" onclick="switchTab('suche')" class="mob-nav-btn">
     <span class="material-symbols-outlined">search</span>Suche
   </button>
-  <button data-bottom-nav="upload" onclick="switchTab('upload')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">photo_camera</span>Upload
-  </button>
-  <button data-bottom-nav="verlauf" onclick="switchTab('verlauf')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">bar_chart</span>Verlauf
-  </button>
-  <button data-bottom-nav="mitarbeiter" onclick="switchTab('mitarbeiter')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">badge</span>Mitarbeiter
-  </button>
-  <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn">
+  <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn" style="position:relative">
     <span class="material-symbols-outlined">assignment_late</span>Fehlm.
+    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:10px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
-  <button data-bottom-nav="checkliste" onclick="switchTab('checkliste')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">checklist</span>Liste
-  </button>
-  <button id="mob-biz-btn" onclick="switchTab('business')">
-    <span class="material-symbols-outlined" id="mob-biz-lock">lock</span>
-    <span>Business</span>
+  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn">
+    <span class="material-symbols-outlined">more_horiz</span>Mehr
   </button>
 </nav>
+
+<!-- ═══ MEHR DRAWER ═══ -->
+<div id="mehr-drawer-overlay" onclick="closeMehrDrawer()"></div>
+<div id="mehr-drawer" class="md:hidden">
+  <div class="drawer-handle"></div>
+  <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding:0 2px">Weitere Bereiche</div>
+  <div class="drawer-grid">
+    <button data-drawer-nav="geschaefte" onclick="switchTab('geschaefte');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">store</span>Geschäfte
+    </button>
+    <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">photo_camera</span>Upload
+    </button>
+    <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">bar_chart</span>Verlauf
+    </button>
+    <button data-drawer-nav="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">badge</span>Mitarbeiter
+    </button>
+    <button data-drawer-nav="checkliste" onclick="switchTab('checkliste');closeMehrDrawer()" class="drawer-item" style="position:relative">
+      <span class="material-symbols-outlined">checklist</span>Checkliste
+      <span id="cl-drawer-badge" style="display:none;position:absolute;top:8px;right:8px;width:10px;height:10px;background:#2e7d32;border-radius:50%"></span>
+    </button>
+    <button id="mob-biz-btn" onclick="switchTab('business');closeMehrDrawer()" class="drawer-item" style="background:#1a1a2e;border-color:#2d2d4a;color:#D4AF37">
+      <span class="material-symbols-outlined" id="mob-biz-lock" style="color:#D4AF37">lock</span>
+      Business
+    </button>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -916,9 +971,52 @@ function renderKombisTab() {
   const low = getLowStockProducts();
   const { single, two, hasLow } = calculateCombinations();
 
+  // ── Mini Dashboard ────────────────────────────────────────────
+  const fmOpen = typeof FM_DATA !== 'undefined' ? FM_DATA.filter(x=>x.status==='offen').length : 0;
+  const fmDringend = typeof FM_DATA !== 'undefined' ? FM_DATA.filter(x=>x.status==='offen'&&x.prioritaet==='dringend').length : 0;
+  const { y, m } = typeof bizCurrentMonth === 'function' ? bizCurrentMonth() : { y: new Date().getFullYear(), m: new Date().getMonth()+1 };
+  const monthStr = y + '-' + String(m).padStart(2,'0');
+  const kassa = typeof bizGetKassa === 'function' ? bizGetKassa() : [];
+  const monthRev = kassa.filter(e => e.date && e.date.startsWith(monthStr)).reduce((s,e)=>s+(e.gesamt||0),0);
+  const monthNames = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+  const dashHtml = `
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
+      <div onclick="switchTab('fehlmaterial')" style="background:#fff;border-radius:14px;padding:16px 18px;
+        border:1.5px solid ${low.length>0?'#ffdad6':'#e8e8ed'};cursor:pointer;
+        box-shadow:0 1px 4px rgba(0,0,0,0.07);transition:box-shadow .15s"
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.13)'"
+        onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.07)'">
+        <div style="font-size:26px;font-weight:800;color:${low.length>0?'#c62828':'#16a34a'}">${low.length}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Unter Minimum</div>
+        <div style="font-size:11px;font-weight:700;color:${low.length>0?'#c62828':'#16a34a'};margin-top:4px">${low.length>0?'🔴 Nachbestellen':'✅ Alles OK'}</div>
+      </div>
+      <div style="background:#fff;border-radius:14px;padding:16px 18px;
+        border:1.5px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+        <div style="font-size:26px;font-weight:800;color:#1565c0">${PRODUCTS.length}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Produkte gesamt</div>
+        <div style="font-size:11px;font-weight:700;color:#2e7d32;margin-top:4px">📦 ${PRODUCTS.length - low.length} im Soll</div>
+      </div>
+      <div style="background:#fff;border-radius:14px;padding:16px 18px;
+        border:1.5px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
+        <div style="font-size:${monthRev>0?'22':'26'}px;font-weight:800;color:${monthRev>0?'#2e7d32':'#9ca3af'}">${monthRev>0?'€ '+Math.round(monthRev).toLocaleString('de-AT'):'—'}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Umsatz ${monthNames[m-1]}</div>
+        <div style="font-size:11px;font-weight:700;color:${monthRev>0?'#2e7d32':'#9ca3af'};margin-top:4px">${monthRev>0?'💰 Kassabuch':'Noch keine Daten'}</div>
+      </div>
+      <div onclick="switchTab('fehlmaterial')" style="background:#fff;border-radius:14px;padding:16px 18px;
+        border:1.5px solid ${fmOpen>0?'#fff8e1':'#e8e8ed'};cursor:pointer;
+        box-shadow:0 1px 4px rgba(0,0,0,0.07);transition:box-shadow .15s"
+        onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.13)'"
+        onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.07)'">
+        <div style="font-size:26px;font-weight:800;color:${fmDringend>0?'#c62828':fmOpen>0?'#e65100':'#9ca3af'}">${fmOpen}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Fehlmaterial offen</div>
+        <div style="font-size:11px;font-weight:700;color:${fmDringend>0?'#c62828':fmOpen>0?'#e65100':'#9ca3af'};margin-top:4px">${fmDringend>0?'⚠️ '+fmDringend+' dringend':fmOpen>0?'→ Ansehen':'✅ Alles OK'}</div>
+      </div>
+    </div>`;
+
   if (!hasLow) {
-    document.getElementById('panel-kombis').innerHTML = `
-      <div style="text-align:center;padding:80px 20px">
+    document.getElementById('panel-kombis').innerHTML = dashHtml + `
+      <div style="text-align:center;padding:60px 20px">
         <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
           <span class="material-symbols-outlined filled" style="font-size:32px;color:#16a34a">check_circle</span>
         </div>
@@ -931,7 +1029,7 @@ function renderKombisTab() {
   }
 
   // Warning banner — compact single line
-  let html = `
+  let html = dashHtml + `
     <div style="background:#ffdad6;border-left:3px solid #ba1a1a;border-radius:6px;padding:8px 12px;margin-bottom:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span class="material-symbols-outlined" style="font-size:15px;color:#ba1a1a;flex-shrink:0">warning</span>
       <span style="font-size:12px;font-weight:700;color:#93000a;flex-shrink:0">${low.length} nachbestellen:</span>
@@ -1146,10 +1244,21 @@ function switchTab(tab) {
     el.classList.toggle('tab-active', el.dataset.navTab === tab);
   });
 
+  // ── close mehr drawer ──
+  if (typeof closeMehrDrawer === 'function') closeMehrDrawer();
+
   // ── mobile staff buttons ──
   document.querySelectorAll('[data-bottom-nav]').forEach(el => {
     el.classList.toggle('mob-active', el.dataset.bottomNav === tab);
   });
+
+  // ── drawer nav items ──
+  const drawerTabs = ['geschaefte','upload','verlauf','mitarbeiter','checkliste','business'];
+  document.querySelectorAll('[data-drawer-nav]').forEach(el => {
+    el.classList.toggle('mob-active', el.dataset.drawerNav === tab);
+  });
+  const mehrBtn = document.getElementById('mob-mehr-btn');
+  if (mehrBtn) mehrBtn.classList.toggle('mob-active', drawerTabs.includes(tab) && tab !== 'business');
 
   // ── business button states ──
   const bizBtn    = document.getElementById('biz-header-btn');
@@ -5095,21 +5204,53 @@ function fmDelete(id) {
   renderFehlmaterialTab();
 }
 
+function toggleMehrDrawer() {
+  const drawer  = document.getElementById('mehr-drawer');
+  const overlay = document.getElementById('mehr-drawer-overlay');
+  if (!drawer) return;
+  const isOpen = drawer.classList.contains('drawer-open');
+  if (isOpen) {
+    drawer.classList.remove('drawer-open');
+    if (overlay) overlay.style.display = 'none';
+  } else {
+    drawer.classList.add('drawer-open');
+    if (overlay) overlay.style.display = 'block';
+  }
+}
+
+function closeMehrDrawer() {
+  document.getElementById('mehr-drawer')?.classList.remove('drawer-open');
+  const overlay = document.getElementById('mehr-drawer-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
 function fmUpdateBadge() {
   const openAll      = FM_DATA.filter(x => x.status === 'offen').length;
   const openDringend = FM_DATA.filter(x => x.status === 'offen' && x.prioritaet === 'dringend').length;
   const badge = document.getElementById('fehl-tab-badge');
-  if (!badge) return;
-  if (openAll > 0) {
-    badge.style.display    = 'flex';
-    badge.textContent      = openAll;
-    badge.style.background = openDringend > 0 ? '#e53935' : '#f57f17';
-  } else {
-    badge.style.display = 'none';
+  if (badge) {
+    if (openAll > 0) {
+      badge.style.display    = 'flex';
+      badge.textContent      = openAll;
+      badge.style.background = openDringend > 0 ? '#e53935' : '#f57f17';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  // Mobile bottom nav badge
+  const mobBadge = document.getElementById('fehl-mob-badge');
+  if (mobBadge) {
+    if (openAll > 0) {
+      mobBadge.style.display = 'inline-block';
+      mobBadge.textContent   = openAll;
+    } else {
+      mobBadge.style.display = 'none';
+    }
   }
 }
 
 let fmCurrentSection = 'eingabe';
+let fmSelectedPrio   = 'wichtig';
 const fmFilter     = { prioritaet: '', kategorie: '', status: 'offen', person: '' };
 const fmHistFilter = { search: '', person: '', kategorie: '' };
 
@@ -5198,6 +5339,7 @@ function fmBuildDatalist() {
 }
 
 // ════ BEREICH A: EINGABE & LISTE ════
+// ════ BEREICH A: EINGABE & LISTE ════
 function renderFmEingabe() {
   const fPrio   = fmFilter.prioritaet;
   const fKat    = fmFilter.kategorie;
@@ -5205,7 +5347,7 @@ function renderFmEingabe() {
   const fPerson = fmFilter.person;
   const savedName = localStorage.getItem('fm_last_person') || '';
 
-  const rows = FM_DATA.filter(e => {
+  let rows = FM_DATA.filter(e => {
     if (fStat   && e.status     !== fStat)   return false;
     if (fPrio   && e.prioritaet !== fPrio)   return false;
     if (fKat    && e.kategorie  !== fKat)    return false;
@@ -5213,34 +5355,55 @@ function renderFmEingabe() {
     return true;
   }).slice(0, 200);
 
+  // Dringend & open entries first
+  rows.sort((a,b) => {
+    const aErled = a.status==='erledigt', bErled = b.status==='erledigt';
+    if (aErled && !bErled) return 1;
+    if (!aErled && bErled) return -1;
+    const aDr = a.prioritaet==='dringend', bDr = b.prioritaet==='dringend';
+    if (aDr && !bDr) return -1;
+    if (!aDr && bDr) return 1;
+    return 0;
+  });
+
   const persons = [...new Set(FM_DATA.map(e=>e.eingetragenVon).filter(Boolean))].sort();
 
-  const rowsHtml = rows.length === 0
-    ? '<tr><td colspan="7" style="text-align:center;padding:48px;color:#9ca3af;font-size:14px">Keine Einträge gefunden</td></tr>'
+  // Card-based list (mobile-friendly, no table)
+  const cardsHtml = rows.length === 0
+    ? '<div style="text-align:center;padding:48px 20px;color:#9ca3af;font-size:14px">Keine Einträge gefunden</div>'
     : rows.map(e => {
         const prio = FM_PRIO[e.prioritaet] || FM_PRIO.normal;
         const stat = FM_STATUS[e.status]   || FM_STATUS.offen;
-        return '<tr style="' + (e.status==='erledigt'?'opacity:0.5':'') + '">' +
-          '<td><span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;' +
-          'font-size:12px;font-weight:700;background:' + prio.bg + ';color:' + prio.color + ';' +
-          'border:1px solid ' + prio.border + ';white-space:nowrap">' + prio.label + '</span></td>' +
-          '<td><div style="font-weight:700;font-size:14px;color:#1e1e2e">' + e.produktName + '</div>' +
-          (e.bemerkung ? '<div style="font-size:12px;color:#9ca3af;margin-top:2px">' + e.bemerkung + '</div>' : '') +
-          '</td>' +
-          '<td style="font-size:13px;color:#6b7280;white-space:nowrap">' + e.menge + ' ' + e.einheit + '</td>' +
-          '<td><span style="background:#f0f0f5;color:#6b7280;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">' + e.kategorie + '</span></td>' +
-          '<td style="font-size:12px;color:#9ca3af">' + (e.eingetragenVon||'—') + '<br><span style="font-size:11px">' + e.datum + ' ' + e.uhrzeit + '</span></td>' +
-          '<td><span style="display:inline-flex;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;' +
-          'background:' + stat.bg + ';color:' + stat.color + ';border:1px solid ' + stat.border + ';white-space:nowrap">' + stat.label + '</span></td>' +
-          '<td><div style="display:flex;gap:6px;flex-wrap:nowrap">' +
+        return '<div style="border-left:4px solid '+prio.color+';background:#fff;border-radius:0 12px 12px 0;'+
+          'margin-bottom:10px;padding:14px 14px 10px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);'+
+          (e.status==='erledigt'?'opacity:0.6;':'')+'">' +
+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">' +
+          '<span style="display:inline-flex;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;'+
+          'background:'+prio.bg+';color:'+prio.color+';border:1px solid '+prio.border+';white-space:nowrap">'+prio.label+'</span>' +
+          '<span style="display:inline-flex;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;'+
+          'background:'+stat.bg+';color:'+stat.color+';border:1px solid '+stat.border+';white-space:nowrap">'+stat.label+'</span>' +
+          '<span style="margin-left:auto;font-size:12px;color:#6b7280;font-weight:600;white-space:nowrap">'+e.menge+' '+e.einheit+'</span>' +
+          '</div>' +
+
+          '<div style="font-size:16px;font-weight:800;color:#1e1e2e;margin-bottom:4px;'+
+          (e.status==='erledigt'?'text-decoration:line-through;':'')+'">' + e.produktName + '</div>' +
+          (e.bemerkung ? '<div style="font-size:12px;color:#9ca3af;margin-bottom:4px">'+e.bemerkung+'</div>' : '') +
+
+          '<div style="font-size:11px;color:#9ca3af;margin-bottom:10px">' +
+          (e.eingetragenVon||'—') + ' · ' + e.datum + ' ' + e.uhrzeit +
+          ' · <span style="background:#f0f0f5;color:#6b7280;border-radius:5px;padding:1px 6px">'+e.kategorie+'</span>' +
+          '</div>' +
+
+          '<div style="display:flex;gap:6px">' +
           (e.status==='offen'
-            ? '<button onclick="fmSetStatus(\'' + e.id + '\',\'bestellt\')" style="min-height:48px;padding:8px 12px;border-radius:8px;border:none;background:#fff8e1;color:#e65100;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap"><span class="material-symbols-outlined" style="font-size:15px">shopping_cart</span>Bestellt</button>'
+            ? '<button onclick="fmSetStatus(\''+e.id+'\',\'bestellt\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#fff8e1;color:#e65100;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex:1"><span class="material-symbols-outlined" style="font-size:15px">shopping_cart</span>📦 Bestellt</button>'
             : '') +
           (e.status!=='erledigt'
-            ? '<button onclick="fmSetStatus(\'' + e.id + '\',\'erledigt\')" style="min-height:48px;padding:8px 12px;border-radius:8px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span>Erledigt</button>'
+            ? '<button onclick="fmSetStatus(\''+e.id+'\',\'erledigt\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex:1"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span>✅ Erledigt</button>'
             : '') +
-          '<button onclick="if(confirm(\'Löschen?\'))fmDelete(\'' + e.id + '\')" style="min-height:48px;width:48px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
-          '</div></td></tr>';
+          '<button onclick="if(confirm(\'Löschen?\'))fmDelete(\''+e.id+'\')" style="min-height:44px;width:44px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
+          '</div></div>';
       }).join('');
 
   return fmBuildDatalist() + `
@@ -5275,13 +5438,19 @@ function renderFmEingabe() {
             ${FM_KATEGORIEN.map(k => '<option value="'+k+'">'+k+'</option>').join('')}
           </select>
         </div>
-        <div>
-          <label class="ws-label">Priorität</label>
-          <select id="fm-prioritaet" class="ws-input" style="font-size:15px;padding:13px 16px;">
-            <option value="dringend">🔴 Dringend</option>
-            <option value="wichtig" selected>🟡 Wichtig</option>
-            <option value="normal">🟢 Normal</option>
-          </select>
+        <div style="grid-column:1/-1">
+          <label class="ws-label">Priorität *</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            ${['dringend','wichtig','normal'].map(p => {
+              const pf = FM_PRIO[p];
+              const sel = fmSelectedPrio === p;
+              return '<button onclick="fmSelectedPrio=\''+p+'\';renderFehlmaterialTab()" '+
+                'style="flex:1;min-width:90px;min-height:54px;border-radius:12px;border:2px solid '+(sel?pf.color:pf.border)+';'+
+                'background:'+(sel?pf.bg:'#fff')+';color:'+(sel?pf.color:'#9ca3af')+';font-weight:700;font-size:14px;'+
+                'cursor:pointer;font-family:inherit;transition:all .15s;'+
+                (sel?'box-shadow:0 0 0 3px '+pf.color+'33;':'')+'">'+ pf.label +'</button>';
+            }).join('')}
+          </div>
         </div>
         <div>
           <label class="ws-label">Eingetragen von *</label>
@@ -5305,49 +5474,44 @@ function renderFmEingabe() {
     </div>
 
     <div class="ws-card">
-      <div class="ws-section-header">
+      <div class="ws-section-header" style="margin-bottom:12px">
         <div class="ws-section-title" style="font-size:17px">
           <span class="material-symbols-outlined">list</span>Meldungen
           ${FM_DATA.filter(x=>x.status==='offen').length>0
             ? '<span class="ws-badge ws-badge-red">'+FM_DATA.filter(x=>x.status==='offen').length+' offen</span>'
             : ''}
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
-            onchange="fmFilter.status=this.value;renderFehlmaterialTab()">
-            <option value="offen"    ${fStat==='offen'   ?'selected':''}>Offen</option>
-            <option value="bestellt" ${fStat==='bestellt'?'selected':''}>Bestellt</option>
-            <option value="erledigt" ${fStat==='erledigt'?'selected':''}>Erledigt</option>
-            <option value=""         ${fStat===''        ?'selected':''}>Alle</option>
-          </select>
-          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
-            onchange="fmFilter.prioritaet=this.value;renderFehlmaterialTab()">
-            <option value=""         ${fPrio===''        ?'selected':''}>Alle Prio.</option>
-            <option value="dringend" ${fPrio==='dringend'?'selected':''}>🔴 Dringend</option>
-            <option value="wichtig"  ${fPrio==='wichtig' ?'selected':''}>🟡 Wichtig</option>
-            <option value="normal"   ${fPrio==='normal'  ?'selected':''}>🟢 Normal</option>
-          </select>
-          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
-            onchange="fmFilter.kategorie=this.value;renderFehlmaterialTab()">
-            <option value="" ${fKat===''?'selected':''}>Alle Kat.</option>
-            ${FM_KATEGORIEN.map(k=>'<option value="'+k+'" '+(fKat===k?'selected':'')+'>'+k+'</option>').join('')}
-          </select>
-          <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
-            onchange="fmFilter.person=this.value;renderFehlmaterialTab()">
-            <option value="">Alle MA</option>
-            ${persons.map(p=>'<option value="'+p+'" '+(fPerson===p?'selected':'')+'>'+p+'</option>').join('')}
-          </select>
-        </div>
       </div>
-      <div style="overflow-x:auto" class="hide-scrollbar">
-        <table class="ws-table" style="min-width:860px">
-          <thead><tr>
-            <th>Priorität</th><th>Produkt</th><th>Menge</th>
-            <th>Kategorie</th><th>Gemeldet von</th><th>Status</th><th>Aktionen</th>
-          </tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        ${['','offen','bestellt','erledigt'].map(s => {
+          const labels = {'':'Alle','offen':'🔵 Offen','bestellt':'📦 Bestellt','erledigt':'✅ Erledigt'};
+          const sel = fStat === s;
+          return '<button onclick="fmFilter.status=\''+s+'\';renderFehlmaterialTab()" '+
+            'style="min-height:36px;padding:6px 16px;border-radius:20px;border:1.5px solid '+(sel?'#8B0000':'#e8e8ed')+';'+
+            'background:'+(sel?'#8B0000':'#fff')+';color:'+(sel?'#fff':'#6b7280')+';font-size:13px;font-weight:600;'+
+            'cursor:pointer;font-family:inherit;transition:all .15s">'+labels[s]+'</button>';
+        }).join('')}
       </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
+          onchange="fmFilter.prioritaet=this.value;renderFehlmaterialTab()">
+          <option value=""         ${fPrio===''        ?'selected':''}>Alle Prio.</option>
+          <option value="dringend" ${fPrio==='dringend'?'selected':''}>🔴 Dringend</option>
+          <option value="wichtig"  ${fPrio==='wichtig' ?'selected':''}>🟡 Wichtig</option>
+          <option value="normal"   ${fPrio==='normal'  ?'selected':''}>🟢 Normal</option>
+        </select>
+        <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
+          onchange="fmFilter.kategorie=this.value;renderFehlmaterialTab()">
+          <option value="" ${fKat===''?'selected':''}>Alle Kat.</option>
+          ${FM_KATEGORIEN.map(k=>'<option value="'+k+'" '+(fKat===k?'selected':'')+'>'+k+'</option>').join('')}
+        </select>
+        <select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px"
+          onchange="fmFilter.person=this.value;renderFehlmaterialTab()">
+          <option value="">Alle MA</option>
+          ${persons.map(p=>'<option value="'+p+'" '+(fPerson===p?'selected':'')+'>'+p+'</option>').join('')}
+        </select>
+      </div>
+      <div class="fm-cards-grid">${cardsHtml}</div>
     </div>`;
 }
 
@@ -5356,7 +5520,7 @@ function fmSubmitForm() {
   const mengeRaw       = document.getElementById('fm-menge')?.value;
   const einheit        = document.getElementById('fm-einheit')?.value    || 'Stück';
   const kategorie      = document.getElementById('fm-kategorie')?.value  || 'Lebensmittel';
-  const prioritaet     = document.getElementById('fm-prioritaet')?.value || 'wichtig';
+  const prioritaet     = fmSelectedPrio || 'wichtig';
   const eingetragenVon = (document.getElementById('fm-person')?.value    || '').trim();
   const bemerkung      = (document.getElementById('fm-bemerkung')?.value || '').trim();
 
@@ -5372,7 +5536,7 @@ function fmSubmitForm() {
   document.getElementById('fm-produktname').value = '';
   document.getElementById('fm-menge').value        = '';
   document.getElementById('fm-bemerkung').value    = '';
-  document.getElementById('fm-prioritaet').value   = 'wichtig';
+  fmSelectedPrio = 'wichtig';
   renderFehlmaterialTab();
 }
 
@@ -6042,21 +6206,33 @@ function clUpdateBadge() {
   const doneMorgen = CL_HISTORY.some(h => h.datum===today && h.typ==='morgen');
   const doneAbend  = CL_HISTORY.some(h => h.datum===today && h.typ==='abend');
   const badge = document.getElementById('cl-tab-badge');
-  if (!badge) return;
   const hour = new Date().getHours();
-  // Show badge: green when morning done (after 6am), evening reminder (after 5pm if not done)
-  if (hour >= 6 && !doneMorgen) {
-    badge.style.display = 'flex'; badge.textContent = '!';
-    badge.style.background = '#e65100';
-  } else if (hour >= 17 && !doneAbend) {
-    badge.style.display = 'flex'; badge.textContent = '!';
-    badge.style.background = '#e65100';
-  } else if (doneMorgen && doneAbend) {
-    badge.style.display = 'flex'; badge.textContent = '✓';
-    badge.style.background = '#2e7d32';
+  let showBadge = false;
+  if (badge) {
+    // Show badge: green when morning done (after 6am), evening reminder (after 5pm if not done)
+    if (hour >= 6 && !doneMorgen) {
+      badge.style.display = 'flex'; badge.textContent = '!';
+      badge.style.background = '#e65100';
+      showBadge = true;
+    } else if (hour >= 17 && !doneAbend) {
+      badge.style.display = 'flex'; badge.textContent = '!';
+      badge.style.background = '#e65100';
+      showBadge = true;
+    } else if (doneMorgen && doneAbend) {
+      badge.style.display = 'flex'; badge.textContent = '✓';
+      badge.style.background = '#2e7d32';
+      showBadge = true;
+    } else {
+      badge.style.display = 'none';
+    }
   } else {
-    badge.style.display = 'none';
+    if ((hour >= 6 && !doneMorgen) || (hour >= 17 && !doneAbend) || (doneMorgen && doneAbend)) {
+      showBadge = true;
+    }
   }
+  // Also update drawer badge
+  const drawerBadge = document.getElementById('cl-drawer-badge');
+  if (drawerBadge) drawerBadge.style.display = showBadge ? 'block' : 'none';
 }
 
 function renderClHistorie() {
