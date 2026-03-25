@@ -1439,7 +1439,6 @@ function updateHeaderBadge() {
 // ═══════════════════════════════════════════════════════════════
 
 updateHeaderBadge();
-renderKombisTab();   // default tab is kombis
 
 // ═══════════════════════════════════════════════════════════════
 // SUCHE TAB — State
@@ -4069,7 +4068,6 @@ function bizSaveKassa(d) { bizSave('kassa', d); }
 function bizGetFixkosten() {
   return bizLoad('fixkosten', { miete:0, strom:0, versicherung:0, buchhaltung:0, sonstige:0 });
 }
-function bizSaveFixkosten(d) { bizSave('fixkosten', d); }
 
 function bizGetPersonal() { return bizLoad('personal', []); }
 function bizSavePersonal(d) { bizSave('personal', d); }
