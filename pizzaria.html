@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <script id="tailwind-config">
-    tailwind.config = {
+    if (typeof tailwind !== 'undefined') tailwind.config = {
       darkMode: "class",
       theme: {
         extend: {
@@ -503,9 +503,8 @@
       transition: transform 0.3s ease;
     }
     .floating-bar.bar-hidden { transform: translateY(100%); }
-    body:not(.biz-mode) .floating-bar { padding-bottom: calc(12px + 78px); }
-    @media (min-width: 768px) {
-      body:not(.biz-mode) .floating-bar { padding-bottom: 12px; }
+    @media (max-width: 767px) {
+      body:not(.biz-mode) .floating-bar { bottom: 72px; border-radius: 16px 16px 0 0; }
     }
     .floating-bar-total strong { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 22px; font-weight: 800; color: #610000; }
     .floating-bar-total span { font-size: 12px; color: #8e706b; display: block; }
@@ -547,11 +546,14 @@
     }
     .suche-sticky-header {
       position: sticky;
-      top: 0;
+      top: 70px;
       z-index: 35;
       background: #fff8f6;
       padding: 16px 0 12px;
       margin: -20px 0 16px;
+    }
+    @media (min-width: 768px) {
+      .suche-sticky-header { top: 126px; }
     }
     .filter-chip-row {
       display: flex;
@@ -714,7 +716,7 @@
 </div>
 
 <!-- ═══ PANELS ═══ -->
-<main id="app-main" style="max-width:1400px;margin:0 auto;padding:20px 40px 140px;">
+<main id="app-main" style="max-width:1400px;margin:0 auto;padding:20px 40px 160px;">
   <div id="panel-produkte" style="display:none"></div>
   <div id="panel-geschaefte" style="display:none"></div>
   <div id="panel-kombis" style="display:block"></div>
