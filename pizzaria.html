@@ -1236,7 +1236,8 @@ function switchTab(tab) {
 
   // ── panels ──
   ['produkte','geschaefte','kombis','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
-    document.getElementById('panel-'+t).style.display = t === tab ? 'block' : 'none';
+    const p = document.getElementById('panel-'+t);
+    if (p) p.style.display = t === tab ? 'block' : 'none';
   });
 
   // ── desktop staff tabs ──
@@ -1420,6 +1421,7 @@ function updateHeaderBadge() {
   const badge = document.getElementById('header-badge');
   const text = document.getElementById('header-badge-text');
   const tabBadge = document.getElementById('kombis-tab-badge');
+  if (!badge || !text || !tabBadge) return;
 
   if (low.length > 0) {
     badge.style.display = 'flex';
