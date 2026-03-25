@@ -569,17 +569,17 @@ const PRODUCTS = [
 
 const SHOPS = [
   { id: 'metro', name: 'Metro',  type: 'Großhandel', color: '#003DA5' },
-  { id: 'edeka', name: 'Edeka',  type: 'Supermarkt', color: '#E31E24' },
+  { id: 'billa', name: 'Billa',  type: 'Supermarkt', color: '#ed1c24' },
   { id: 'lidl',  name: 'Lidl',   type: 'Discounter', color: '#0050AA' },
-  { id: 'rewe',  name: 'Rewe',   type: 'Supermarkt', color: '#CC0000' },
+  { id: 'spar',  name: 'Spar',   type: 'Supermarkt', color: '#007f3e' },
 ];
 
 // pricePerUnit indexed as PRICE_MAP[shopId][productId]
 const PRICE_MAP = {
   metro: { mehl:0.89, tomaten:0.99, mozzarella:4.99, olivenoel:5.49, salami:7.99, parmesan:8.99, basilikum:0.69, hefe:0.39, salz:0.49, peperoni:5.99 },
-  edeka: { mehl:1.29, tomaten:1.49, mozzarella:5.99, olivenoel:6.99, salami:9.49, parmesan:11.99,basilikum:0.99, hefe:0.49, salz:0.69, peperoni:7.49 },
+  billa: { mehl:1.19, tomaten:1.39, mozzarella:4.49, olivenoel:5.99, salami:8.49, parmesan:10.99,basilikum:0.89, hefe:0.45, salz:0.59, peperoni:6.49 },
   lidl:  { mehl:0.79, tomaten:0.89, mozzarella:3.99, olivenoel:4.49, salami:6.49, parmesan:7.99, basilikum:0.59, hefe:0.29, salz:0.39, peperoni:4.99 },
-  rewe:  { mehl:1.19, tomaten:1.39, mozzarella:5.49, olivenoel:6.49, salami:8.99, parmesan:10.49,basilikum:0.89, hefe:0.45, salz:0.59, peperoni:6.99 },
+  spar:  { mehl:1.09, tomaten:1.29, mozzarella:4.29, olivenoel:5.49, salami:7.99, parmesan:9.99, basilikum:0.79, hefe:0.39, salz:0.55, peperoni:5.99 },
 };
 
 // Weekly deals — populated here or via Upload tab
@@ -587,8 +587,8 @@ const PRICE_MAP = {
 const DEALS = [
   { shopId: 'lidl',  productId: 'mozzarella', pricePerUnit: 2.99, normalPrice: 3.99, validTo: '29.03.', week: 'current' },
   { shopId: 'metro', productId: 'olivenoel',  pricePerUnit: 4.29, normalPrice: 5.49, validTo: '29.03.', week: 'current' },
-  { shopId: 'edeka', productId: 'salami',     pricePerUnit: 6.99, normalPrice: 9.49, validTo: '30.03.', week: 'current' },
-  { shopId: 'rewe',  productId: 'parmesan',   pricePerUnit: 7.99, normalPrice: 10.49,validTo: '06.04.', week: 'next'    },
+  { shopId: 'billa', productId: 'salami',     pricePerUnit: 6.49, normalPrice: 8.49, validTo: '30.03.', week: 'current' },
+  { shopId: 'spar',  productId: 'parmesan',   pricePerUnit: 7.49, normalPrice: 9.99, validTo: '06.04.', week: 'next'    },
   { shopId: 'lidl',  productId: 'mehl',       pricePerUnit: 0.59, normalPrice: 0.79, validTo: '06.04.', week: 'next'    },
 ];
 
@@ -1463,7 +1463,7 @@ const AT_SHOP_COLORS = {
   'etsan':   '#ff6b00',
   'penny':   '#cc0000',
   'merkur':  '#004899',
-  'rewe':    '#cc0000',
+  'hofer':   '#0050aa',
   'interspar': '#007f3e',
   'billa plus': '#ed1c24',
 };
