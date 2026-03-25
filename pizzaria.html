@@ -82,7 +82,7 @@
     .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #f4f4f6;
+      background-color: #fff8f6;
       color: #1e1e2e;
       font-size: 15px;
       line-height: 1.6;
@@ -393,9 +393,250 @@
       .header-logo-icon { font-size: 26px; }
       .header-logo-sub { display: none; }
     }
+
+    /* ════ STITCH DESIGN ════ */
+    .stitch-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(139,0,0,0.05);
+      border: none;
+    }
+    .bento-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 640px) {
+      .bento-grid { grid-template-columns: 1fr; }
+    }
+    .bento-hero {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(139,0,0,0.05);
+      padding: 20px;
+      border: 1px solid #f0e8e6;
+    }
+    .bento-side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bento-small {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(139,0,0,0.05);
+      padding: 16px 18px;
+      flex: 1;
+      border: 1px solid #f0e8e6;
+      cursor: pointer;
+      transition: box-shadow .15s;
+    }
+    .bento-small:hover { box-shadow: 0 4px 20px rgba(139,0,0,0.10); }
+    .bento-small-yellow { border-left: 4px solid #f59e0b; }
+    .bento-small-red { border-left: 4px solid #dc2626; }
+    .shop-header-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: #fafafa;
+      border-bottom: 1px solid #f0e8e6;
+    }
+    .shop-icon-circle {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800; color: #fff;
+      flex-shrink: 0;
+    }
+    .shop-item-badge {
+      margin-left: auto;
+      background: #fff0ee;
+      color: #8B0000;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .product-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 16px;
+      border-bottom: 1px solid #faf5f4;
+      min-height: 52px;
+    }
+    .product-row:last-child { border-bottom: none; }
+    .product-row-check {
+      width: 20px; height: 20px;
+      border: 2px solid #e3beb8;
+      border-radius: 6px;
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+      background: #fff;
+    }
+    .product-row-check:hover { border-color: #8B0000; background: #fff0ee; }
+    .product-row-check.checked { background: #8B0000; border-color: #8B0000; }
+    .product-row-check.checked::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+    .product-row-name { flex: 1; min-width: 0; }
+    .product-row-name strong { display: block; font-size: 13px; font-weight: 600; color: #261816; }
+    .product-row-name span { font-size: 11px; color: #8e706b; }
+    .product-row-price { text-align: right; flex-shrink: 0; }
+    .product-row-price .qty { font-size: 11px; color: #8e706b; display: block; }
+    .product-row-price .total { font-size: 14px; font-weight: 700; color: #261816; }
+    .floating-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 45;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid #f0e8e6;
+      box-shadow: 0 -4px 24px rgba(139,0,0,0.10);
+      padding: 12px 20px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: transform 0.3s ease;
+    }
+    .floating-bar.bar-hidden { transform: translateY(100%); }
+    body:not(.biz-mode) .floating-bar { padding-bottom: calc(12px + 78px); }
+    @media (min-width: 768px) {
+      body:not(.biz-mode) .floating-bar { padding-bottom: 12px; }
+    }
+    .floating-bar-total strong { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 22px; font-weight: 800; color: #610000; }
+    .floating-bar-total span { font-size: 12px; color: #8e706b; display: block; }
+    .btn-checkout {
+      background: linear-gradient(135deg, #610000, #8B0000);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: opacity .15s, box-shadow .15s;
+      box-shadow: 0 4px 14px rgba(97,0,0,0.25);
+    }
+    .btn-checkout:hover { opacity: 0.92; box-shadow: 0 6px 20px rgba(97,0,0,0.35); }
+    .empfohlen-badge {
+      position: absolute;
+      top: 14px; right: 14px;
+      background: #8B0000;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .alt-combo-card {
+      border-radius: 14px;
+      border: 1px solid #f0e8e6;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 1px 8px rgba(139,0,0,0.04);
+    }
+    .suche-sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 35;
+      background: #fff8f6;
+      padding: 16px 0 12px;
+      margin: -20px 0 16px;
+    }
+    .filter-chip-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 16px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .filter-chip-row::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      background: #fff;
+      border: 1.5px solid #e3beb8;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #5a403c;
+      white-space: nowrap;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+    }
+    .filter-chip:hover, .filter-chip.active {
+      background: #8B0000;
+      border-color: #8B0000;
+      color: #fff;
+    }
+    .deals-scroll-row {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .deals-scroll-row::-webkit-scrollbar { display: none; }
+    .deal-scroll-card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #f0e8e6;
+      padding: 14px 16px;
+      min-width: 160px;
+      max-width: 160px;
+      box-shadow: 0 1px 8px rgba(139,0,0,0.04);
+      flex-shrink: 0;
+    }
+    .result-card-new {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #f0e8e6;
+      box-shadow: 0 2px 12px rgba(139,0,0,0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .result-card-top {
+      display: flex;
+      gap: 14px;
+      padding: 16px;
+      flex: 1;
+    }
+    .result-card-img {
+      width: 56px; height: 56px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #fff0ee, #ffe9e6);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 24px;
+    }
+    .result-shop-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
   </style>
 </head>
-<body style="background-color:#f4f4f6;color:#1e1e2e;min-height:100vh;">
+<body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
 
 <!-- ═══ HEADER ═══ -->
 <header id="app-header">
@@ -514,6 +755,18 @@
     <span class="material-symbols-outlined">more_horiz</span>Mehr
   </button>
 </nav>
+
+<!-- ═══ FLOATING CHECKOUT BAR ═══ -->
+<div id="floating-checkout-bar" class="floating-bar bar-hidden">
+  <div class="floating-bar-total">
+    <span>Einkaufsliste gesamt</span>
+    <strong>—</strong>
+  </div>
+  <button class="btn-checkout" onclick="if(window._featuredComboId) printCombo(window._featuredComboId)">
+    <span class="material-symbols-outlined" style="font-size:18px">shopping_cart_checkout</span>
+    Einkauf abschließen
+  </button>
+</div>
 
 <!-- ═══ MEHR DRAWER ═══ -->
 <div id="mehr-drawer-overlay" onclick="closeMehrDrawer()"></div>
@@ -980,37 +1233,77 @@ function renderKombisTab() {
   const monthRev = kassa.filter(e => e.date && e.date.startsWith(monthStr)).reduce((s,e)=>s+(e.gesamt||0),0);
   const monthNames = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 
+  // Find most critical product (lowest stock ratio)
+  const criticalProduct = PRODUCTS.reduce((worst, p) => {
+    const ratio = stockLevels[p.id] / p.minStock;
+    if (!worst || ratio < (stockLevels[worst.id] / worst.minStock)) return p;
+    return worst;
+  }, null);
+  const critPct = criticalProduct ? Math.min(100, Math.round((stockLevels[criticalProduct.id] / criticalProduct.minStock) * 100)) : 100;
+  const mozzarella = PRODUCTS.find(p => p.id === 'mozzarella');
+  const mozzStock = mozzarella ? stockLevels['mozzarella'] : null;
+  const mozzPct = mozzarella ? Math.min(100, Math.round((mozzStock / mozzarella.minStock) * 100)) : null;
+
   const dashHtml = `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
-      <div onclick="switchTab('fehlmaterial')" style="background:#fff;border-radius:14px;padding:16px 18px;
-        border:1.5px solid ${low.length>0?'#ffdad6':'#e8e8ed'};cursor:pointer;
-        box-shadow:0 1px 4px rgba(0,0,0,0.07);transition:box-shadow .15s"
-        onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.13)'"
-        onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.07)'">
-        <div style="font-size:26px;font-weight:800;color:${low.length>0?'#c62828':'#16a34a'}">${low.length}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Unter Minimum</div>
-        <div style="font-size:11px;font-weight:700;color:${low.length>0?'#c62828':'#16a34a'};margin-top:4px">${low.length>0?'🔴 Nachbestellen':'✅ Alles OK'}</div>
+    <div class="bento-grid">
+      <div class="bento-hero">
+        <div style="font-size:11px;font-weight:700;color:#8e706b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Kritischstes Produkt</div>
+        ${criticalProduct ? `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span class="material-symbols-outlined" style="font-size:28px;color:#ba1a1a">warning</span>
+            <div>
+              <div style="font-size:20px;font-weight:800;color:#261816;font-family:'Plus Jakarta Sans',sans-serif">${criticalProduct.name}</div>
+              <div style="font-size:12px;color:#8e706b">${stockLevels[criticalProduct.id].toLocaleString('de-DE')} / ${criticalProduct.minStock} ${criticalProduct.unit}</div>
+            </div>
+          </div>
+          <div style="height:8px;background:#f0e8e6;border-radius:4px;overflow:hidden;margin-bottom:8px">
+            <div style="height:100%;width:${critPct}%;background:${critPct < 40 ? '#dc2626' : critPct < 70 ? '#f59e0b' : '#16a34a'};border-radius:4px;transition:width .3s ease"></div>
+          </div>
+          <div style="font-size:12px;color:${critPct < 40 ? '#dc2626' : '#8e706b'};font-weight:600">${critPct}% vom Minimum</div>
+        ` : `<div style="font-size:14px;color:#16a34a;font-weight:600">✅ Alle Bestände OK</div>`}
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0e8e6;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div onclick="switchTab('fehlmaterial')" style="cursor:pointer">
+            <div style="font-size:26px;font-weight:800;color:${low.length>0?'#dc2626':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
+            <div style="font-size:11px;color:#8e706b;font-weight:500">Unter Minimum</div>
+            <div style="font-size:11px;font-weight:700;color:${low.length>0?'#dc2626':'#16a34a'};margin-top:3px">${low.length>0?'🔴 Nachbestellen':'✅ Alles OK'}</div>
+          </div>
+          <div>
+            <div style="font-size:26px;font-weight:800;color:#1565c0;font-family:'Plus Jakarta Sans',sans-serif">${PRODUCTS.length}</div>
+            <div style="font-size:11px;color:#8e706b;font-weight:500">Produkte gesamt</div>
+            <div style="font-size:11px;font-weight:700;color:#2e7d32;margin-top:3px">📦 ${PRODUCTS.length - low.length} im Soll</div>
+          </div>
+        </div>
       </div>
-      <div style="background:#fff;border-radius:14px;padding:16px 18px;
-        border:1.5px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
-        <div style="font-size:26px;font-weight:800;color:#1565c0">${PRODUCTS.length}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Produkte gesamt</div>
-        <div style="font-size:11px;font-weight:700;color:#2e7d32;margin-top:4px">📦 ${PRODUCTS.length - low.length} im Soll</div>
-      </div>
-      <div style="background:#fff;border-radius:14px;padding:16px 18px;
-        border:1.5px solid #e8e8ed;box-shadow:0 1px 4px rgba(0,0,0,0.07)">
-        <div style="font-size:${monthRev>0?'22':'26'}px;font-weight:800;color:${monthRev>0?'#2e7d32':'#9ca3af'}">${monthRev>0?'€ '+Math.round(monthRev).toLocaleString('de-AT'):'—'}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Umsatz ${monthNames[m-1]}</div>
-        <div style="font-size:11px;font-weight:700;color:${monthRev>0?'#2e7d32':'#9ca3af'};margin-top:4px">${monthRev>0?'💰 Kassabuch':'Noch keine Daten'}</div>
-      </div>
-      <div onclick="switchTab('fehlmaterial')" style="background:#fff;border-radius:14px;padding:16px 18px;
-        border:1.5px solid ${fmOpen>0?'#fff8e1':'#e8e8ed'};cursor:pointer;
-        box-shadow:0 1px 4px rgba(0,0,0,0.07);transition:box-shadow .15s"
-        onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.13)'"
-        onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,0.07)'">
-        <div style="font-size:26px;font-weight:800;color:${fmDringend>0?'#c62828':fmOpen>0?'#e65100':'#9ca3af'}">${fmOpen}</div>
-        <div style="font-size:12px;color:#6b7280;margin-top:2px;font-weight:500">Fehlmaterial offen</div>
-        <div style="font-size:11px;font-weight:700;color:${fmDringend>0?'#c62828':fmOpen>0?'#e65100':'#9ca3af'};margin-top:4px">${fmDringend>0?'⚠️ '+fmDringend+' dringend':fmOpen>0?'→ Ansehen':'✅ Alles OK'}</div>
+      <div class="bento-side">
+        <div class="bento-small bento-small-yellow" onclick="void(0)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#f59e0b">water_drop</span>
+            <span style="font-size:12px;font-weight:700;color:#5a403c">Mozzarella Status</span>
+          </div>
+          ${mozzarella && mozzPct !== null ? `
+            <div style="font-size:22px;font-weight:800;color:${mozzPct<50?'#dc2626':'#f59e0b'};font-family:'Plus Jakarta Sans',sans-serif">${mozzStock} kg</div>
+            <div style="height:5px;background:#fef3c7;border-radius:3px;overflow:hidden;margin:8px 0 4px">
+              <div style="height:100%;width:${mozzPct}%;background:#f59e0b;border-radius:3px"></div>
+            </div>
+            <div style="font-size:11px;color:#8e706b">${mozzPct}% vom Min (${mozzarella.minStock} kg)</div>
+          ` : `<div style="font-size:13px;color:#8e706b">Nicht gefunden</div>`}
+        </div>
+        <div class="bento-small bento-small-red" onclick="switchTab('fehlmaterial')" style="cursor:pointer">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#dc2626">error</span>
+            <span style="font-size:12px;font-weight:700;color:#5a403c">Kritische Artikel</span>
+          </div>
+          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
+          <div style="font-size:11px;color:#8e706b;margin-top:4px">${low.length>0 ? low.slice(0,2).map(p=>p.name).join(', ')+(low.length>2?'…':'') : 'Alle im grünen Bereich'}</div>
+        </div>
+        <div class="bento-small" style="border-left:4px solid #2e7d32">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#2e7d32">euro</span>
+            <span style="font-size:12px;font-weight:700;color:#5a403c">Umsatz ${monthNames[m-1]}</span>
+          </div>
+          <div style="font-size:20px;font-weight:800;color:${monthRev>0?'#2e7d32':'#9ca3af'};font-family:'Plus Jakarta Sans',sans-serif">${monthRev>0?'€ '+Math.round(monthRev).toLocaleString('de-AT'):'—'}</div>
+          <div style="font-size:11px;color:#8e706b;margin-top:4px">${monthRev>0?'aus Kassabuch':'Noch keine Daten'}</div>
+        </div>
       </div>
     </div>`;
 
@@ -1085,51 +1378,67 @@ function renderFeaturedCombo(combo) {
   }
   const shopGroups = Object.values(byShop);
 
-  const shopCols = shopGroups.map(group => {
+  const shopSections = shopGroups.map(group => {
+    const initials = group.shop.name.slice(0,2).toUpperCase();
     const rows = group.items.map(item => `
-      <div style="display:flex;justify-content:space-between;align-items:center;height:40px;border-bottom:1px solid #f5f0ee">
-        <span style="font-size:13px;font-weight:600;color:#261816;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px">${item.product.name}</span>
-        <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
-          <span style="font-size:11px;color:#8e706b">${item.quantity}×</span>
-          <span style="font-size:11px;color:#8e706b">${eur(item.pricePerUnit)}/${item.product.unit}</span>
-          <span style="font-size:13px;font-weight:700;color:#261816;min-width:44px;text-align:right">${eur(item.totalCost)}</span>
+      <div class="product-row">
+        <div class="product-row-check" onclick="this.classList.toggle('checked')"></div>
+        <div class="product-row-name">
+          <strong>${item.product.name}</strong>
+          <span>${item.product.category} · ${item.quantity} ${item.product.unit}</span>
+        </div>
+        <div class="product-row-price">
+          <span class="qty">${eur(item.pricePerUnit)}/${item.product.unit}</span>
+          <span class="total">${eur(item.totalCost)}</span>
         </div>
       </div>`).join('');
 
     return `
-      <div style="background:#fff;border-radius:8px;border:1px solid #e3beb8;overflow:hidden">
-        <div style="padding:7px 12px;border-bottom:2px solid ${group.shop.color};display:flex;justify-content:space-between;align-items:center;background:#fafafa">
-          <span style="font-size:12px;font-weight:700;color:${group.shop.color}">${group.shop.name}</span>
-          <span style="font-size:12px;font-weight:700;color:#261816">${eur(group.subtotal)}</span>
+      <div style="margin-bottom:16px">
+        <div class="shop-header-card">
+          <div class="shop-icon-circle" style="background:${group.shop.color}">${initials}</div>
+          <span style="font-size:14px;font-weight:700;color:#261816">${group.shop.name}</span>
+          <span class="shop-item-badge">${group.items.length} Item${group.items.length !== 1 ? 's' : ''}</span>
         </div>
-        <div style="padding:0 12px">${rows}</div>
+        <div>${rows}</div>
+        <div style="display:flex;justify-content:flex-end;padding:10px 16px;background:#fafafa;border-top:1px solid #f0e8e6">
+          <span style="font-size:13px;color:#8e706b;font-weight:600;margin-right:8px">Subtotal ${group.shop.name}:</span>
+          <span style="font-size:14px;font-weight:800;color:#610000">${eur(group.subtotal)}</span>
+        </div>
       </div>`;
   }).join('');
 
-  const shopBadges = combo.shops.map(s =>
-    `<span style="background:${s.color};color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px">${s.name}</span>`
-  ).join('<span style="color:rgba(255,255,255,.5);font-size:12px;margin:0 2px">+</span>');
+  // Store combo data for floating bar
+  window._featuredComboTotal = combo.totalCost;
+  window._featuredComboId = combo.id;
+
+  setTimeout(() => {
+    const bar = document.getElementById('floating-checkout-bar');
+    if (bar) {
+      bar.classList.remove('bar-hidden');
+      const totalEl = bar.querySelector('.floating-bar-total strong');
+      if (totalEl) totalEl.textContent = eur(combo.totalCost);
+    }
+  }, 50);
 
   return `
-    <div style="border-radius:12px;border:2px solid #610000;overflow:hidden;box-shadow:0 2px 12px rgba(97,0,0,.1)">
-      <div style="background:linear-gradient(135deg,#610000,#8b0000);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${shopBadges}</div>
-        <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9);background:rgba(255,255,255,.15);padding:2px 8px;border-radius:4px;letter-spacing:.06em;white-space:nowrap">★ EMPFOHLEN</span>
-      </div>
-      <div style="background:#fafafa;padding:10px 12px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:10px">
-          ${shopCols}
+    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(139,0,0,0.08);border:1px solid #f0e8e6;position:relative">
+      <span class="empfohlen-badge">★ EMPFOHLEN</span>
+      <div style="padding:16px 16px 6px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-right:110px">
+          ${combo.shops.map(s => `<span style="background:${s.color};color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${s.name}</span>`).join('<span style="color:#c9b8b4;font-size:12px;margin:0 2px">+</span>')}
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #e3beb8">
-          <button onclick="printCombo('${combo.id}')"
-            style="padding:6px 13px;border-radius:7px;border:1px solid #e3beb8;background:#fff;font-size:12px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"
-            onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
-            <span class="material-symbols-outlined" style="font-size:14px">print</span> Drucken
-          </button>
-          <div style="display:flex;align-items:baseline;gap:5px">
-            <span style="font-size:12px;color:#8e706b;font-weight:600">Gesamt</span>
-            <span style="font-size:22px;font-weight:800;color:#610000;letter-spacing:-.02em">${eur(combo.totalCost)}</span>
-          </div>
+      </div>
+      <div style="padding:0 0 4px">${shopSections}</div>
+      <div style="padding:14px 16px;border-top:1px solid #f0e8e6;display:flex;justify-content:space-between;align-items:center;background:#fafafa">
+        <button onclick="printCombo('${combo.id}')"
+          style="padding:8px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"
+          onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
+          <span class="material-symbols-outlined" style="font-size:15px">print</span> Drucken
+        </button>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <span style="font-size:13px;color:#8e706b;font-weight:600">Gesamt</span>
+          <span style="font-size:26px;font-weight:800;color:#610000;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em">${eur(combo.totalCost)}</span>
         </div>
       </div>
     </div>`;
@@ -1170,8 +1479,8 @@ function renderAltCombo(combo, rank) {
   ).join('<span style="color:#8e706b;font-size:11px;margin:0 1px">+</span>');
 
   return `
-    <div style="border-radius:10px;border:1px solid #e3beb8;overflow:hidden;background:#fff">
-      <div style="padding:9px 12px;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none"
+    <div class="alt-combo-card" style="border-left:4px solid ${combo.shops[0]?.color || '#8B0000'}">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none"
            onclick="(function(el){var d=document.getElementById('${detailId}');var open=d.style.display!=='none';d.style.display=open?'none':'block';el.querySelector('.chev').style.transform=open?'rotate(0deg)':'rotate(180deg)';})(this)">
         <span style="font-size:11px;color:#8e706b;font-weight:700;flex-shrink:0">#${rank}</span>
         <div style="display:flex;gap:4px;flex-wrap:wrap;flex:1;align-items:center">${shopBadges}</div>
@@ -1269,11 +1578,15 @@ function switchTab(tab) {
 
   // ── dark mode / light mode ──
   document.body.classList.toggle('biz-mode', isBiz);
-  document.body.style.backgroundColor = isBiz ? '' : '#f4f4f6';
+  document.body.style.backgroundColor = isBiz ? '' : '#fff8f6';
 
   // ── stats dashboard — hidden globally (dashboard is inside Kombis panel) ──
   const statsDash = document.getElementById('stats-dashboard');
   if (statsDash) statsDash.style.display = 'none';
+
+  // ── floating bar — only visible in kombis tab ──
+  const floatBar = document.getElementById('floating-checkout-bar');
+  if (floatBar) floatBar.classList.add('bar-hidden');
 
   // ── footer time ──
   const ft = document.getElementById('footer-time');
@@ -1485,32 +1798,55 @@ function renderSucheTab() {
   const panel = document.getElementById('panel-suche');
 
   let inner = `
-    <div style="display:flex;gap:12px;margin-bottom:16px">
-      <div style="position:relative;flex:1">
-        <span class="material-symbols-outlined" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;color:#5a403c;pointer-events:none">search</span>
-        <input
-          id="suche-input"
-          type="text"
-          placeholder="z.B. Cola, Mozzarella, Olivenöl …"
-          value="${escHtml(SUCHE_STATE.query)}"
-          ${SUCHE_STATE.loading ? 'disabled' : ''}
-          onkeydown="if(event.key==='Enter') startSearch()"
-          style="width:100%;padding:13px 14px 13px 44px;border:2px solid #e3beb8;border-radius:14px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;transition:border-color .15s;${SUCHE_STATE.loading?'opacity:.5;cursor:not-allowed':''}"
-          onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"
-        />
+    <div class="suche-sticky-header">
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div style="position:relative;flex:1">
+          <span class="material-symbols-outlined" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;color:#5a403c;pointer-events:none">search</span>
+          <input
+            id="suche-input"
+            type="text"
+            placeholder="z.B. Cola, Mozzarella, Olivenöl …"
+            value="${escHtml(SUCHE_STATE.query)}"
+            ${SUCHE_STATE.loading ? 'disabled' : ''}
+            onkeydown="if(event.key==='Enter') startSearch()"
+            style="width:100%;padding:12px 14px 12px 44px;border:2px solid #e3beb8;border-radius:14px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;transition:border-color .15s;${SUCHE_STATE.loading?'opacity:.5;cursor:not-allowed':''}"
+            onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"
+          />
+        </div>
+        <button onclick="startSearch()" ${SUCHE_STATE.loading ? 'disabled' : ''}
+          class="btn-checkout"
+          style="${SUCHE_STATE.loading?'opacity:.6;cursor:not-allowed':''}">
+          ${SUCHE_STATE.loading
+            ? '<span class="spinner-sm"></span> Suche…'
+            : '<span class="material-symbols-outlined" style="font-size:18px">search</span> Suchen'}
+        </button>
       </div>
-      <button onclick="startSearch()" ${SUCHE_STATE.loading ? 'disabled' : ''}
-        style="padding:13px 22px;border-radius:14px;border:none;font-size:14px;font-weight:600;font-family:inherit;color:#fff;background:linear-gradient(135deg,#610000,#8b0000);cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;${SUCHE_STATE.loading?'opacity:.6;cursor:not-allowed':''}">
-        ${SUCHE_STATE.loading
-          ? '<span class="spinner-sm"></span> Suche…'
-          : '<span class="material-symbols-outlined" style="font-size:18px">search</span> Suchen'}
-      </button>
+      <div class="filter-chip-row">
+        <button class="filter-chip active" onclick="void(0)">🌐 Alle Shops</button>
+        <button class="filter-chip" onclick="void(0)">🏪 Hofer</button>
+        <button class="filter-chip" onclick="void(0)">🛒 Billa</button>
+        <button class="filter-chip" onclick="void(0)">🌿 Spar</button>
+        <button class="filter-chip" onclick="void(0)">🔵 Lidl</button>
+        <button class="filter-chip" onclick="void(0)">🏭 Metro</button>
+        <button class="filter-chip" onclick="void(0)">🥩 Etsan</button>
+      </div>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px">
-      <span style="background:#fff0ee;border:1px solid #e3beb8;border-radius:20px;padding:4px 12px;font-size:12px;color:#5a403c">🌐 marktguru.at</span>
-      <span style="background:#fff0ee;border:1px solid #e3beb8;border-radius:20px;padding:4px 12px;font-size:12px;color:#5a403c">🌐 aktionsfinder.at</span>
-      <span style="background:#fff0ee;border:1px solid #e3beb8;border-radius:20px;padding:4px 12px;font-size:12px;color:#5a403c">🌐 wogibtswas.at</span>
-      <span style="background:#fff0ee;border:1px solid #e3beb8;border-radius:20px;padding:4px 12px;font-size:12px;color:#5a403c;margin-left:4px">🏪 Hofer · Billa · Spar · Lidl · Metro · Etsan · Penny</span>
+    <div class="deals-scroll-row">
+      <div class="deal-scroll-card">
+        <div style="font-size:10px;font-weight:700;color:#8B0000;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">marktguru.at</div>
+        <div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:2px">Live-Angebote</div>
+        <div style="font-size:11px;color:#8e706b">Österreichische Händler</div>
+      </div>
+      <div class="deal-scroll-card">
+        <div style="font-size:10px;font-weight:700;color:#8B0000;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">aktionsfinder.at</div>
+        <div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:2px">Aktuelle Aktionen</div>
+        <div style="font-size:11px;color:#8e706b">Diese + nächste Woche</div>
+      </div>
+      <div class="deal-scroll-card">
+        <div style="font-size:10px;font-weight:700;color:#8B0000;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">wogibtswas.at</div>
+        <div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:2px">Preisvergleich</div>
+        <div style="font-size:11px;color:#8e706b">Beste Preise finden</div>
+      </div>
     </div>`;
 
   if (!hasKey) {
@@ -1632,23 +1968,24 @@ function renderSearchResults() {
     const isAdded = SUCHE_STATE.addedIds.has(idx);
 
     html += `
-      <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07);border:1px solid #e3beb866;display:flex;flex-direction:column">
-        <div style="padding:16px 16px 12px;flex:1">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <span style="background:${color};color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 10px;border-radius:20px">${escHtml(r.shop)}</span>
-            ${r.source ? `<span style="font-size:11px;color:#8d6562">${escHtml(r.source)}</span>` : ''}
+      <div class="result-card-new">
+        <div class="result-card-top">
+          <div class="result-card-img">🛒</div>
+          <div style="flex:1;min-width:0">
+            <span class="result-shop-badge" style="background:${color}">${escHtml(r.shop)}</span>
+            <p style="font-size:14px;font-weight:700;color:#261816;margin:0 0 2px;line-height:1.3">${escHtml(r.name)}</p>
+            ${r.brand ? `<p style="font-size:11px;color:#8e706b;margin:0 0 6px">${escHtml(r.brand)}</p>` : ''}
+            <div style="display:flex;align-items:baseline;gap:7px;flex-wrap:wrap">
+              <span style="font-size:22px;font-weight:800;color:#610000;font-family:'Plus Jakarta Sans',sans-serif">${r.price != null ? eur(r.price) : '—'}</span>
+              ${r.originalPrice && r.originalPrice > r.price ? `<span style="font-size:12px;color:#8d6562;text-decoration:line-through">${eur(r.originalPrice)}</span>` : ''}
+              ${savings ? `<span style="font-size:11px;font-weight:700;background:#ffdad6;color:#610000;padding:2px 8px;border-radius:10px">−${savings}%</span>` : ''}
+            </div>
+            ${r.unit ? `<p style="font-size:11px;color:#8e706b;margin:2px 0 0">pro ${escHtml(r.unit)}</p>` : ''}
+            ${r.source ? `<p style="font-size:10px;color:#8d6562;margin:4px 0 0">via ${escHtml(r.source)}</p>` : ''}
+            ${validHtml}
           </div>
-          <p style="font-size:14px;font-weight:600;color:#261816;margin-bottom:3px">${escHtml(r.name)}</p>
-          ${r.brand ? `<p style="font-size:12px;color:#5a403c;margin-bottom:10px">${escHtml(r.brand)}</p>` : ''}
-          <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
-            <span style="font-size:24px;font-weight:800;color:#610000">${r.price != null ? eur(r.price) : '—'}</span>
-            ${r.originalPrice && r.originalPrice > r.price ? `<span style="font-size:13px;color:#8d6562;text-decoration:line-through">${eur(r.originalPrice)}</span>` : ''}
-            ${savings ? `<span style="font-size:11px;font-weight:700;background:#ffdad6;color:#610000;padding:2px 8px;border-radius:10px">−${savings}%</span>` : ''}
-          </div>
-          ${r.unit ? `<p style="font-size:12px;color:#5a403c;margin-bottom:6px">pro ${escHtml(r.unit)}</p>` : ''}
-          ${validHtml}
         </div>
-        <div style="border-top:1px solid #e3beb844;padding:12px 16px">
+        <div style="border-top:1px solid #f0e8e6;padding:12px 16px">
           <button
             class="add-btn ${isAdded ? 'added' : ''}"
             onclick="addResultToInventory(${idx}, this)"
