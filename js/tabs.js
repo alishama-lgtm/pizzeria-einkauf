@@ -1922,42 +1922,50 @@ function renderMitarbeiterTab() {
 
 function renderMAListe(mitarbeiter) {
   let html = `
-    <div style="background:#fff;border:1px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:20px">
-      <h3 style="font-size:14px;font-weight:700;color:#261816;margin:0 0 14px;display:flex;align-items:center;gap:6px">
-        <span class="material-symbols-outlined" style="font-size:16px;color:#610000">person_add</span>
-        Mitarbeiter hinzufügen
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:24px;margin-bottom:24px">
+      <h3 style="font-size:16px;font-weight:800;color:#261816;margin:0 0 18px;display:flex;align-items:center;gap:8px">
+        <span class="material-symbols-outlined" style="font-size:20px;color:#610000">person_add</span>
+        Neuer Mitarbeiter
       </h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <input id="ma-name-inp" type="text" placeholder="Name eingeben …"
-          onkeydown="if(event.key==='Enter')maHinzufuegen()"
-          style="padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
-          onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
-        <select id="ma-rolle-inp"
-          style="padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none">
-          <option>Küche</option>
-          <option>Service</option>
-          <option>Lieferung</option>
-          <option>Theke</option>
-          <option>Reinigung</option>
-          <option>Sonstiges</option>
-        </select>
-        <div style="position:relative">
-          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:#8d6562;pointer-events:none">€/Std</span>
-          <input id="ma-lohn-inp" type="number" min="0" step="0.5" placeholder="0,00"
-            style="width:100%;padding:11px 14px 11px 52px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name</label>
+          <input id="ma-name-inp" type="text" placeholder="z.B. Ali Shama"
+            onkeydown="if(event.key==='Enter')maHinzufuegen()"
+            style="width:100%;padding:13px 16px;border:1.5px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
             onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
         </div>
-        <div style="position:relative">
-          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;color:#8d6562;pointer-events:none">Std/W</span>
-          <input id="ma-stunden-inp" type="number" min="0" max="60" step="0.5" placeholder="40"
-            style="width:100%;padding:11px 14px 11px 52px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Rolle / Abteilung</label>
+          <select id="ma-rolle-inp"
+            style="width:100%;padding:13px 16px;border:1.5px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box">
+            <option>Küche</option>
+            <option>Service</option>
+            <option>Lieferung</option>
+            <option>Theke</option>
+            <option>Reinigung</option>
+            <option>Sonstiges</option>
+          </select>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Stundenlohn (€/Std)</label>
+            <input id="ma-lohn-inp" type="number" min="0" step="0.5" placeholder="z.B. 12.50"
+              style="width:100%;padding:13px 16px;border:1.5px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Soll-Std pro Woche</label>
+            <input id="ma-stunden-inp" type="number" min="0" max="60" step="0.5" placeholder="z.B. 40"
+              style="width:100%;padding:13px 16px;border:1.5px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+          </div>
+        </div>
+        <button onclick="maHinzufuegen()"
+          style="width:100%;padding:14px;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px">
+          <span class="material-symbols-outlined" style="font-size:20px">person_add</span>Hinzufügen
+        </button>
       </div>
-      <button onclick="maHinzufuegen()"
-        style="width:100%;padding:12px;background:#610000;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
-        <span class="material-symbols-outlined" style="font-size:18px">person_add</span>Mitarbeiter hinzufügen
-      </button>
     </div>`;
 
   if (mitarbeiter.length === 0) {
@@ -1968,65 +1976,63 @@ function renderMAListe(mitarbeiter) {
       </div>`;
   }
 
-  // Gesamtkosten
   const gesamtWoche = mitarbeiter.reduce((s, m) => s + (m.lohn || 0) * (m.stunden || 0), 0);
   const gesamtMonat = gesamtWoche * 4.33;
 
   if (mitarbeiter.length > 0) {
     html += `
-      <div style="background:#fff0ee;border:1px solid #e3beb8;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-        <div style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:6px">
-          <span class="material-symbols-outlined" style="font-size:16px;color:#610000">euro</span>
-          Personalkosten gesamt
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:16px;padding:18px 20px;color:#fff">
+          <div style="font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Personalkosten / Woche</div>
+          <div style="font-size:26px;font-weight:800">${eur(gesamtWoche)}</div>
+          <div style="font-size:11px;opacity:.7;margin-top:4px">${mitarbeiter.length} Mitarbeiter</div>
         </div>
-        <div style="display:flex;gap:20px">
-          <div style="text-align:right">
-            <div style="font-size:11px;color:#8d6562">pro Woche</div>
-            <div style="font-size:16px;font-weight:800;color:#610000">${eur(gesamtWoche)}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:11px;color:#8d6562">pro Monat</div>
-            <div style="font-size:16px;font-weight:800;color:#610000">${eur(gesamtMonat)}</div>
-          </div>
+        <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:18px 20px">
+          <div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Personalkosten / Monat</div>
+          <div style="font-size:26px;font-weight:800;color:#261816">${eur(gesamtMonat)}</div>
+          <div style="font-size:11px;color:#8d6562;margin-top:4px">× 4,33 Wochen</div>
         </div>
       </div>`;
   }
 
-  html += `<div style="display:flex;flex-direction:column;gap:10px">`;
+  html += `<div style="display:flex;flex-direction:column;gap:14px">`;
   for (const ma of mitarbeiter) {
     const wochenlohn = (ma.lohn || 0) * (ma.stunden || 0);
     const monatslohn = wochenlohn * 4.33;
     html += `
-      <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:14px;padding:14px 16px">
-          <div style="width:44px;height:44px;border-radius:50%;background:${ma.farbe};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:#fff">
+      <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:16px;padding:18px 20px">
+          <div style="width:52px;height:52px;border-radius:50%;background:${ma.farbe};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;font-weight:800;color:#fff">
             ${escHtml(ma.name.charAt(0).toUpperCase())}
           </div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:700;color:#261816">${escHtml(ma.name)}</div>
-            <div style="font-size:12px;color:#8d6562;margin-top:2px">${escHtml(ma.rolle)}</div>
+            <div style="font-size:17px;font-weight:800;color:#261816">${escHtml(ma.name)}</div>
+            <div style="font-size:13px;color:#8d6562;margin-top:3px;display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${ma.farbe};display:inline-block"></span>
+              ${escHtml(ma.rolle)}
+            </div>
           </div>
           <button onclick="maLoeschen('${ma.id}')"
-            style="background:none;border:1px solid #e3beb8;border-radius:8px;cursor:pointer;padding:6px 8px;color:#8d6562;display:flex;align-items:center;line-height:0">
-            <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+            style="background:none;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;padding:8px 10px;color:#8d6562;display:flex;align-items:center;line-height:0">
+            <span class="material-symbols-outlined" style="font-size:20px">delete</span>
           </button>
         </div>
-        <div style="display:flex;border-top:1px solid #f0e8e6;background:#fdf8f7">
-          <div style="flex:1;padding:10px 16px;text-align:center;border-right:1px solid #f0e8e6">
-            <div style="font-size:10px;color:#8d6562;font-weight:600;text-transform:uppercase;letter-spacing:.05em">€/Std</div>
-            <div style="font-size:15px;font-weight:800;color:#261816">${ma.lohn ? eur(ma.lohn) : '—'}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-top:1.5px solid #f0e8e6;background:#fdf8f7">
+          <div style="padding:14px 16px;text-align:center;border-right:1px solid #f0e8e6">
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">€ / Std</div>
+            <div style="font-size:18px;font-weight:800;color:#261816">${ma.lohn ? eur(ma.lohn) : '—'}</div>
           </div>
-          <div style="flex:1;padding:10px 16px;text-align:center;border-right:1px solid #f0e8e6">
-            <div style="font-size:10px;color:#8d6562;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Std/Woche</div>
-            <div style="font-size:15px;font-weight:800;color:#261816">${ma.stunden ? ma.stunden : '—'}</div>
+          <div style="padding:14px 16px;text-align:center;border-right:1px solid #f0e8e6">
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Std / Wo</div>
+            <div style="font-size:18px;font-weight:800;color:#261816">${ma.stunden || '—'}</div>
           </div>
-          <div style="flex:1;padding:10px 16px;text-align:center;border-right:1px solid #f0e8e6">
-            <div style="font-size:10px;color:#8d6562;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Wochenlohn</div>
-            <div style="font-size:15px;font-weight:800;color:${wochenlohn>0?'#610000':'#c0b0ae'}">${wochenlohn > 0 ? eur(wochenlohn) : '—'}</div>
+          <div style="padding:14px 16px;text-align:center;border-right:1px solid #f0e8e6;background:${wochenlohn>0?'#fff8f6':''}">
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Wochenlohn</div>
+            <div style="font-size:18px;font-weight:800;color:${wochenlohn>0?'#610000':'#c0b0ae'}">${wochenlohn > 0 ? eur(wochenlohn) : '—'}</div>
           </div>
-          <div style="flex:1;padding:10px 16px;text-align:center">
-            <div style="font-size:10px;color:#8d6562;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Monatslohn</div>
-            <div style="font-size:15px;font-weight:800;color:${monatslohn>0?'#610000':'#c0b0ae'}">${monatslohn > 0 ? eur(monatslohn) : '—'}</div>
+          <div style="padding:14px 16px;text-align:center;background:${monatslohn>0?'#fff8f6':''}">
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Monatslohn</div>
+            <div style="font-size:18px;font-weight:800;color:${monatslohn>0?'#610000':'#c0b0ae'}">${monatslohn > 0 ? eur(monatslohn) : '—'}</div>
           </div>
         </div>
       </div>`;
@@ -2036,142 +2042,142 @@ function renderMAListe(mitarbeiter) {
 
 function renderMAWochenplan(mitarbeiter, weekKey) {
   const weekStart = new Date(weekKey);
-  const weekEnd  = new Date(weekKey); weekEnd.setDate(weekEnd.getDate() + 6);
-  const plan = getWochenplan();
-  const weekPlan = plan[weekKey] || {};
-  const kw = isoWeekNum(weekStart);
-  const DAYS_FULL = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
-  const today = new Date().toDateString();
+  const weekEnd   = new Date(weekKey); weekEnd.setDate(weekEnd.getDate() + 6);
+  const plan      = getWochenplan();
+  const weekPlan  = plan[weekKey] || {};
+  const kw        = isoWeekNum(weekStart);
+  const DAYS_SHORT = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const today     = new Date().toDateString();
 
   // Week nav
   let html = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:14px 18px">
       <button onclick="MA_STATE.weekKey='${prevWeekKey(weekKey)}';renderMitarbeiterTab()"
-        style="padding:8px 14px;background:#fff;border:1px solid #e3beb8;border-radius:10px;cursor:pointer;line-height:0">
-        <span class="material-symbols-outlined" style="font-size:20px;color:#5a403c">chevron_left</span>
+        style="padding:8px 12px;background:#f9f4f3;border:1px solid #e3beb8;border-radius:10px;cursor:pointer;line-height:0">
+        <span class="material-symbols-outlined" style="font-size:22px;color:#5a403c">chevron_left</span>
       </button>
       <div style="text-align:center">
-        <div style="font-size:15px;font-weight:800;color:#261816">KW ${kw}</div>
-        <div style="font-size:12px;color:#8d6562">${weekStart.toLocaleDateString('de-AT',{day:'numeric',month:'short'})} – ${weekEnd.toLocaleDateString('de-AT',{day:'numeric',month:'short',year:'numeric'})}</div>
+        <div style="font-size:18px;font-weight:800;color:#261816">KW ${kw}</div>
+        <div style="font-size:13px;color:#8d6562">${weekStart.toLocaleDateString('de-AT',{day:'numeric',month:'long'})} – ${weekEnd.toLocaleDateString('de-AT',{day:'numeric',month:'long',year:'numeric'})}</div>
       </div>
       <button onclick="MA_STATE.weekKey='${nextWeekKey(weekKey)}';renderMitarbeiterTab()"
-        style="padding:8px 14px;background:#fff;border:1px solid #e3beb8;border-radius:10px;cursor:pointer;line-height:0">
-        <span class="material-symbols-outlined" style="font-size:20px;color:#5a403c">chevron_right</span>
+        style="padding:8px 12px;background:#f9f4f3;border:1px solid #e3beb8;border-radius:10px;cursor:pointer;line-height:0">
+        <span class="material-symbols-outlined" style="font-size:22px;color:#5a403c">chevron_right</span>
       </button>
     </div>`;
 
   if (mitarbeiter.length === 0) {
     return html + `
-      <div style="text-align:center;padding:48px 20px;background:#fff8f6;border-radius:16px;border:1.5px dashed #e3beb8">
-        <span class="material-symbols-outlined" style="font-size:52px;color:#e3beb8">calendar_month</span>
-        <p style="color:#8d6562;margin-top:12px;font-size:14px">Zuerst Mitarbeiter anlegen</p>
+      <div style="text-align:center;padding:56px 20px;background:#fff8f6;border-radius:16px;border:1.5px dashed #e3beb8">
+        <span class="material-symbols-outlined" style="font-size:56px;color:#e3beb8">calendar_month</span>
+        <p style="color:#8d6562;margin-top:16px;font-size:15px">Zuerst Mitarbeiter anlegen</p>
         <button onclick="MA_STATE.view='list';renderMitarbeiterTab()"
-          style="margin-top:12px;padding:10px 20px;background:#610000;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">
+          style="margin-top:14px;padding:12px 24px;background:#610000;color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">
           Mitarbeiter anlegen
         </button>
       </div>`;
   }
 
-  // Days
-  html += `<div style="display:flex;flex-direction:column;gap:10px">`;
+  // Table: rows = employees, cols = days
+  html += `<div style="overflow-x:auto;border-radius:18px;border:1.5px solid #e3beb8;background:#fff">
+    <table style="width:100%;border-collapse:collapse;min-width:700px">
+      <thead>
+        <tr style="background:#f9f4f3">
+          <th style="padding:14px 18px;text-align:left;font-size:13px;font-weight:700;color:#5a403c;border-bottom:1.5px solid #e3beb8;min-width:130px">Mitarbeiter</th>`;
+
   for (let d = 0; d < 7; d++) {
-    const dayDate = new Date(weekStart); dayDate.setDate(weekStart.getDate() + d);
-    const isToday = dayDate.toDateString() === today;
-    const dayStr  = dayDate.toLocaleDateString('de-AT', { day:'numeric', month:'numeric' });
-
+    const dayDate  = new Date(weekStart); dayDate.setDate(weekStart.getDate() + d);
+    const isToday  = dayDate.toDateString() === today;
+    const dayNum   = dayDate.toLocaleDateString('de-AT', { day:'numeric', month:'numeric' });
     html += `
-      <div style="background:#fff;border:1.5px solid ${isToday ? '#610000' : '#e3beb8'};border-radius:14px;overflow:hidden">
-        <div style="padding:10px 16px;background:${isToday ? '#610000' : '#f9f4f3'};display:flex;align-items:center;gap:10px">
-          <span style="font-size:14px;font-weight:800;color:${isToday ? '#fff' : '#261816'}">${DAYS_FULL[d]}</span>
-          <span style="font-size:12px;color:${isToday ? 'rgba(255,255,255,.7)' : '#8d6562'}">${dayStr}</span>
-          ${isToday ? '<span style="font-size:10px;font-weight:700;color:#ffdad6;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;margin-left:auto">Heute</span>' : ''}
-        </div>
-        <div style="padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px">`;
-
-    for (const ma of mitarbeiter) {
-      const shift = (weekPlan[ma.id] || {})[d] || {};
-      const hasShift = !!(shift.von && shift.bis);
-      const hrs = shiftHours(shift.von, shift.bis);
-      const wk = weekKey.replace(/-/g,'');
-      const safeId = `${wk}_${ma.id}_${d}`;
-
-      html += `
-          <div style="background:${hasShift ? ma.farbe+'18' : '#f9f4f3'};border:1.5px solid ${hasShift ? ma.farbe : '#e3beb8'};border-radius:10px;padding:8px 12px;min-width:150px;flex:1">
-            <div style="font-size:11px;font-weight:700;color:${ma.farbe};margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:4px">
-              <span style="display:flex;align-items:center;gap:4px">
-                <span style="width:7px;height:7px;border-radius:50%;background:${ma.farbe};display:inline-block;flex-shrink:0"></span>
-                ${escHtml(ma.name)}
-              </span>
-              ${hasShift ? `<button onclick="maClearShift('${weekKey}','${ma.id}',${d})" style="background:none;border:none;cursor:pointer;padding:0;color:#8d6562;line-height:0"><span class="material-symbols-outlined" style="font-size:13px">close</span></button>` : ''}
-            </div>
-            <div style="display:flex;align-items:center;gap:5px">
-              <input type="time" value="${shift.von || ''}"
-                onchange="maSetShift('${weekKey}','${ma.id}',${d},'von',this.value)"
-                style="width:82px;padding:5px 6px;border:1px solid #e3beb8;border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#261816"/>
-              <span style="color:#8d6562;font-size:11px">–</span>
-              <input type="time" value="${shift.bis || ''}"
-                onchange="maSetShift('${weekKey}','${ma.id}',${d},'bis',this.value)"
-                style="width:82px;padding:5px 6px;border:1px solid #e3beb8;border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#261816"/>
-            </div>
-            <div id="hrs_${safeId}" style="font-size:10px;font-weight:700;color:${ma.farbe};margin-top:4px;display:${hrs>0?'block':'none'}">${hrs.toFixed(1)} Std.</div>
-          </div>`;
-    }
-    html += `</div></div>`;
+          <th style="padding:12px 8px;text-align:center;font-size:12px;font-weight:700;border-bottom:1.5px solid #e3beb8;border-left:1px solid #f0e8e6;min-width:110px;background:${isToday?'#fff0ee':''}">
+            <div style="color:${isToday?'#610000':'#261816'};font-size:13px;font-weight:800">${DAYS_SHORT[d]}</div>
+            <div style="color:${isToday?'#b52619':'#8d6562'};font-size:11px;font-weight:500">${dayNum}</div>
+            ${isToday?'<div style="width:6px;height:6px;border-radius:50%;background:#610000;margin:4px auto 0"></div>':''}
+          </th>`;
   }
-  html += `</div>`;
-
-  // Weekly summary
-  let gesamtLohn = 0;
-  const summaryRows = mitarbeiter.map(ma => {
-    let total = 0;
-    for (let d = 0; d < 7; d++) {
-      const s = (weekPlan[ma.id] || {})[d];
-      if (s) total += shiftHours(s.von, s.bis);
-    }
-    const lohn = (ma.lohn || 0) * total;
-    gesamtLohn += lohn;
-    return { ma, total, lohn };
-  });
 
   html += `
-    <div style="margin-top:20px;background:#fff;border:1px solid #e3beb8;border-radius:14px;padding:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-        <div style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:6px">
-          <span class="material-symbols-outlined" style="font-size:16px;color:#610000">summarize</span>
-          Wochenübersicht KW ${kw}
-        </div>
-        ${gesamtLohn > 0 ? `
-        <div style="display:flex;gap:16px">
-          <div style="text-align:right">
-            <div style="font-size:10px;color:#8d6562">Lohnkosten Woche</div>
-            <div style="font-size:16px;font-weight:800;color:#610000">${eur(gesamtLohn)}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:10px;color:#8d6562">Lohnkosten Monat</div>
-            <div style="font-size:16px;font-weight:800;color:#610000">${eur(gesamtLohn * 4.33)}</div>
-          </div>
-        </div>` : ''}
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">`;
+          <th style="padding:12px 10px;text-align:center;font-size:12px;font-weight:700;color:#5a403c;border-bottom:1.5px solid #e3beb8;border-left:2px solid #e3beb8;min-width:80px">Gesamt</th>
+        </tr>
+      </thead>
+      <tbody>`;
 
-  for (const { ma, total, lohn } of summaryRows) {
+  let gesamtLohn = 0;
+
+  for (const ma of mitarbeiter) {
+    let totalHrs = 0;
+    for (let d = 0; d < 7; d++) {
+      const s = (weekPlan[ma.id] || {})[d];
+      if (s) totalHrs += shiftHours(s.von, s.bis);
+    }
+    const lohnWoche = (ma.lohn || 0) * totalHrs;
+    gesamtLohn += lohnWoche;
+    const wk = weekKey.replace(/-/g,'');
+
     html += `
-        <div style="display:flex;align-items:center;gap:12px;background:${ma.farbe}0e;border:1px solid ${ma.farbe}30;border-radius:10px;padding:10px 14px">
-          <div style="width:32px;height:32px;border-radius:50%;background:${ma.farbe};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0">
-            ${escHtml(ma.name.charAt(0).toUpperCase())}
-          </div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:#261816">${escHtml(ma.name)}</div>
-            <div style="font-size:11px;color:#8d6562">${escHtml(ma.rolle)}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div id="sum_${ma.id}" style="font-size:14px;font-weight:800;color:${ma.farbe}">${total.toFixed(1)} Std.</div>
-            ${lohn > 0 ? `<div style="font-size:11px;color:#8d6562">${eur(lohn)}</div>` : ''}
-          </div>
-        </div>`;
+        <tr style="border-bottom:1px solid #f0e8e6">
+          <td style="padding:14px 18px;border-right:1px solid #f0e8e6">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:50%;background:${ma.farbe};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0">
+                ${escHtml(ma.name.charAt(0).toUpperCase())}
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#261816;white-space:nowrap">${escHtml(ma.name)}</div>
+                <div style="font-size:11px;color:#8d6562">${escHtml(ma.rolle)}</div>
+              </div>
+            </div>
+          </td>`;
+
+    for (let d = 0; d < 7; d++) {
+      const dayDate = new Date(weekStart); dayDate.setDate(weekStart.getDate() + d);
+      const isToday = dayDate.toDateString() === today;
+      const shift   = (weekPlan[ma.id] || {})[d] || {};
+      const hasShift = !!(shift.von && shift.bis);
+      const hrs     = shiftHours(shift.von, shift.bis);
+      const safeId  = `${wk}_${ma.id}_${d}`;
+
+      html += `
+          <td style="padding:8px 6px;text-align:center;border-left:1px solid #f0e8e6;background:${isToday?'#fffaf9':''}${hasShift?';background:'+ma.farbe+'0a':''}">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+              <input type="time" value="${shift.von || ''}"
+                onchange="maSetShift('${weekKey}','${ma.id}',${d},'von',this.value)"
+                style="width:90px;padding:5px 6px;border:1px solid ${hasShift?ma.farbe:'#e3beb8'};border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#261816;text-align:center"/>
+              <input type="time" value="${shift.bis || ''}"
+                onchange="maSetShift('${weekKey}','${ma.id}',${d},'bis',this.value)"
+                style="width:90px;padding:5px 6px;border:1px solid ${hasShift?ma.farbe:'#e3beb8'};border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#261816;text-align:center"/>
+              <div id="hrs_${safeId}" style="font-size:11px;font-weight:700;color:${ma.farbe};display:${hrs>0?'block':'none'}">${hrs.toFixed(1)} Std</div>
+              ${hasShift?`<button onclick="maClearShift('${weekKey}','${ma.id}',${d})" style="background:none;border:none;cursor:pointer;padding:0;color:#c0b0ae;line-height:0;font-size:10px" title="Löschen"><span class="material-symbols-outlined" style="font-size:13px">close</span></button>`:''}
+            </div>
+          </td>`;
+    }
+
+    html += `
+          <td style="padding:14px 10px;text-align:center;border-left:2px solid #e3beb8;background:#fdf8f7">
+            <div id="sum_${ma.id}" style="font-size:16px;font-weight:800;color:${totalHrs>0?ma.farbe:'#c0b0ae'}">${totalHrs.toFixed(1)}</div>
+            <div style="font-size:10px;color:#8d6562">Std</div>
+            ${lohnWoche>0?`<div style="font-size:11px;font-weight:700;color:#610000;margin-top:2px">${eur(lohnWoche)}</div>`:''}
+          </td>
+        </tr>`;
   }
 
-  html += `</div></div>`;
+  html += `</tbody></table></div>`;
+
+  // Summary bar
+  if (gesamtLohn > 0) {
+    html += `
+      <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:14px;padding:16px 20px;color:#fff;text-align:center">
+          <div style="font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Lohnkosten KW ${kw}</div>
+          <div style="font-size:24px;font-weight:800">${eur(gesamtLohn)}</div>
+        </div>
+        <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:16px 20px;text-align:center">
+          <div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Hochgerechnet / Monat</div>
+          <div style="font-size:24px;font-weight:800;color:#261816">${eur(gesamtLohn * 4.33)}</div>
+        </div>
+      </div>`;
+  }
+
   return html;
 }
 
