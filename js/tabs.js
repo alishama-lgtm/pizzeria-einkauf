@@ -808,6 +808,19 @@ function renderSucheTab() {
         <p id="loading-step-text" style="font-size:12px;color:#8d6562;margin-top:8px;font-style:italic">${escHtml(SUCHE_STATE.loadingStep)}</p>
       </div>`;
   } else if (SUCHE_STATE.results.length > 0) {
+    if (SUCHE_STATE.fromCache) {
+      inner += `
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#fff0ee;border:1px solid #e3beb8;border-radius:12px;padding:10px 16px;margin-bottom:16px;gap:12px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#5a403c">
+            <span class="material-symbols-outlined" style="font-size:15px;color:#610000">cached</span>
+            Aus Cache gespeichert am <strong>${SUCHE_STATE.cacheDate}</strong>
+          </div>
+          <button onclick="refreshSucheSearch()" style="font-size:11px;font-weight:600;color:#610000;background:#ffdad6;border:1px solid #b52619;border-radius:8px;padding:4px 12px;cursor:pointer;display:flex;align-items:center;gap:4px">
+            <span class="material-symbols-outlined" style="font-size:13px">refresh</span>
+            Neu suchen
+          </button>
+        </div>`;
+    }
     inner += renderSearchResults();
   } else if (SUCHE_STATE.query && !SUCHE_STATE.error) {
     inner += `
@@ -835,6 +848,8 @@ function renderSucheTab() {
         </p>
       </div>`;
   }
+
+  inner += renderSucheVerlauf();
 
   panel.innerHTML = inner;
 
@@ -992,11 +1007,28 @@ async function startSearch() {
     return;
   }
 
+  // Cache prüfen
+  const cached = getSucheCache(query);
+  if (cached) {
+    SUCHE_STATE.loading = false;
+    SUCHE_STATE.error = null;
+    SUCHE_STATE.results = cached.results;
+    SUCHE_STATE.query = cached.query;
+    SUCHE_STATE.addedIds = new Set();
+    SUCHE_STATE.fromCache = true;
+    SUCHE_STATE.cacheDate = cached.date;
+    SUCHE_STATE.loadingStep = '';
+    renderSucheTab();
+    return;
+  }
+
   SUCHE_STATE.loading = true;
   SUCHE_STATE.error = null;
   SUCHE_STATE.results = [];
   SUCHE_STATE.query = query;
   SUCHE_STATE.addedIds = new Set();
+  SUCHE_STATE.fromCache = false;
+  SUCHE_STATE.cacheDate = null;
   SUCHE_STATE.loadingStep = 'Verbinde mit Claude …';
   renderSucheTab();
 
@@ -1004,6 +1036,7 @@ async function startSearch() {
     const results = await searchViaClaudeAPI(query);
     SUCHE_STATE.results = results;
     SUCHE_STATE.error = null;
+    if (results.length > 0) setSucheCache(query, results);
   } catch (err) {
     SUCHE_STATE.error = err.message || String(err);
     SUCHE_STATE.results = [];
@@ -1091,6 +1124,132 @@ function parseResultsJSON(text) {
 
   // Empty result if nothing parseable
   return [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUCHE CACHE
+// ═══════════════════════════════════════════════════════════════
+
+function getSucheCache(query) {
+  try {
+    const all = JSON.parse(localStorage.getItem('pizzeria_suche_cache') || '{}');
+    const key = query.toLowerCase().trim();
+    const entry = all[key];
+    if (!entry) return null;
+    const ageDays = (Date.now() - entry.timestamp) / (1000 * 60 * 60 * 24);
+    if (ageDays > SUCHE_CACHE_DAYS) {
+      delete all[key];
+      localStorage.setItem('pizzeria_suche_cache', JSON.stringify(all));
+      return null;
+    }
+    return entry;
+  } catch (_) { return null; }
+}
+
+function setSucheCache(query, results) {
+  try {
+    const all = JSON.parse(localStorage.getItem('pizzeria_suche_cache') || '{}');
+    all[query.toLowerCase().trim()] = {
+      query,
+      results,
+      timestamp: Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+    };
+    localStorage.setItem('pizzeria_suche_cache', JSON.stringify(all));
+  } catch (_) {}
+}
+
+function deleteSucheCache(query) {
+  try {
+    const all = JSON.parse(localStorage.getItem('pizzeria_suche_cache') || '{}');
+    delete all[query.toLowerCase().trim()];
+    localStorage.setItem('pizzeria_suche_cache', JSON.stringify(all));
+    if (SUCHE_STATE.fromCache && SUCHE_STATE.query.toLowerCase() === query.toLowerCase()) {
+      SUCHE_STATE.results = [];
+      SUCHE_STATE.query = '';
+      SUCHE_STATE.fromCache = false;
+    }
+    renderSucheTab();
+  } catch (_) {}
+}
+
+function clearAllSucheCache() {
+  try { localStorage.removeItem('pizzeria_suche_cache'); } catch (_) {}
+  SUCHE_STATE.results = [];
+  SUCHE_STATE.query = '';
+  SUCHE_STATE.fromCache = false;
+  renderSucheTab();
+}
+
+function loadFromSucheCache(query) {
+  const cached = getSucheCache(query);
+  if (!cached) return;
+  SUCHE_STATE.loading = false;
+  SUCHE_STATE.error = null;
+  SUCHE_STATE.results = cached.results;
+  SUCHE_STATE.query = cached.query;
+  SUCHE_STATE.addedIds = new Set();
+  SUCHE_STATE.fromCache = true;
+  SUCHE_STATE.cacheDate = cached.date;
+  renderSucheTab();
+}
+
+function refreshSucheSearch() {
+  const query = SUCHE_STATE.query;
+  if (!query) return;
+  deleteSucheCache(query);
+  const input = document.getElementById('suche-input');
+  if (input) input.value = query;
+  startSearch();
+}
+
+function renderSucheVerlauf() {
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('pizzeria_suche_cache') || '{}'); } catch (_) {}
+  const entries = Object.values(all).sort((a, b) => b.timestamp - a.timestamp);
+  if (entries.length === 0) return '';
+
+  let html = `
+    <div style="margin-top:36px;padding-top:24px;border-top:1px solid #e3beb8">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h3 style="font-size:15px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin:0">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">history</span>
+          Gespeicherter Verlauf
+          <span style="background:#610000;color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">${entries.length}</span>
+        </h3>
+        <button onclick="clearAllSucheCache()" style="font-size:11px;color:#5a403c;background:none;border:1px solid #e3beb8;cursor:pointer;display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px">
+          <span class="material-symbols-outlined" style="font-size:13px">delete_sweep</span>
+          Alle löschen
+        </button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">`;
+
+  for (const e of entries) {
+    const ageDays = Math.floor((Date.now() - e.timestamp) / (1000 * 60 * 60 * 24));
+    const ageText = ageDays === 0 ? 'Heute' : ageDays === 1 ? 'Gestern' : `vor ${ageDays} Tagen`;
+    const isActive = SUCHE_STATE.fromCache && SUCHE_STATE.query.toLowerCase() === e.query.toLowerCase();
+    const safeQ = e.query.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+    html += `
+      <div onclick="loadFromSucheCache('${safeQ}')"
+           style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${isActive ? '#fff0ee' : '#fff'};border:1px solid ${isActive ? '#b52619' : '#e3beb8'};border-radius:12px;cursor:pointer;transition:background .15s"
+           onmouseover="if(!${isActive})this.style.background='#fff8f6'" onmouseout="if(!${isActive})this.style.background='#fff'">
+        <span class="material-symbols-outlined" style="font-size:18px;color:${isActive ? '#610000' : '#8d6562'};flex-shrink:0">search</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;color:#261816;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(e.query)}</div>
+          <div style="font-size:11px;color:#8d6562;margin-top:2px">${e.results.length} Ergebnisse · ${ageText} · ${e.date}</div>
+        </div>
+        ${isActive ? '<span style="font-size:10px;font-weight:700;color:#610000;background:#ffdad6;padding:2px 8px;border-radius:20px;white-space:nowrap;border:1px solid #b52619">Aktiv</span>' : ''}
+        <button onclick="event.stopPropagation();deleteSucheCache('${safeQ}')"
+                style="background:none;border:none;cursor:pointer;padding:4px;color:#8d6562;flex-shrink:0;border-radius:6px;line-height:0"
+                title="Löschen">
+          <span class="material-symbols-outlined" style="font-size:16px">close</span>
+        </button>
+      </div>`;
+  }
+
+  html += `</div></div>`;
+  return html;
 }
 
 // ═══════════════════════════════════════════════════════════════

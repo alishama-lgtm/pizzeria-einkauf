@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // API KEY — hier deinen Anthropic API Key eintragen
 // ═══════════════════════════════════════════════════════════════
-const ANTHROPIC_API_KEY = "HIER_API_KEY_EINFÜGEN";
+const ANTHROPIC_API_KEY ="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";
 
 // ═══════════════════════════════════════════════════════════════
 // DATA
@@ -87,7 +87,12 @@ const SUCHE_STATE = {
   error: null,
   loadingStep: '',
   addedIds: new Set(),
+  fromCache: false,
+  cacheDate: null,
 };
+
+// Such-Cache: Ergebnisse werden 7 Tage gespeichert
+const SUCHE_CACHE_DAYS = 7;
 
 // Shop color map for Austrian retailers
 const AT_SHOP_COLORS = {
