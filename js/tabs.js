@@ -1018,10 +1018,9 @@ async function searchViaClaudeAPI(query) {
   const today = new Date().toISOString().slice(0, 10);
 
   const userPrompt =
-    `Heute ist ${today}. Suche auf marktguru.at, aktionsfinder.at und wogibtswas.at ` +
-    `nach aktuellen UND kommenden Angeboten für "${query}" bei österreichischen Händlern ` +
-    `(Hofer, Billa, Billa Plus, Spar, Interspar, Eurospar, Lidl, Metro, Etsan, Penny, Merkur). ` +
-    `Gib ALLE gefundenen Angebote zurück. ` +
+    `Heute ist ${today}. Du bist ein Preisexperte für österreichische Supermärkte. ` +
+    `Schätze realistische aktuelle Preise für "${query}" bei österreichischen Händlern ` +
+    `(Hofer, Billa, Spar, Lidl, Metro, Etsan, Penny). ` +
     `Antworte NUR mit einem JSON-Array in exakt diesem Format, ohne Erklärungen, ohne Markdown:\n` +
     `[\n` +
     `  {\n` +
@@ -1029,78 +1028,47 @@ async function searchViaClaudeAPI(query) {
     `    "brand": "Marke oder null",\n` +
     `    "shop": "Geschäftsname",\n` +
     `    "price": 1.99,\n` +
-    `    "originalPrice": 2.49,\n` +
+    `    "originalPrice": null,\n` +
     `    "unit": "kg / L / Stk / etc.",\n` +
-    `    "validFrom": "YYYY-MM-DD oder null",\n` +
-    `    "validUntil": "YYYY-MM-DD oder null",\n` +
-    `    "source": "marktguru.at / aktionsfinder.at / wogibtswas.at"\n` +
+    `    "validFrom": null,\n` +
+    `    "validUntil": null,\n` +
+    `    "source": "Preisschätzung"\n` +
     `  }\n` +
     `]\n` +
-    `Wenn keine Angebote gefunden werden, gib [] zurück.`;
+    `Gib 3-6 realistische Preisschätzungen zurück. Wenn du nichts weißt, gib [] zurück.`;
 
-  let messages = [{ role: 'user', content: userPrompt }];
-  let maxContinuations = 6;
+  updateLoadingStep('Claude schätzt aktuelle Preise …');
 
-  while (maxContinuations-- > 0) {
-    updateLoadingStep('Claude durchsucht österreichische Angebots-Websites …');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 4096,
-        thinking: { type: 'adaptive' },
-        tools: [
-          { type: 'web_search_20260209', name: 'web_search' },
-          { type: 'web_fetch_20260209',  name: 'web_fetch'  },
-        ],
-        messages,
-      }),
-    });
-
-    if (!resp.ok) {
-      let errMsg = `HTTP ${resp.status}`;
-      try {
-        const errData = await resp.json();
-        errMsg = errData?.error?.message || errMsg;
-      } catch (_) {}
-      if (resp.status === 401) throw new Error('Ungültiger API Key (401). Bitte API Key prüfen.');
-      if (resp.status === 429) throw new Error('Rate Limit erreicht (429). Kurz warten und erneut versuchen.');
-      throw new Error(errMsg);
-    }
-
-    const data = await resp.json();
-
-    if (data.stop_reason === 'end_turn') {
-      updateLoadingStep('Angebote werden verarbeitet …');
-      const textBlock = data.content.find(b => b.type === 'text');
-      const rawText = textBlock ? textBlock.text : '';
-      return parseResultsJSON(rawText);
-    }
-
-    if (data.stop_reason === 'pause_turn') {
-      // Server-side web search hit iteration limit → re-send to continue
-      updateLoadingStep('Weitere Seiten werden durchsucht …');
-      messages = [
-        { role: 'user', content: userPrompt },
-        { role: 'assistant', content: data.content },
-      ];
-      continue;
-    }
-
-    // Any other stop reason — try to extract text anyway
-    const textBlock = data.content && data.content.find(b => b.type === 'text');
-    if (textBlock) return parseResultsJSON(textBlock.text);
-    throw new Error(`Unerwarteter Stop-Grund: ${data.stop_reason}`);
+  if (!resp.ok) {
+    let errMsg = `HTTP ${resp.status}`;
+    try {
+      const errData = await resp.json();
+      errMsg = errData?.error?.message || errMsg;
+    } catch (_) {}
+    if (resp.status === 401) throw new Error('Ungültiger API Key (401). Bitte API Key prüfen.');
+    if (resp.status === 429) throw new Error('Rate Limit erreicht (429). Kurz warten und erneut versuchen.');
+    throw new Error(errMsg);
   }
 
-  throw new Error('Suche hat zu lange gedauert (max. Iterationen erreicht).');
+  const data = await resp.json();
+  updateLoadingStep('Preise werden verarbeitet …');
+  const textBlock = data.content && data.content.find(b => b.type === 'text');
+  return parseResultsJSON(textBlock ? textBlock.text : '');
 }
 
 function parseResultsJSON(text) {
