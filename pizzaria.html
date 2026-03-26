@@ -2238,6 +2238,15 @@ const UPLOAD_STATE = {
   addedIndices: new Set(),
 };
 
+// Rechnungs-Scanner State (File System Access API)
+const RECHNUNG_SCAN = {
+  dirHandle: null,   // FileSystemDirectoryHandle
+  pdfs: [],          // [{name, handle}]
+  lieferant: '',
+  loading: false,
+  error: null,
+};
+
 // ═══════════════════════════════════════════════════════════════
 // UPLOAD TAB — File Handling
 // ═══════════════════════════════════════════════════════════════
@@ -2288,6 +2297,70 @@ function resetUpload() {
   renderUploadTab();
 }
 
+// ─── Rechnungs-Ordner scannen (File System Access API) ───
+async function openRechnungenOrdner() {
+  if (!window.showDirectoryPicker) {
+    RECHNUNG_SCAN.error = 'Dein Browser unterstützt kein direktes Öffnen von Ordnern. Bitte Chrome oder Edge verwenden.';
+    renderUploadTab(); return;
+  }
+  try {
+    RECHNUNG_SCAN.loading = true;
+    RECHNUNG_SCAN.error = null;
+    renderUploadTab();
+    const dh = await window.showDirectoryPicker({ mode: 'read' });
+    RECHNUNG_SCAN.dirHandle = dh;
+    // detect supplier from folder name
+    const name = dh.name.toLowerCase();
+    if (name.includes('um-trade') || name.includes('um_trade') || name.includes('umtrade')) {
+      RECHNUNG_SCAN.lieferant = 'UM Trade';
+    } else if (name.includes('metro')) {
+      RECHNUNG_SCAN.lieferant = 'Metro';
+    } else if (name.includes('etsan')) {
+      RECHNUNG_SCAN.lieferant = 'Etsan';
+    } else {
+      RECHNUNG_SCAN.lieferant = dh.name;
+    }
+    // collect PDFs
+    const pdfs = [];
+    for await (const [entryName, handle] of dh.entries()) {
+      if (handle.kind === 'file' && entryName.toLowerCase().endsWith('.pdf')) {
+        pdfs.push({ name: entryName, handle });
+      }
+    }
+    pdfs.sort((a, b) => b.name.localeCompare(a.name)); // neueste zuerst
+    RECHNUNG_SCAN.pdfs = pdfs;
+    RECHNUNG_SCAN.loading = false;
+    renderUploadTab();
+  } catch (e) {
+    RECHNUNG_SCAN.loading = false;
+    if (e.name !== 'AbortError') {
+      RECHNUNG_SCAN.error = 'Ordner konnte nicht geöffnet werden: ' + e.message;
+    }
+    renderUploadTab();
+  }
+}
+
+async function ladeRechnungPDF(idx) {
+  const entry = RECHNUNG_SCAN.pdfs[idx];
+  if (!entry) return;
+  try {
+    const fileObj = await entry.handle.getFile();
+    // inject supplier as filename hint if not already in name
+    handleFileUpload(fileObj);
+  } catch (e) {
+    UPLOAD_STATE.error = 'PDF konnte nicht gelesen werden: ' + e.message;
+    renderUploadTab();
+  }
+}
+
+function closeRechnungenScan() {
+  RECHNUNG_SCAN.dirHandle = null;
+  RECHNUNG_SCAN.pdfs = [];
+  RECHNUNG_SCAN.lieferant = '';
+  RECHNUNG_SCAN.error = null;
+  renderUploadTab();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // UPLOAD TAB — Render
 // ═══════════════════════════════════════════════════════════════
@@ -2329,6 +2402,62 @@ function renderUploadTab() {
 
   // ─── Hidden file input ───
   inner += `<input id="upload-file-input" type="file" accept="image/*,.pdf" capture="environment" style="display:none" onchange="handleFileSelect(this)">`;
+
+  // ─── Rechnung scannen Button + PDF-Liste ───
+  if (!UPLOAD_STATE.fileDataUrl) {
+    if (RECHNUNG_SCAN.dirHandle && RECHNUNG_SCAN.pdfs.length >= 0) {
+      // Ordner ist geöffnet — zeige PDF-Liste
+      inner += `
+        <div style="background:#fff;border:1px solid #e3beb8;border-radius:18px;overflow:hidden;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+          <div style="padding:14px 18px;background:#f8dcd8;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e3beb844">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="material-symbols-outlined" style="font-size:20px;color:#610000">folder_open</span>
+              <div>
+                <p style="font-size:13px;font-weight:700;color:#261816;margin:0">${escHtml(RECHNUNG_SCAN.lieferant || RECHNUNG_SCAN.dirHandle.name)}</p>
+                <p style="font-size:11px;color:#5a403c;margin:2px 0 0">${RECHNUNG_SCAN.pdfs.length} PDF${RECHNUNG_SCAN.pdfs.length !== 1 ? 's' : ''} gefunden</p>
+              </div>
+            </div>
+            <button onclick="closeRechnungenScan()" style="padding:5px 12px;border-radius:10px;border:1px solid #e3beb8;background:#fff;font-size:12px;color:#5a403c;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit">
+              <span class="material-symbols-outlined" style="font-size:14px">close</span> Schließen
+            </button>
+          </div>
+          ${RECHNUNG_SCAN.error ? `<div style="padding:12px 18px;background:#ffdad6;color:#93000a;font-size:12px">${escHtml(RECHNUNG_SCAN.error)}</div>` : ''}
+          ${RECHNUNG_SCAN.pdfs.length === 0 ? `
+            <div style="padding:28px;text-align:center;color:#8d6562">
+              <span class="material-symbols-outlined" style="font-size:36px;margin-bottom:8px;display:block;color:#e3beb8">folder_off</span>
+              <p style="font-size:13px">Keine PDFs in diesem Ordner gefunden.</p>
+            </div>` : `
+            <div style="padding:8px">
+              ${RECHNUNG_SCAN.pdfs.map((pdf, i) => `
+                <button onclick="ladeRechnungPDF(${i})"
+                  style="width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;border:none;background:transparent;border-radius:12px;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s"
+                  onmouseover="this.style.background='#fff8f6'" onmouseout="this.style.background='transparent'">
+                  <span class="material-symbols-outlined" style="font-size:22px;color:#610000;flex-shrink:0">picture_as_pdf</span>
+                  <div style="flex:1;min-width:0">
+                    <p style="font-size:13px;font-weight:600;color:#261816;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(pdf.name)}</p>
+                    <p style="font-size:11px;color:#5a403c;margin:2px 0 0">Tippen zum Auslesen</p>
+                  </div>
+                  <span class="material-symbols-outlined" style="font-size:18px;color:#8e706b;flex-shrink:0">chevron_right</span>
+                </button>`).join('')}
+            </div>`}
+        </div>`;
+    } else {
+      // Noch kein Ordner geöffnet — zeige "Rechnung scannen" Button
+      inner += `
+        <button onclick="openRechnungenOrdner()"
+          ${RECHNUNG_SCAN.loading ? 'disabled' : ''}
+          style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border:2px solid #610000;border-radius:16px;background:#fff;color:#610000;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;transition:all .2s"
+          onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
+          ${RECHNUNG_SCAN.loading
+            ? `<span class="material-symbols-outlined" style="font-size:22px;animation:spin 1s linear infinite">progress_activity</span> Lade Ordner...`
+            : `<span class="material-symbols-outlined" style="font-size:22px">folder_open</span> 📂 Rechnung scannen`}
+        </button>
+        ${RECHNUNG_SCAN.error ? `<div style="background:#ffdad6;border-radius:12px;padding:11px 14px;margin-bottom:14px;font-size:12px;color:#93000a">${escHtml(RECHNUNG_SCAN.error)}</div>` : ''}
+        <div style="text-align:center;color:#8d6562;font-size:12px;margin-bottom:16px;display:flex;align-items:center;gap:8px;justify-content:center">
+          <div style="flex:1;height:1px;background:#e3beb8"></div>oder<div style="flex:1;height:1px;background:#e3beb8"></div>
+        </div>`;
+    }
+  }
 
   if (!UPLOAD_STATE.fileDataUrl) {
     // ─── Drop zone ───
