@@ -1756,93 +1756,337 @@ function renderVerlaufTab() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// MITARBEITER — Daten & Helpers
+// ═══════════════════════════════════════════════════════════════
+
+const MA_STATE = { view: 'plan', weekKey: null };
+const MA_FARBEN = ['#610000','#0050AA','#2e7d32','#e65100','#6a1b9a','#00838f','#c62828','#37474f'];
+
+function getMitarbeiter() {
+  try { return JSON.parse(localStorage.getItem('pizzeria_mitarbeiter') || '[]'); } catch(_) { return []; }
+}
+function saveMitarbeiterList(list) {
+  try { localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(list)); } catch(_) {}
+}
+function getWochenplan() {
+  try { return JSON.parse(localStorage.getItem('pizzeria_wochenplan') || '{}'); } catch(_) { return {}; }
+}
+function saveWochenplan(plan) {
+  try { localStorage.setItem('pizzeria_wochenplan', JSON.stringify(plan)); } catch(_) {}
+}
+
+function weekMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+function weekKeyFromDate(date) {
+  return weekMonday(date).toISOString().slice(0, 10);
+}
+function prevWeekKey(key) {
+  const d = new Date(key); d.setDate(d.getDate() - 7);
+  return d.toISOString().slice(0, 10);
+}
+function nextWeekKey(key) {
+  const d = new Date(key); d.setDate(d.getDate() + 7);
+  return d.toISOString().slice(0, 10);
+}
+function isoWeekNum(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dn = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dn);
+  const ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d - ys) / 86400000 + 1) / 7);
+}
+function shiftHours(von, bis) {
+  if (!von || !bis) return 0;
+  const [h1, m1] = von.split(':').map(Number);
+  const [h2, m2] = bis.split(':').map(Number);
+  const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return diff > 0 ? diff / 60 : 0;
+}
+
+function maHinzufuegen() {
+  const nameEl = document.getElementById('ma-name-inp');
+  const rolleEl = document.getElementById('ma-rolle-inp');
+  const name = nameEl ? nameEl.value.trim() : '';
+  if (!name) { if (nameEl) nameEl.focus(); return; }
+  const rolle = rolleEl ? rolleEl.value : 'Küche';
+  const list = getMitarbeiter();
+  list.push({ id: 'ma_' + Date.now(), name, rolle, farbe: MA_FARBEN[list.length % MA_FARBEN.length] });
+  saveMitarbeiterList(list);
+  renderMitarbeiterTab();
+}
+
+function maLoeschen(id) {
+  if (!confirm('Mitarbeiter wirklich löschen?')) return;
+  saveMitarbeiterList(getMitarbeiter().filter(m => m.id !== id));
+  renderMitarbeiterTab();
+}
+
+function maSetShift(weekKey, maId, day, field, value) {
+  const plan = getWochenplan();
+  if (!plan[weekKey]) plan[weekKey] = {};
+  if (!plan[weekKey][maId]) plan[weekKey][maId] = {};
+  if (!plan[weekKey][maId][day]) plan[weekKey][maId][day] = {};
+  plan[weekKey][maId][day][field] = value;
+  saveWochenplan(plan);
+  // Update only the hours display without full re-render (keeps focus)
+  const von = plan[weekKey][maId][day].von;
+  const bis = plan[weekKey][maId][day].bis;
+  const hrs = shiftHours(von, bis);
+  const hrsEl = document.getElementById(`hrs_${weekKey.replace(/-/g,'')}_${maId}_${day}`);
+  if (hrsEl) {
+    hrsEl.style.display = hrs > 0 ? 'block' : 'none';
+    hrsEl.textContent = hrs.toFixed(1) + ' Std.';
+  }
+  // Update summary
+  maSummaryUpdate(weekKey);
+}
+
+function maClearShift(weekKey, maId, day) {
+  const plan = getWochenplan();
+  if (plan[weekKey] && plan[weekKey][maId]) delete plan[weekKey][maId][day];
+  saveWochenplan(plan);
+  renderMitarbeiterTab();
+}
+
+function maSummaryUpdate(weekKey) {
+  const mitarbeiter = getMitarbeiter();
+  const plan = getWochenplan();
+  const weekPlan = plan[weekKey] || {};
+  for (const ma of mitarbeiter) {
+    let total = 0;
+    for (let d = 0; d < 7; d++) {
+      const s = (weekPlan[ma.id] || {})[d];
+      if (s) total += shiftHours(s.von, s.bis);
+    }
+    const el = document.getElementById(`sum_${ma.id}`);
+    if (el) el.textContent = total.toFixed(1) + ' Std.';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MITARBEITER TAB — Render
 // ═══════════════════════════════════════════════════════════════
 
 function renderMitarbeiterTab() {
-  const low = getLowStockProducts();
-  const dateLabel = new Date().toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long' });
+  const panel = document.getElementById('panel-mitarbeiter');
+  if (!panel) return;
+
+  if (!MA_STATE.weekKey) MA_STATE.weekKey = weekKeyFromDate(new Date());
+  const mitarbeiter = getMitarbeiter();
+  const weekKey = MA_STATE.weekKey;
 
   let html = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px">
-      <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <span class="material-symbols-outlined" style="font-size:28px;color:#fff">badge</span>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">badge</span>
       </div>
       <div>
-        <h2 style="font-size:20px;font-weight:800;color:#261816;margin-bottom:3px">Mitarbeiter-Einkaufsliste</h2>
-        <p style="font-size:14px;color:#5a403c">${dateLabel}</p>
+        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Personal</h2>
+        <p style="font-size:13px;color:#5a403c;margin:0">Mitarbeiter &amp; Wochenplan</p>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid #e3beb8">
+      <button onclick="MA_STATE.view='plan';renderMitarbeiterTab()"
+        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;
+               color:${MA_STATE.view==='plan'?'#610000':'#5a403c'};
+               border-bottom:${MA_STATE.view==='plan'?'3px solid #610000':'3px solid transparent'};
+               margin-bottom:-2px;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:16px">calendar_month</span>Wochenplan
+      </button>
+      <button onclick="MA_STATE.view='list';renderMitarbeiterTab()"
+        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;
+               color:${MA_STATE.view==='list'?'#610000':'#5a403c'};
+               border-bottom:${MA_STATE.view==='list'?'3px solid #610000':'3px solid transparent'};
+               margin-bottom:-2px;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:16px">group</span>Mitarbeiter
+        <span style="background:${MA_STATE.view==='list'?'#610000':'#e3beb8'};color:${MA_STATE.view==='list'?'#fff':'#5a403c'};border-radius:20px;padding:1px 7px;font-size:11px">${mitarbeiter.length}</span>
+      </button>
+    </div>`;
+
+  html += MA_STATE.view === 'list'
+    ? renderMAListe(mitarbeiter)
+    : renderMAWochenplan(mitarbeiter, weekKey);
+
+  panel.innerHTML = html;
+}
+
+function renderMAListe(mitarbeiter) {
+  let html = `
+    <div style="background:#fff;border:1px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:700;color:#261816;margin:0 0 14px;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:16px;color:#610000">person_add</span>
+        Mitarbeiter hinzufügen
+      </h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <input id="ma-name-inp" type="text" placeholder="Name eingeben …"
+          onkeydown="if(event.key==='Enter')maHinzufuegen()"
+          style="flex:2;min-width:150px;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+        <select id="ma-rolle-inp"
+          style="flex:1;min-width:120px;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none">
+          <option>Küche</option>
+          <option>Service</option>
+          <option>Lieferung</option>
+          <option>Theke</option>
+          <option>Reinigung</option>
+          <option>Sonstiges</option>
+        </select>
+        <button onclick="maHinzufuegen()"
+          style="padding:11px 22px;background:#610000;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;white-space:nowrap">
+          <span class="material-symbols-outlined" style="font-size:18px">add</span>Hinzufügen
+        </button>
       </div>
     </div>`;
 
-  if (low.length === 0) {
-    html += `
-      <div style="text-align:center;padding:64px 20px;background:#c0eda6;border-radius:20px;border:2px solid #86efac">
-        <div style="font-size:56px;margin-bottom:16px">✅</div>
-        <h3 style="font-size:24px;font-weight:800;color:#0c2000;margin-bottom:8px">Alles in Ordnung!</h3>
-        <p style="font-size:16px;color:#386a20;font-weight:500">Heute muss nichts eingekauft werden.</p>
+  if (mitarbeiter.length === 0) {
+    return html + `
+      <div style="text-align:center;padding:48px 20px;background:#fff8f6;border-radius:16px;border:1.5px dashed #e3beb8">
+        <span class="material-symbols-outlined" style="font-size:52px;color:#e3beb8">group</span>
+        <p style="color:#8d6562;margin-top:12px;font-size:14px">Noch keine Mitarbeiter angelegt</p>
       </div>`;
-  } else {
-    // Group by cheapest shop
-    const shopGroups = {};
-    for (const prod of low) {
-      let bestShop = null, bestPrice = Infinity;
-      for (const shop of SHOPS) {
-        const price = getPrice(shop.id, prod.id);
-        if (price !== null && price < bestPrice) { bestPrice = price; bestShop = shop; }
-      }
-      const key = bestShop ? bestShop.id : 'other';
-      if (!shopGroups[key]) shopGroups[key] = { shop: bestShop, items: [] };
-      shopGroups[key].items.push({ product: prod, price: bestPrice < Infinity ? bestPrice : null });
-    }
-
-    for (const group of Object.values(shopGroups)) {
-      const shopColor = group.shop ? group.shop.color : '#5a403c';
-      const shopTotal = group.items.reduce((s, it) => s + (it.price != null ? it.price * it.product.orderQuantity : 0), 0);
-      html += `
-        <div style="margin-bottom:20px;border-radius:18px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.1)">
-          <div style="background:${shopColor};padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="font-size:22px;font-weight:800;color:#fff">${group.shop ? group.shop.name : 'Sonstiges'}</div>
-              ${group.shop ? `<div style="font-size:13px;color:rgba(255,255,255,.8)">${group.shop.type}</div>` : ''}
-            </div>
-            ${shopTotal > 0 ? `<div style="text-align:right"><div style="font-size:18px;font-weight:700;color:#fff">${eur(shopTotal)}</div><div style="font-size:10px;color:rgba(255,255,255,.7)">geschätzt</div></div>` : ''}
-          </div>
-          <div style="background:#fff">`;
-
-      group.items.forEach(({ product: p, price }) => {
-        html += `
-            <div style="display:flex;align-items:center;padding:18px 20px;border-bottom:2px solid #ffe9e6;gap:14px">
-              <span style="font-size:26px;color:#d0c0b8;flex-shrink:0">☐</span>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:20px;font-weight:700;color:#261816;line-height:1.2">${p.name}</div>
-                <div style="font-size:15px;color:#5a403c;margin-top:5px">
-                  Kaufen: <strong style="color:#610000;font-size:20px">${p.orderQuantity} ${p.unit}</strong>
-                </div>
-              </div>
-              ${price != null ? `
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:20px;font-weight:700;color:#261816">${eur(price * p.orderQuantity)}</div>
-                <div style="font-size:12px;color:#8d6562">${eur(price)}/${p.unit}</div>
-              </div>` : ''}
-            </div>`;
-      });
-
-      html += `</div></div>`;
-    }
   }
 
-  html += `
-    <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
-      <button onclick="window.print()"
-        style="padding:14px 28px;border-radius:14px;border:none;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:10px">
-        <span class="material-symbols-outlined" style="font-size:22px">print</span> Liste drucken
+  html += `<div style="display:flex;flex-direction:column;gap:10px">`;
+  for (const ma of mitarbeiter) {
+    html += `
+      <div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e3beb8;border-radius:14px;padding:14px 16px">
+        <div style="width:42px;height:42px;border-radius:50%;background:${ma.farbe};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px;font-weight:800;color:#fff">
+          ${escHtml(ma.name.charAt(0).toUpperCase())}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:#261816">${escHtml(ma.name)}</div>
+          <div style="font-size:12px;color:#8d6562;margin-top:2px">${escHtml(ma.rolle)}</div>
+        </div>
+        <button onclick="maLoeschen('${ma.id}')"
+          style="background:none;border:1px solid #e3beb8;border-radius:8px;cursor:pointer;padding:6px 8px;color:#8d6562;display:flex;align-items:center;line-height:0">
+          <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+        </button>
+      </div>`;
+  }
+  return html + `</div>`;
+}
+
+function renderMAWochenplan(mitarbeiter, weekKey) {
+  const weekStart = new Date(weekKey);
+  const weekEnd  = new Date(weekKey); weekEnd.setDate(weekEnd.getDate() + 6);
+  const plan = getWochenplan();
+  const weekPlan = plan[weekKey] || {};
+  const kw = isoWeekNum(weekStart);
+  const DAYS_FULL = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+  const today = new Date().toDateString();
+
+  // Week nav
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <button onclick="MA_STATE.weekKey='${prevWeekKey(weekKey)}';renderMitarbeiterTab()"
+        style="padding:8px 14px;background:#fff;border:1px solid #e3beb8;border-radius:10px;cursor:pointer;line-height:0">
+        <span class="material-symbols-outlined" style="font-size:20px;color:#5a403c">chevron_left</span>
       </button>
-      <button onclick="switchTab('kombis')"
-        style="padding:14px 24px;border-radius:14px;border:1px solid #e3beb8;background:#fff;font-size:14px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px">
-        <span class="material-symbols-outlined" style="font-size:20px">lightbulb</span> Kombis anzeigen
+      <div style="text-align:center">
+        <div style="font-size:15px;font-weight:800;color:#261816">KW ${kw}</div>
+        <div style="font-size:12px;color:#8d6562">${weekStart.toLocaleDateString('de-AT',{day:'numeric',month:'short'})} – ${weekEnd.toLocaleDateString('de-AT',{day:'numeric',month:'short',year:'numeric'})}</div>
+      </div>
+      <button onclick="MA_STATE.weekKey='${nextWeekKey(weekKey)}';renderMitarbeiterTab()"
+        style="padding:8px 14px;background:#fff;border:1px solid #e3beb8;border-radius:10px;cursor:pointer;line-height:0">
+        <span class="material-symbols-outlined" style="font-size:20px;color:#5a403c">chevron_right</span>
       </button>
     </div>`;
 
-  document.getElementById('panel-mitarbeiter').innerHTML = html;
+  if (mitarbeiter.length === 0) {
+    return html + `
+      <div style="text-align:center;padding:48px 20px;background:#fff8f6;border-radius:16px;border:1.5px dashed #e3beb8">
+        <span class="material-symbols-outlined" style="font-size:52px;color:#e3beb8">calendar_month</span>
+        <p style="color:#8d6562;margin-top:12px;font-size:14px">Zuerst Mitarbeiter anlegen</p>
+        <button onclick="MA_STATE.view='list';renderMitarbeiterTab()"
+          style="margin-top:12px;padding:10px 20px;background:#610000;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">
+          Mitarbeiter anlegen
+        </button>
+      </div>`;
+  }
+
+  // Days
+  html += `<div style="display:flex;flex-direction:column;gap:10px">`;
+  for (let d = 0; d < 7; d++) {
+    const dayDate = new Date(weekStart); dayDate.setDate(weekStart.getDate() + d);
+    const isToday = dayDate.toDateString() === today;
+    const dayStr  = dayDate.toLocaleDateString('de-AT', { day:'numeric', month:'numeric' });
+
+    html += `
+      <div style="background:#fff;border:1.5px solid ${isToday ? '#610000' : '#e3beb8'};border-radius:14px;overflow:hidden">
+        <div style="padding:10px 16px;background:${isToday ? '#610000' : '#f9f4f3'};display:flex;align-items:center;gap:10px">
+          <span style="font-size:14px;font-weight:800;color:${isToday ? '#fff' : '#261816'}">${DAYS_FULL[d]}</span>
+          <span style="font-size:12px;color:${isToday ? 'rgba(255,255,255,.7)' : '#8d6562'}">${dayStr}</span>
+          ${isToday ? '<span style="font-size:10px;font-weight:700;color:#ffdad6;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;margin-left:auto">Heute</span>' : ''}
+        </div>
+        <div style="padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px">`;
+
+    for (const ma of mitarbeiter) {
+      const shift = (weekPlan[ma.id] || {})[d] || {};
+      const hasShift = !!(shift.von && shift.bis);
+      const hrs = shiftHours(shift.von, shift.bis);
+      const wk = weekKey.replace(/-/g,'');
+      const safeId = `${wk}_${ma.id}_${d}`;
+
+      html += `
+          <div style="background:${hasShift ? ma.farbe+'18' : '#f9f4f3'};border:1.5px solid ${hasShift ? ma.farbe : '#e3beb8'};border-radius:10px;padding:8px 12px;min-width:150px;flex:1">
+            <div style="font-size:11px;font-weight:700;color:${ma.farbe};margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:4px">
+              <span style="display:flex;align-items:center;gap:4px">
+                <span style="width:7px;height:7px;border-radius:50%;background:${ma.farbe};display:inline-block;flex-shrink:0"></span>
+                ${escHtml(ma.name)}
+              </span>
+              ${hasShift ? `<button onclick="maClearShift('${weekKey}','${ma.id}',${d})" style="background:none;border:none;cursor:pointer;padding:0;color:#8d6562;line-height:0"><span class="material-symbols-outlined" style="font-size:13px">close</span></button>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:5px">
+              <input type="time" value="${shift.von || ''}"
+                onchange="maSetShift('${weekKey}','${ma.id}',${d},'von',this.value)"
+                style="width:82px;padding:5px 6px;border:1px solid #e3beb8;border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#261816"/>
+              <span style="color:#8d6562;font-size:11px">–</span>
+              <input type="time" value="${shift.bis || ''}"
+                onchange="maSetShift('${weekKey}','${ma.id}',${d},'bis',this.value)"
+                style="width:82px;padding:5px 6px;border:1px solid #e3beb8;border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#261816"/>
+            </div>
+            <div id="hrs_${safeId}" style="font-size:10px;font-weight:700;color:${ma.farbe};margin-top:4px;display:${hrs>0?'block':'none'}">${hrs.toFixed(1)} Std.</div>
+          </div>`;
+    }
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+
+  // Weekly summary
+  html += `
+    <div style="margin-top:20px;background:#fff;border:1px solid #e3beb8;border-radius:14px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:16px;color:#610000">summarize</span>
+        Wochenübersicht KW ${kw}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px">`;
+
+  for (const ma of mitarbeiter) {
+    let total = 0;
+    for (let d = 0; d < 7; d++) {
+      const s = (weekPlan[ma.id] || {})[d];
+      if (s) total += shiftHours(s.von, s.bis);
+    }
+    html += `
+        <div style="display:flex;align-items:center;gap:8px;background:${ma.farbe}12;border:1px solid ${ma.farbe}40;border-radius:10px;padding:8px 14px">
+          <div style="width:30px;height:30px;border-radius:50%;background:${ma.farbe};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0">
+            ${escHtml(ma.name.charAt(0).toUpperCase())}
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#261816">${escHtml(ma.name)}</div>
+            <div id="sum_${ma.id}" style="font-size:12px;color:${ma.farbe};font-weight:700">${total.toFixed(1)} Std.</div>
+          </div>
+        </div>`;
+  }
+
+  html += `</div></div>`;
+  return html;
 }
+
 
