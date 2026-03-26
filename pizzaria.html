@@ -803,7 +803,7 @@
 // ═══════════════════════════════════════════════════════════════
 // API KEY — hier deinen Anthropic API Key eintragen
 // ═══════════════════════════════════════════════════════════════
-const ANTHROPIC_API_KEY = "HIER_API_KEY_EINFÜGEN";
+const ANTHROPIC_API_KEY = "sk-ant-api03-CR_0cdTg8WSsyeVXcl6WHPK23LKA3jHxFfvNiFNCeCB9ORNWaECQ2Vtgn8r32FL1Qr4ADfmA5dDwSlMgq44+Dsw-kHu9LwAA";
 
 // ═══════════════════════════════════════════════════════════════
 // DATA
@@ -2148,6 +2148,7 @@ async function searchViaClaudeAPI(query) {
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-6',
@@ -2685,6 +2686,7 @@ async function scanReceiptViaClaudeAPI() {
       'Content-Type': 'application/json',
       'x-api-key': ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
       model: 'claude-opus-4-6',
