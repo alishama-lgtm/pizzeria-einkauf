@@ -1,14 +1,259 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pizzeria Einkauf – Weiterleitung…</title>
-  <meta http-equiv="refresh" content="0; url=pizzaria.html"/>
-  <link rel="canonical" href="pizzaria.html"/>
+  <title>Pizzeria Einkauf</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- SheetJS — Excel & CSV parsing in browser -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+  <script id="tailwind-config">
+    if (typeof tailwind !== 'undefined') tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "tertiary-fixed": "#dfe0ff",
+            "on-primary-fixed": "#410000",
+            "secondary-fixed": "#ffdad4",
+            "surface-bright": "#fff8f6",
+            "primary-fixed": "#ffdad4",
+            "surface-variant": "#f8dcd8",
+            "inverse-on-surface": "#ffedea",
+            "on-secondary-fixed-variant": "#7b2d23",
+            "tertiary": "#00178d",
+            "surface-container-highest": "#f8dcd8",
+            "on-error": "#ffffff",
+            "on-background": "#261816",
+            "on-tertiary-fixed-variant": "#0d2ccc",
+            "on-primary": "#ffffff",
+            "secondary-fixed-dim": "#ffb4a8",
+            "primary": "#610000",
+            "on-primary-container": "#ff907f",
+            "surface-tint": "#b52619",
+            "background": "#fff8f6",
+            "outline": "#8e706b",
+            "primary-container": "#8b0000",
+            "inverse-primary": "#ffb4a8",
+            "error": "#ba1a1a",
+            "surface-dim": "#efd4d0",
+            "on-surface-variant": "#5a403c",
+            "on-tertiary-container": "#9ea9ff",
+            "surface-container-lowest": "#ffffff",
+            "on-surface": "#261816",
+            "on-secondary-fixed": "#400201",
+            "surface": "#fff8f6",
+            "tertiary-fixed-dim": "#bcc3ff",
+            "primary-fixed-dim": "#ffb4a8",
+            "inverse-surface": "#3d2c2a",
+            "on-secondary": "#ffffff",
+            "error-container": "#ffdad6",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#fff0ee",
+            "secondary-container": "#fe9383",
+            "surface-container": "#ffe9e6",
+            "tertiary-container": "#0025c8",
+            "on-tertiary-fixed": "#000d60",
+            "surface-container-high": "#fee2dd",
+            "on-secondary-container": "#772a20",
+            "on-primary-fixed-variant": "#920703",
+            "on-tertiary": "#ffffff",
+            "secondary": "#9a4438",
+            "outline-variant": "#e3beb8"
+          },
+          fontFamily: {
+            "headline": ["Plus Jakarta Sans", "sans-serif"],
+            "body": ["Inter", "sans-serif"],
+            "label": ["Inter", "sans-serif"]
+          },
+        },
+      },
+    }
+  </script>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
-<body>
-  <p>Weiterleitung zu <a href="pizzaria.html">pizzaria.html</a>…</p>
-  <script>window.location.replace('pizzaria.html');</script>
+<body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
+
+<!-- ═══ HEADER ═══ -->
+<header id="app-header">
+  <div class="header-inner">
+    <!-- Logo -->
+    <div class="header-logo">
+      <span class="header-logo-icon">🍕</span>
+      <div>
+        <div class="header-logo-text">Pizzeria Ali Shama KG</div>
+        <div class="header-logo-sub">Einkauf &amp; Warenverwaltung</div>
+      </div>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="header-right">
+      <!-- Low-stock badge -->
+      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#93000a;">
+        <span class="material-symbols-outlined" style="font-size:16px">warning</span>
+        <span id="header-badge-text"></span>
+      </div>
+      <!-- Bell -->
+      <button id="notif-bell-btn" class="header-bell-btn" onclick="showLowStockPopup()">
+        <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
+      </button>
+      <!-- Business Button -->
+      <button id="biz-header-btn" onclick="switchTab('business')">
+        <span class="material-symbols-outlined" id="biz-lock-icon">lock</span>
+        💼 Business
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ DESKTOP STAFF TAB BAR ═══ -->
+<nav id="staff-tab-bar" class="hidden md:block">
+  <div class="tabs-inner hide-scrollbar">
+    <button data-nav-tab="produkte" onclick="switchTab('produkte')" class="tab-btn">
+      <span class="material-symbols-outlined">inventory_2</span>Produkte
+    </button>
+    <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte')" class="tab-btn">
+      <span class="material-symbols-outlined">store</span>Geschäfte
+    </button>
+    <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn tab-active">
+      <span class="material-symbols-outlined">lightbulb</span>Kombis
+      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+    </button>
+    <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
+      <span class="material-symbols-outlined">search</span>Suche
+    </button>
+    <button data-nav-tab="upload" onclick="switchTab('upload')" class="tab-btn">
+      <span class="material-symbols-outlined">photo_camera</span>Upload
+    </button>
+    <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="tab-btn">
+      <span class="material-symbols-outlined">bar_chart</span>Verlauf
+    </button>
+    <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')" class="tab-btn">
+      <span class="material-symbols-outlined">badge</span>Mitarbeiter
+    </button>
+    <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')" class="tab-btn">
+      <span class="material-symbols-outlined">assignment_late</span>Fehlmaterial
+      <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+    </button>
+    <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="tab-btn">
+      <span class="material-symbols-outlined">checklist</span>Checkliste
+      <span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px">✓</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ STATS DASHBOARD (nur Staff-Bereich) ═══ -->
+<div id="stats-dashboard">
+  <div style="max-width:1400px;margin:0 auto;padding:0 40px;">
+    <div id="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
+  </div>
+</div>
+
+<!-- ═══ PANELS ═══ -->
+<main id="app-main" style="max-width:1400px;margin:0 auto;padding:20px 40px 160px;">
+  <div id="panel-produkte" style="display:none"></div>
+  <div id="panel-geschaefte" style="display:none"></div>
+  <div id="panel-kombis" style="display:block"></div>
+  <div id="panel-suche" style="display:none"></div>
+  <div id="panel-upload" style="display:none"></div>
+  <div id="panel-verlauf" style="display:none"></div>
+  <div id="panel-mitarbeiter" style="display:none"></div>
+  <div id="panel-fehlmaterial" style="display:none"></div>
+  <div id="panel-checkliste" style="display:none"></div>
+  <div id="panel-business" style="display:none"></div>
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer id="app-footer">
+  <div><strong>Pizzeria Ali Shama KG</strong> &copy; 2024 — Internes Einkaufssystem</div>
+  <div id="footer-last-update" style="display:flex;align-items:center;gap:6px;">
+    <span class="material-symbols-outlined" style="font-size:14px">update</span>
+    Letzte Aktualisierung: <span id="footer-time">—</span>
+  </div>
+</footer>
+
+<!-- ═══ MOBILE BOTTOM NAV ═══ -->
+<nav id="mobile-bottom-nav" class="md:hidden">
+  <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
+    <span class="material-symbols-outlined">home</span>Dashboard
+  </button>
+  <button data-bottom-nav="produkte" onclick="switchTab('produkte')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">inventory_2</span>Produkte
+  </button>
+  <button data-bottom-nav="suche" onclick="switchTab('suche')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">search</span>Suche
+  </button>
+  <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn" style="position:relative">
+    <span class="material-symbols-outlined">assignment_late</span>Fehlm.
+    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:10px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+  </button>
+  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn">
+    <span class="material-symbols-outlined">more_horiz</span>Mehr
+  </button>
+</nav>
+
+<!-- ═══ FLOATING CHECKOUT BAR ═══ -->
+<div id="floating-checkout-bar" class="floating-bar bar-hidden">
+  <div class="floating-bar-total">
+    <span>Einkaufsliste gesamt</span>
+    <strong>—</strong>
+  </div>
+  <button class="btn-checkout" onclick="if(window._featuredComboId) printCombo(window._featuredComboId)">
+    <span class="material-symbols-outlined" style="font-size:18px">shopping_cart_checkout</span>
+    Einkauf abschließen
+  </button>
+</div>
+
+<!-- ═══ MEHR DRAWER ═══ -->
+<div id="mehr-drawer-overlay" onclick="closeMehrDrawer()"></div>
+<div id="mehr-drawer" class="md:hidden">
+  <div class="drawer-handle"></div>
+  <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding:0 2px">Weitere Bereiche</div>
+  <div class="drawer-grid">
+    <button data-drawer-nav="geschaefte" onclick="switchTab('geschaefte');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">store</span>Geschäfte
+    </button>
+    <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">photo_camera</span>Upload
+    </button>
+    <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">bar_chart</span>Verlauf
+    </button>
+    <button data-drawer-nav="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDrawer()" class="drawer-item">
+      <span class="material-symbols-outlined">badge</span>Mitarbeiter
+    </button>
+    <button data-drawer-nav="checkliste" onclick="switchTab('checkliste');closeMehrDrawer()" class="drawer-item" style="position:relative">
+      <span class="material-symbols-outlined">checklist</span>Checkliste
+      <span id="cl-drawer-badge" style="display:none;position:absolute;top:8px;right:8px;width:10px;height:10px;background:#2e7d32;border-radius:50%"></span>
+    </button>
+    <button id="mob-biz-btn" onclick="switchTab('business');closeMehrDrawer()" class="drawer-item" style="background:#1a1a2e;border-color:#2d2d4a;color:#D4AF37">
+      <span class="material-symbols-outlined" id="mob-biz-lock" style="color:#D4AF37">lock</span>
+      Business
+    </button>
+  </div>
+</div>
+
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/fehlmaterial.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/business.js"></script>
+<script src="js/tabs.js"></script>
+<script>
+// Set correct lock icons on load + render default tab
+document.addEventListener('DOMContentLoaded', () => {
+  const unlocked = bizIsAuth();
+  const li1 = document.getElementById('biz-lock-icon');
+  const li2 = document.getElementById('mob-biz-lock');
+  if (li1) li1.textContent = unlocked ? 'lock_open' : 'lock';
+  if (li2) li2.textContent = unlocked ? 'lock_open' : 'lock';
+  fmUpdateBadge();
+  clUpdateBadge();
+  renderKombisTab(); // Render the default tab on page load
+});
+</script>
 </body>
 </html>
