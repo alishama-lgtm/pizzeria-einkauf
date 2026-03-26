@@ -1458,6 +1458,46 @@ function exportMonthAsText() {
 // VERLAUF TAB — Render
 // ═══════════════════════════════════════════════════════════════
 
+function importUMTradeRechnung93722() {
+  const items = [
+    { n:'Pizzablock EXPORT 5kg',                  m:14.885, e:'kg',    p:4.99  },
+    { n:'Salami geschnitten 65cm ca. 1kg',         m:4.100,  e:'kg',    p:6.19  },
+    { n:'Gastro Bacon Hochreiter geschnitten 1kg', m:2.994,  e:'kg',    p:8.99  },
+    { n:'Goldsteig Mozzarella Stange 45% FIT 1kg', m:2,      e:'Pkg',   p:6.99  },
+    { n:'SARAY Cheddar Scheiben 1000g',            m:1,      e:'Pkg',   p:8.99  },
+    { n:'BL Kartoffelsalat 10kg Wienerart',        m:1,      e:'Kübel', p:30.59 },
+    { n:'Debic Vanillesauce 2L',                   m:1,      e:'Fl.',   p:8.19  },
+    { n:'Brajlovic Cevapcici 800g TK',             m:3,      e:'Pkg',   p:9.99  },
+    { n:'Döner Kebap Geschnitten 1kg',             m:3,      e:'Pkg',   p:8.99  },
+    { n:'Hühnerbrustfilet ca. 1kg TK',            m:10,     e:'kg',    p:6.09  },
+    { n:'Giant XL Hamburger Brot 16 Stk TK',       m:2,      e:'Ktn',   p:8.99  },
+    { n:'OBA Kombi Böreklik Weiß 40% 4kg',         m:1,      e:'Ktn',   p:17.99 },
+    { n:'Aviko Potato Wedges Gewürzt 2,5kg TK',    m:4,      e:'Pkg',   p:4.985 },
+    { n:'Aviko Pommes Kebab 9,5mm 2,5kg TK',       m:4,      e:'Pkg',   p:4.735 },
+    { n:'Ardo Karfiol/Blumenkohl 2,5kg TK',        m:1,      e:'Pkg',   p:4.24  },
+    { n:'Ardo Markerbsen 2,5kg TK',                m:1,      e:'Pkg',   p:4.74  },
+    { n:'Develey Hamburger Sauce 875ml',            m:3,      e:'Fl.',   p:4.69  },
+    { n:'Adria Artischocken Herzen 2650ml',         m:1,      e:'Dosen', p:8.79  },
+    { n:'Mahmood Basmatie Reis 4,5kg',             m:1,      e:'Stk',   p:14.90 },
+    { n:'Senna Sauce Tartare Port. 80x25g',        m:1,      e:'Ktn',   p:10.99 },
+    { n:'Senna Ketchup Sauce Port. 100x20g',       m:1,      e:'Ktn',   p:8.99  },
+    { n:'Senna Mayonnaise 50% Port. 100x15g',      m:1,      e:'Ktn',   p:8.99  },
+    { n:'Fuzetea Zitrone 12x0,5L Pet',             m:1,      e:'Tray',  p:6.65  },
+    { n:'Fuzetea Pfirsich 12x0,5L Pet',            m:1,      e:'Tray',  p:6.65  },
+    { n:'Campino Pizza Sauce 5/1',                 m:3,      e:'Dosen', p:6.49  },
+    { n:'Adria Thunfisch in Öl 1705g',             m:6,      e:'Dosen', p:8.59  },
+    { n:'Piacelli Gnocchi 1000g',                  m:6,      e:'Pkg',   p:2.49  },
+    { n:'Barilla Spaghetti 5kg No.5',              m:3,      e:'Pkg',   p:7.59  },
+    { n:'Manner Eierbiskotten 2,4kg Gastro',       m:1,      e:'Ktn',   p:19.99 },
+    { n:'Champignon mittel 3kg Frisch',            m:1,      e:'kiste', p:9.19  },
+  ];
+  for (const it of items) {
+    addHistoryEntry({ datum:'2026-03-25', produktName:it.n, menge:it.m, einheit:it.e, preis:it.p, shopName:'UM Trade', shopId:'umtrade', quelle:'rechnung' });
+  }
+  HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  renderVerlaufTab();
+}
+
 function renderVerlaufTab() {
   const panel = document.getElementById('panel-verlauf');
   const now = new Date();
@@ -1466,16 +1506,19 @@ function renderVerlaufTab() {
 
   if (HISTORY.length === 0) {
     panel.innerHTML = `
-      <div style="text-align:center;padding:80px 20px">
+      <div style="text-align:center;padding:60px 20px">
         <span class="material-symbols-outlined" style="font-size:64px;color:#e3beb8;display:block;margin-bottom:16px">bar_chart</span>
         <h3 style="font-size:20px;font-weight:700;color:#261816;margin-bottom:8px">Noch keine Einkaufshistorie</h3>
         <p style="font-size:14px;color:#5a403c;max-width:340px;margin:0 auto;line-height:1.7">
-          Sobald du Produkte über Kassenbon, Handliste oder Suche hinzufügst, erscheint hier deine Einkaufshistorie mit Auswertungen.
+          Sobald du Produkte über Kassenbon, Handliste oder Suche hinzufügst, erscheint hier deine Einkaufshistorie.
         </p>
-        <div style="margin-top:24px;padding:16px 20px;background:#fff8f6;border-radius:14px;border:1px solid #e3beb8;display:inline-block;text-align:left;font-size:13px;color:#5a403c;line-height:2">
-          📸 Kassenbon scannen → Upload Tab<br>
-          ✍️ Handliste erkennen → Upload Tab<br>
-          🔍 Angebote suchen → Suche Tab
+        <div style="margin-top:28px">
+          <button onclick="importUMTradeRechnung93722()"
+            style="padding:14px 28px;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:10px">
+            <span class="material-symbols-outlined" style="font-size:20px">upload_file</span>
+            UM Trade Rechnung 93722 importieren
+          </button>
+          <p style="font-size:12px;color:#8d6562;margin-top:10px">Rechnung vom 25.03.2026 · € 676,27 · 30 Positionen</p>
         </div>
       </div>`;
     return;
