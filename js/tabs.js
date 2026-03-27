@@ -643,7 +643,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
