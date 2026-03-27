@@ -118,7 +118,16 @@ function getDealRecommendations() {
 
 function renderAngeboteTab() {
   const panel = document.getElementById('panel-angebote');
-  if (!panel) return;
+  if (!panel) { console.error('panel-angebote nicht gefunden!'); return; }
+  try {
+    _renderAngeboteTabInner(panel);
+  } catch(err) {
+    console.error('Angebote Fehler:', err);
+    panel.innerHTML = `<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px">
+      <strong>Fehler:</strong> ${err.message}</div>`;
+  }
+}
+function _renderAngeboteTabInner(panel) {
 
   const currentDeals = getDealsForWeek('current');
   const nextDeals    = getDealsForWeek('next');
@@ -185,7 +194,7 @@ function renderAngeboteTab() {
 
   const inp = document.getElementById('angebote-search');
   if (inp && ANGEBOTE_STATE.view === 'suche') inp.focus();
-}
+} // end _renderAngeboteTabInner
 
 // ═══════════════════════════════════════════════════════════════
 // RENDER — Suche
