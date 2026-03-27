@@ -643,7 +643,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -695,8 +695,9 @@ function switchTab(tab) {
   if (tab === 'produkte')    renderProductsTab();
   if (tab === 'geschaefte')  renderShopsTab();
   if (tab === 'kombis')      renderKombisTab();
-  if (tab === 'angebote')    renderAngeboteTab();
-  if (tab === 'suche')       renderSucheTab();
+  if (tab === 'angebote')       renderAngeboteTab();
+  if (tab === 'einkaufsliste')  renderEinkaufslisteTab();
+  if (tab === 'suche')          renderSucheTab();
   if (tab === 'upload')      renderUploadTab();
   if (tab === 'verlauf')     renderVerlaufTab();
   if (tab === 'mitarbeiter')   renderMitarbeiterTab();
@@ -811,15 +812,21 @@ function renderSucheTab() {
   } else if (SUCHE_STATE.results.length > 0) {
     if (SUCHE_STATE.fromCache) {
       inner += `
-        <div style="display:flex;align-items:center;justify-content:space-between;background:#fff0ee;border:1px solid #e3beb8;border-radius:12px;padding:10px 16px;margin-bottom:16px;gap:12px">
-          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#5a403c">
-            <span class="material-symbols-outlined" style="font-size:15px;color:#610000">cached</span>
-            Aus Cache gespeichert am <strong>${SUCHE_STATE.cacheDate}</strong>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:10px 16px;margin-bottom:16px;gap:12px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#1b5e20">
+            <span class="material-symbols-outlined" style="font-size:15px;color:#2e7d32">schedule</span>
+            Live-Preise vom <strong>${SUCHE_STATE.cacheDate}</strong> &nbsp;·&nbsp; Cache noch max. 1 Std. gültig
           </div>
-          <button onclick="refreshSucheSearch()" style="font-size:11px;font-weight:600;color:#610000;background:#ffdad6;border:1px solid #b52619;border-radius:8px;padding:4px 12px;cursor:pointer;display:flex;align-items:center;gap:4px">
+          <button onclick="refreshSucheSearch()" style="font-size:11px;font-weight:600;color:#1b5e20;background:#c8e6c9;border:1px solid #81c784;border-radius:8px;padding:4px 12px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit">
             <span class="material-symbols-outlined" style="font-size:13px">refresh</span>
-            Neu suchen
+            Aktualisieren
           </button>
+        </div>`;
+    } else if (SUCHE_STATE.results.length > 0) {
+      inner += `
+        <div style="display:flex;align-items:center;gap:8px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#1b5e20">
+          <span class="material-symbols-outlined" style="font-size:15px;color:#2e7d32">travel_explore</span>
+          <strong>Live</strong> — Preise direkt von Supermarkt-Websites
         </div>`;
     }
     inner += renderSearchResults();
@@ -829,10 +836,13 @@ function renderSucheTab() {
         <div style="width:64px;height:64px;border-radius:50%;background:#ffe9e6;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
           <span class="material-symbols-outlined" style="font-size:30px;color:#5a403c">search_off</span>
         </div>
-        <h3 style="font-size:18px;font-weight:700;color:#261816;margin-bottom:8px">Keine Angebote gefunden</h3>
-        <p style="font-size:13px;color:#5a403c;max-width:340px;margin:0 auto;line-height:1.6">
-          Für <strong>"${escHtml(SUCHE_STATE.query)}"</strong> wurden keine aktuellen oder kommenden Angebote bei österreichischen Händlern gefunden.
+        <h3 style="font-size:18px;font-weight:700;color:#261816;margin-bottom:8px">Keine Ergebnisse gefunden</h3>
+        <p style="font-size:13px;color:#5a403c;max-width:360px;margin:0 auto 20px;line-height:1.6">
+          Für <strong>"${escHtml(SUCHE_STATE.query)}"</strong> keine Preise gefunden. Möglicherweise liegt ein Verbindungsproblem vor.
         </p>
+        <button onclick="clearAllSucheCache();startSearch()" style="padding:10px 20px;background:#610000;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+          <span class="material-symbols-outlined" style="font-size:16px">refresh</span>Erneut suchen (Cache geleert)
+        </button>
       </div>`;
   } else if (!hasKey) {
     // hint already shown above
@@ -996,20 +1006,52 @@ function updateLoadingStep(text) {
   if (el) el.textContent = text;
 }
 
+// Server-Verfügbarkeit: einmal pro 5 Minuten prüfen
+let _serverCheck = { available: null, at: 0 };
+async function isLocalServerAvailable() {
+  if (Date.now() - _serverCheck.at < 5 * 60 * 1000 && _serverCheck.available !== null) {
+    return _serverCheck.available;
+  }
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2000);
+    const r = await fetch('http://localhost:3001/api/health', { signal: ctrl.signal });
+    clearTimeout(t);
+    _serverCheck = { available: r.ok, at: Date.now() };
+    return r.ok;
+  } catch (_) {
+    _serverCheck = { available: false, at: Date.now() };
+    return false;
+  }
+}
+
+// Lokalen Preisserver abfragen
+async function searchViaLocalServer(query) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const resp = await fetch(
+      `http://localhost:3001/api/search?q=${encodeURIComponent(query)}`,
+      { signal: controller.signal }
+    );
+    if (!resp.ok) throw new Error('Server Fehler ' + resp.status);
+    const data = await resp.json();
+    if (Array.isArray(data)) return { items: data, notice: null };
+    if (data && Array.isArray(data.items)) return data;
+    throw new Error('Ungültige Antwort');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function startSearch() {
   const input = document.getElementById('suche-input');
   const query = (input ? input.value : '').trim();
   if (!query) return;
 
-  const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
-  if (!hasKey) {
-    SUCHE_STATE.error = 'Kein API Key konfiguriert. Bitte ANTHROPIC_API_KEY am Anfang der Datei eintragen.';
-    renderSucheTab();
-    return;
-  }
-
-  // Cache prüfen
-  const cached = getSucheCache(query);
+  // Cache überspringen wenn lokaler Server läuft (damit nie alte Claude-Daten gezeigt werden)
+  const serverRunning = await isLocalServerAvailable();
+  const cached = serverRunning ? null : getSucheCache(query);
   if (cached) {
     SUCHE_STATE.loading = false;
     SUCHE_STATE.error = null;
@@ -1030,11 +1072,34 @@ async function startSearch() {
   SUCHE_STATE.addedIds = new Set();
   SUCHE_STATE.fromCache = false;
   SUCHE_STATE.cacheDate = null;
-  SUCHE_STATE.loadingStep = 'Verbinde mit Claude …';
+  SUCHE_STATE.loadingStep = 'Verbinde mit Supermärkten …';
   renderSucheTab();
 
   try {
-    const results = await searchViaClaudeAPI(query);
+    let results = [];
+
+    // ── Schritt 1: Lokaler Preisserver (echte Live-Preise) ──
+    try {
+      updateLoadingStep('Suche bei Spar, Billa, Hofer, Lidl … ');
+      const serverResp = await searchViaLocalServer(query);
+      results = serverResp.items || [];
+      if (serverResp.notice) {
+        // Billa/Hofer/Lidl noch nicht geladen — Info merken
+        SUCHE_STATE._serverNotice = serverResp.notice;
+      } else {
+        SUCHE_STATE._serverNotice = null;
+      }
+      console.log('✅ Lokaler Server:', results.length, 'Ergebnisse');
+    } catch (localErr) {
+      // Server nicht gestartet → Claude als Fallback
+      SUCHE_STATE._serverNotice = null;
+      console.log('ℹ️ Lokaler Server nicht verfügbar, verwende Claude AI …');
+      const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
+      if (!hasKey) throw new Error('Kein API Key und kein lokaler Server. Bitte start-preisserver.bat starten.');
+      updateLoadingStep('Suche via AI (start-preisserver.bat für echte Preise starten) …');
+      results = await searchViaClaudeAPI(query);
+    }
+
     SUCHE_STATE.results = results;
     SUCHE_STATE.error = null;
     if (results.length > 0) setSucheCache(query, results);
@@ -1049,51 +1114,71 @@ async function startSearch() {
 }
 
 async function searchViaClaudeAPI(query) {
-  const today = new Date().toISOString().slice(0, 10);
+  const now   = new Date();
+  const today = now.toISOString().slice(0, 10);
 
-  const userPrompt =
-    `Heute ist ${today}. Du bist ein Preisexperte für österreichische Supermärkte. ` +
-    `Schätze realistische aktuelle Preise für "${query}" bei österreichischen Händlern ` +
-    `(Hofer, Billa, Spar, Lidl, Metro, Etsan, Penny). ` +
-    `Antworte NUR mit einem JSON-Array in exakt diesem Format, ohne Erklärungen, ohne Markdown:\n` +
-    `[\n` +
-    `  {\n` +
-    `    "name": "Produktname",\n` +
-    `    "brand": "Marke oder null",\n` +
-    `    "shop": "Geschäftsname",\n` +
-    `    "price": 1.99,\n` +
-    `    "originalPrice": null,\n` +
-    `    "unit": "kg / L / Stk / etc.",\n` +
-    `    "validFrom": null,\n` +
-    `    "validUntil": null,\n` +
-    `    "source": "Preisschätzung"\n` +
-    `  }\n` +
-    `]\n` +
-    `Gib 3-6 realistische Preisschätzungen zurück. Wenn du nichts weißt, gib [] zurück.`;
+  // ── Schritt 1: Live-Suche mit erzwungenem web_search Tool ──
+  updateLoadingStep('Suche auf aktionsfinder.at & marktguru.at …');
 
-  updateLoadingStep('Claude schätzt aktuelle Preise …');
+  // Suchquery-Stil statt URL-Navigation (web_search kann keine dynamischen SPAs lesen)
+  const webPrompt =
+    `Suche nach dem aktuellen Preis von "${query}" bei österreichischen Supermärkten und Discountern. ` +
+    `Verwende aktionsfinder.at, marktguru.at und wogibtswas.at als Quellen. ` +
+    `Datum heute: ${today}. ` +
+    `Wichtig: Gib NUR Preise zurück, die du tatsächlich in den Suchergebnissen gefunden hast. ` +
+    `KEINE Schätzungen, KEINE Preise aus deinem Training. ` +
+    `Wenn du für einen Shop keinen echten Preis findest, lass ihn weg. ` +
+    `Antworte AUSSCHLIESSLICH mit JSON-Array (kein Text davor/danach):\n` +
+    `[{"name":"${query} 250ml 4er Pack","brand":"Red Bull","shop":"Penny","price":0.95,` +
+    `"originalPrice":1.29,"unit":"Pack","validFrom":"${today}","validUntil":"","source":"aktionsfinder.at"}]`;
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  let resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'web-search-2025-03-05',
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: userPrompt }],
+      max_tokens: 8192,
+      tool_choice: { type: 'any' },
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      system: 'Du bist ein Preisvergleichs-Assistent für österreichische Supermärkte. ' +
+              'Du MUSST immer zuerst das web_search Tool verwenden, bevor du antwortest. ' +
+              'Antworte am Ende NUR mit einem JSON-Array — kein Text, kein Markdown. ' +
+              'Wenn du keine echten Preise findest: gib [] zurück.',
+      messages: [{ role: 'user', content: webPrompt }],
     }),
   });
 
+  // ── Schritt 2: Fallback ohne tool_choice (bei 400/529) ──
   if (!resp.ok) {
-    let errMsg = `HTTP ${resp.status}`;
-    try {
-      const errData = await resp.json();
-      errMsg = errData?.error?.message || errMsg;
-    } catch (_) {}
+    updateLoadingStep('Alternative Suche läuft …');
+    resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'web-search-2025-03-05',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 8192,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: 'Antworte NUR mit JSON-Array. Kein Text, kein Markdown. Nur echte gesuchte Preise.',
+        messages: [{ role: 'user', content: webPrompt }],
+      }),
+    });
+  }
+
+  if (!resp.ok) {
+    let errMsg = 'HTTP ' + resp.status;
+    try { const e = await resp.json(); errMsg = e?.error?.message || errMsg; } catch (_) {}
     if (resp.status === 401) throw new Error('Ungültiger API Key (401). Bitte API Key prüfen.');
     if (resp.status === 429) throw new Error('Rate Limit erreicht (429). Kurz warten und erneut versuchen.');
     throw new Error(errMsg);
@@ -1101,8 +1186,19 @@ async function searchViaClaudeAPI(query) {
 
   const data = await resp.json();
   updateLoadingStep('Preise werden verarbeitet …');
-  const textBlock = data.content && data.content.find(b => b.type === 'text');
-  return parseResultsJSON(textBlock ? textBlock.text : '');
+
+  // ── Schritt 3: JSON aus allen Text-Blöcken extrahieren ──
+  const textBlocks = (data.content || []).filter(function(b) { return b.type === 'text'; });
+  // Von hinten suchen — letzter Text-Block hat das finale JSON
+  for (let i = textBlocks.length - 1; i >= 0; i--) {
+    const parsed = parseResultsJSON(textBlocks[i].text);
+    if (parsed.length > 0) return parsed;
+  }
+
+  // ── Fallback: Kein JSON gefunden — zeige Debug-Info ──
+  console.warn('Suche: Kein JSON in Response. stop_reason:', data.stop_reason,
+    '| Blöcke:', (data.content||[]).map(function(b){ return b.type; }));
+  return [];
 }
 
 function parseResultsJSON(text) {
@@ -1137,8 +1233,9 @@ function getSucheCache(query) {
     const key = query.toLowerCase().trim();
     const entry = all[key];
     if (!entry) return null;
-    const ageDays = (Date.now() - entry.timestamp) / (1000 * 60 * 60 * 24);
-    if (ageDays > SUCHE_CACHE_DAYS) {
+    // Live-Preise: Cache nur 1 Stunde gültig (für aktuelle Angebote)
+    const ageHours = (Date.now() - entry.timestamp) / (1000 * 60 * 60);
+    if (ageHours > 1) {
       delete all[key];
       localStorage.setItem('pizzeria_suche_cache', JSON.stringify(all));
       return null;
@@ -1150,11 +1247,13 @@ function getSucheCache(query) {
 function setSucheCache(query, results) {
   try {
     const all = JSON.parse(localStorage.getItem('pizzeria_suche_cache') || '{}');
+    const now = new Date();
     all[query.toLowerCase().trim()] = {
       query,
       results,
       timestamp: Date.now(),
-      date: new Date().toISOString().slice(0, 10),
+      date: now.toLocaleDateString('de-AT', { day:'2-digit', month:'2-digit', year:'numeric' }) +
+            ' ' + now.toLocaleTimeString('de-AT', { hour:'2-digit', minute:'2-digit' }) + ' Uhr',
     };
     localStorage.setItem('pizzeria_suche_cache', JSON.stringify(all));
   } catch (_) {}

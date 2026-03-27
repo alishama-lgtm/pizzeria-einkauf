@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pizzeria Einkauf</title>
+  <title>Pizzeria San Carino</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <!-- SheetJS — Excel & CSV parsing in browser -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -73,6 +72,66 @@
     }
   </script>
   <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    /* ── Dropdown "Mehr" ── */
+    #mehr-dd-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: #fff;
+      border: 1.5px solid #e3beb8;
+      border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.13);
+      z-index: 200;
+      min-width: 200px;
+      padding: 6px;
+    }
+    #mehr-dd-menu.open { display: block; }
+    #mehr-dd-menu .dd-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      background: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: #5a403c;
+      font-family: inherit;
+      text-align: left;
+      transition: background .12s, color .12s;
+    }
+    #mehr-dd-menu .dd-item:hover { background: #fff5f5; color: #8B0000; }
+    #mehr-dd-menu .dd-item.tab-active { background: #fff0ee; color: #8B0000; font-weight: 700; }
+    #mehr-dd-menu .dd-item .material-symbols-outlined { font-size: 18px; }
+    #mehr-dd-btn.tab-active,
+    #mehr-dd-btn.dd-child-active {
+      color: #8B0000 !important;
+      font-weight: 700 !important;
+      border-bottom: 3px solid #8B0000 !important;
+      background: #fff0ee !important;
+      border-radius: 8px 8px 0 0 !important;
+    }
+    /* badge flex helper (reuse for new badges) */
+    .tab-badge {
+      display: none;
+      background: #8B0000;
+      color: #fff;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 10px;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+      margin-left: 2px;
+      flex-shrink: 0;
+    }
+  </style>
 </head>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
 
@@ -83,7 +142,7 @@
     <div class="header-logo">
       <span class="header-logo-icon">🍕</span>
       <div>
-        <div class="header-logo-text">Pizzeria Ali Shama KG</div>
+        <div class="header-logo-text">Pizzeria San Carino</div>
         <div class="header-logo-sub">Einkauf &amp; Warenverwaltung</div>
       </div>
     </div>
@@ -91,9 +150,9 @@
     <!-- Right Actions -->
     <div class="header-right">
       <!-- Low-stock badge -->
-      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#93000a;">
+      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#b52619;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#fff;white-space:nowrap;cursor:pointer" onclick="showLowStockPopup()">
         <span class="material-symbols-outlined" style="font-size:16px">warning</span>
-        <span id="header-badge-text"></span>
+        <span id="header-badge-text"></span>&nbsp;Produkte brauchen Nachbestellung
       </div>
       <!-- Bell -->
       <button id="notif-bell-btn" class="header-bell-btn" onclick="showLowStockPopup()">
@@ -108,46 +167,68 @@
   </div>
 </header>
 
-<!-- ═══ DESKTOP STAFF TAB BAR ═══ -->
+<!-- ═══ DESKTOP NAV ═══ -->
 <nav id="staff-tab-bar" class="hidden md:block">
   <div class="tabs-inner hide-scrollbar">
-    <button data-nav-tab="produkte" onclick="switchTab('produkte')" class="tab-btn">
-      <span class="material-symbols-outlined">inventory_2</span>Produkte
-    </button>
-    <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte')" class="tab-btn">
-      <span class="material-symbols-outlined">store</span>Geschäfte
-    </button>
+
+    <!-- Haupttabs -->
     <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn tab-active">
-      <span class="material-symbols-outlined">lightbulb</span>Kombis
-      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+      <span style="font-size:16px">🧮</span>Kombis
+      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
     </button>
+
     <button data-nav-tab="angebote" onclick="switchTab('angebote')" class="tab-btn">
-      <span class="material-symbols-outlined">local_offer</span>Angebote
+      <span style="font-size:16px">🏪</span>Angebote
     </button>
+
+    <button data-nav-tab="einkaufsliste" onclick="switchTab('einkaufsliste')" class="tab-btn">
+      <span style="font-size:16px">🛒</span>Einkaufsliste
+      <span id="el-tab-badge" style="display:none;background:#610000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+    </button>
+
     <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
-      <span class="material-symbols-outlined">search</span>Suche
+      <span style="font-size:16px">🔍</span>Suche
     </button>
-    <button data-nav-tab="upload" onclick="switchTab('upload')" class="tab-btn">
-      <span class="material-symbols-outlined">photo_camera</span>Upload
-    </button>
-    <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="tab-btn">
-      <span class="material-symbols-outlined">bar_chart</span>Verlauf
-    </button>
-    <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')" class="tab-btn">
-      <span class="material-symbols-outlined">badge</span>Mitarbeiter
-    </button>
-    <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')" class="tab-btn">
-      <span class="material-symbols-outlined">assignment_late</span>Fehlmaterial
-      <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
-    </button>
-    <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="tab-btn">
-      <span class="material-symbols-outlined">checklist</span>Checkliste
-      <span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px">✓</span>
-    </button>
+
+    <!-- Mehr-Dropdown -->
+    <div style="position:relative;align-self:stretch;display:flex;align-items:flex-end" id="mehr-dd-wrapper">
+      <button id="mehr-dd-btn" onclick="toggleMehrDD(event)" class="tab-btn" style="gap:6px">
+        Mehr
+        <span class="material-symbols-outlined" id="mehr-dd-chevron" style="font-size:18px;transition:transform .2s">expand_more</span>
+      </button>
+      <div id="mehr-dd-menu">
+        <button data-nav-tab="upload" onclick="switchTab('upload');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">photo_camera</span>📸 Upload
+        </button>
+        <button data-nav-tab="verlauf" onclick="switchTab('verlauf');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">bar_chart</span>📈 Verlauf
+        </button>
+        <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">badge</span>👥 Mitarbeiter
+        </button>
+        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
+        <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">assignment_late</span>📋 Fehlmaterial
+          <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto"></span>
+        </button>
+        <button data-nav-tab="checkliste" onclick="switchTab('checkliste');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">checklist</span>✅ Checkliste
+          <span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto">✓</span>
+        </button>
+        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
+        <button data-nav-tab="produkte" onclick="switchTab('produkte');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">inventory_2</span>Produkte
+        </button>
+        <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">store</span>Geschäfte
+        </button>
+      </div>
+    </div>
+
   </div>
 </nav>
 
-<!-- ═══ STATS DASHBOARD (nur Staff-Bereich) ═══ -->
+<!-- ═══ STATS DASHBOARD ═══ -->
 <div id="stats-dashboard">
   <div style="max-width:1400px;margin:0 auto;padding:0 40px;">
     <div id="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;"></div>
@@ -156,22 +237,23 @@
 
 <!-- ═══ PANELS ═══ -->
 <main id="app-main" style="max-width:1400px;margin:0 auto;padding:20px 40px 160px;">
-  <div id="panel-produkte" style="display:none"></div>
-  <div id="panel-geschaefte" style="display:none"></div>
-  <div id="panel-kombis" style="display:block"></div>
-  <div id="panel-angebote" style="display:none"></div>
-  <div id="panel-suche" style="display:none"></div>
-  <div id="panel-upload" style="display:none"></div>
-  <div id="panel-verlauf" style="display:none"></div>
-  <div id="panel-mitarbeiter" style="display:none"></div>
+  <div id="panel-produkte"     style="display:none"></div>
+  <div id="panel-geschaefte"   style="display:none"></div>
+  <div id="panel-kombis"       style="display:block"></div>
+  <div id="panel-angebote"     style="display:none"></div>
+  <div id="panel-einkaufsliste" style="display:none"></div>
+  <div id="panel-suche"        style="display:none"></div>
+  <div id="panel-upload"       style="display:none"></div>
+  <div id="panel-verlauf"      style="display:none"></div>
+  <div id="panel-mitarbeiter"  style="display:none"></div>
   <div id="panel-fehlmaterial" style="display:none"></div>
-  <div id="panel-checkliste" style="display:none"></div>
-  <div id="panel-business" style="display:none"></div>
+  <div id="panel-checkliste"   style="display:none"></div>
+  <div id="panel-business"     style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
 <footer id="app-footer">
-  <div><strong>Pizzeria Ali Shama KG</strong> &copy; 2024 — Internes Einkaufssystem</div>
+  <div><strong>Pizzeria San Carino</strong> &copy; 2024 — Internes Einkaufssystem</div>
   <div id="footer-last-update" style="display:flex;align-items:center;gap:6px;">
     <span class="material-symbols-outlined" style="font-size:14px">update</span>
     Letzte Aktualisierung: <span id="footer-time">—</span>
@@ -181,20 +263,25 @@
 <!-- ═══ MOBILE BOTTOM NAV ═══ -->
 <nav id="mobile-bottom-nav" class="md:hidden">
   <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
-    <span class="material-symbols-outlined">home</span>Dashboard
+    <span style="font-size:20px;line-height:1">🧮</span>
+    <span>Kombis</span>
   </button>
-  <button data-bottom-nav="produkte" onclick="switchTab('produkte')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">inventory_2</span>Produkte
+
+  <button data-bottom-nav="einkaufsliste" onclick="switchTab('einkaufsliste')" class="mob-nav-btn" style="position:relative">
+    <span class="material-symbols-outlined">shopping_cart</span>
+    <span>Einkauf</span>
+    <span id="el-mob-badge" style="display:none;position:absolute;top:4px;right:8px;background:#610000;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
-  <button data-bottom-nav="suche" onclick="switchTab('suche')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">search</span>Suche
-  </button>
+
   <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn" style="position:relative">
-    <span class="material-symbols-outlined">assignment_late</span>Fehlm.
-    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:10px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+    <span class="material-symbols-outlined">assignment_late</span>
+    <span>Fehlm.</span>
+    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:8px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
+
   <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn">
-    <span class="material-symbols-outlined">more_horiz</span>Mehr
+    <span class="material-symbols-outlined">more_horiz</span>
+    <span>Mehr</span>
   </button>
 </nav>
 
@@ -210,14 +297,17 @@
   </button>
 </div>
 
-<!-- ═══ MEHR DRAWER ═══ -->
+<!-- ═══ MEHR DRAWER (Mobile) ═══ -->
 <div id="mehr-drawer-overlay" onclick="closeMehrDrawer()"></div>
 <div id="mehr-drawer" class="md:hidden">
   <div class="drawer-handle"></div>
   <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding:0 2px">Weitere Bereiche</div>
   <div class="drawer-grid">
-    <button data-drawer-nav="geschaefte" onclick="switchTab('geschaefte');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">store</span>Geschäfte
+    <button data-drawer-nav="angebote" onclick="switchTab('angebote');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">🏪</span>Angebote
+    </button>
+    <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">🔍</span>Suche
     </button>
     <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="drawer-item">
       <span class="material-symbols-outlined">photo_camera</span>Upload
@@ -239,7 +329,6 @@
   </div>
 </div>
 
-
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/fehlmaterial.js"></script>
@@ -247,17 +336,76 @@
 <script src="js/business.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/angebote.js"></script>
+<script src="js/einkaufsliste.js"></script>
 <script>
-// Set correct lock icons on load + render default tab
+// ── Desktop "Mehr" Dropdown ──────────────────────────────────────
+const MEHR_DD_TABS = ['upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte'];
+
+function toggleMehrDD(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('mehr-dd-menu');
+  const chevron = document.getElementById('mehr-dd-chevron');
+  const open = menu.classList.toggle('open');
+  if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+  if (open) {
+    setTimeout(() => document.addEventListener('click', _closeMehrDDOutside), 0);
+  }
+}
+function _closeMehrDDOutside(e) {
+  if (!document.getElementById('mehr-dd-wrapper')?.contains(e.target)) {
+    closeMehrDD();
+    document.removeEventListener('click', _closeMehrDDOutside);
+  }
+}
+function closeMehrDD() {
+  document.getElementById('mehr-dd-menu')?.classList.remove('open');
+  const chevron = document.getElementById('mehr-dd-chevron');
+  if (chevron) chevron.style.transform = '';
+}
+
+// Mehr-Button aktiv wenn ein Dropdown-Tab aktiv ist
+function _updateMehrDDActive() {
+  const btn = document.getElementById('mehr-dd-btn');
+  if (!btn) return;
+  const anyActive = MEHR_DD_TABS.some(t =>
+    document.querySelector(`[data-nav-tab="${t}"]`)?.classList.contains('tab-active')
+  );
+  btn.classList.toggle('dd-child-active', anyActive);
+}
+
+// Mobile Mehr-Button aktiv wenn Drawer-Tab aktiv
+function _updateMobMehrActive() {
+  const drawerTabs = ['angebote','suche','upload','verlauf','mitarbeiter','checkliste','business'];
+  const btn = document.getElementById('mob-mehr-btn');
+  if (!btn) return;
+  const anyActive = drawerTabs.some(t =>
+    document.querySelector(`[data-bottom-nav="${t}"]`)?.classList.contains('mob-active') ||
+    document.querySelector(`[data-drawer-nav="${t}"]`)?.classList.contains('mob-active')
+  );
+  btn.classList.toggle('mob-active', anyActive);
+}
+
+// switchTab wrappen damit Mehr-Buttons aktualisiert werden
 document.addEventListener('DOMContentLoaded', () => {
   const unlocked = bizIsAuth();
   const li1 = document.getElementById('biz-lock-icon');
   const li2 = document.getElementById('mob-biz-lock');
   if (li1) li1.textContent = unlocked ? 'lock_open' : 'lock';
   if (li2) li2.textContent = unlocked ? 'lock_open' : 'lock';
+
   fmUpdateBadge();
   clUpdateBadge();
-  renderKombisTab(); // Render the default tab on page load
+  elUpdateBadge();
+  renderKombisTab();
+
+  // switchTab wrappen
+  const _orig = window.switchTab;
+  window.switchTab = function(tab) {
+    closeMehrDD();
+    _orig(tab);
+    _updateMehrDDActive();
+    _updateMobMehrActive();
+  };
 });
 </script>
 </body>

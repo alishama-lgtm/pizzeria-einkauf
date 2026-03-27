@@ -96,17 +96,17 @@ const SUCHE_CACHE_DAYS = 7;
 
 // Shop color map for Austrian retailers
 const AT_SHOP_COLORS = {
-  'hofer':   '#e63946',
-  'billa':   '#ed1c24',
-  'spar':    '#007f3e',
-  'lidl':    '#0050aa',
-  'metro':   '#003da5',
-  'etsan':   '#ff6b00',
-  'penny':   '#cc0000',
-  'merkur':  '#004899',
-  'hofer':   '#0050aa',
+  'billa':     '#ed1c24',
   'interspar': '#007f3e',
-  'billa plus': '#ed1c24',
+  'spar':      '#007f3e',
+  'hofer':     '#F7941D',
+  'lidl':      '#0050aa',
+  'metro':     '#003da5',
+  'etsan':     '#ff6b00',
+  'penny':     '#cc0000',
+  'mpreis':    '#e30613',
+  'unimarkt':  '#e30613',
+  'merkur':    '#004899',
 };
 
 function shopColor(shopName) {
