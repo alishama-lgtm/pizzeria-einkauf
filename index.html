@@ -121,6 +121,9 @@
       <span class="material-symbols-outlined">lightbulb</span>Kombis
       <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
     </button>
+    <button data-nav-tab="angebote" onclick="switchTab('angebote')" class="tab-btn">
+      <span class="material-symbols-outlined">local_offer</span>Angebote
+    </button>
     <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
       <span class="material-symbols-outlined">search</span>Suche
     </button>
@@ -156,6 +159,7 @@
   <div id="panel-produkte" style="display:none"></div>
   <div id="panel-geschaefte" style="display:none"></div>
   <div id="panel-kombis" style="display:block"></div>
+  <div id="panel-angebote" style="display:none"></div>
   <div id="panel-suche" style="display:none"></div>
   <div id="panel-upload" style="display:none"></div>
   <div id="panel-verlauf" style="display:none"></div>
@@ -242,6 +246,7 @@
 <script src="js/upload.js"></script>
 <script src="js/business.js"></script>
 <script src="js/tabs.js"></script>
+<script src="js/angebote.js"></script>
 <script>
 // Set correct lock icons on load + render default tab
 document.addEventListener('DOMContentLoaded', () => {

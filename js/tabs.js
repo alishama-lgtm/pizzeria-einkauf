@@ -695,6 +695,7 @@ function switchTab(tab) {
   if (tab === 'produkte')    renderProductsTab();
   if (tab === 'geschaefte')  renderShopsTab();
   if (tab === 'kombis')      renderKombisTab();
+  if (tab === 'angebote')    renderAngeboteTab();
   if (tab === 'suche')       renderSucheTab();
   if (tab === 'upload')      renderUploadTab();
   if (tab === 'verlauf')     renderVerlaufTab();
