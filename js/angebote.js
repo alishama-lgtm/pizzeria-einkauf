@@ -388,8 +388,9 @@ function renderAngeboteNeuForm() {
   let customs = [];
   try { customs = JSON.parse(localStorage.getItem('pizzeria_custom_deals') || '[]'); } catch(_) {}
 
+  const gridCols = customs.length ? '1fr 1fr' : '1fr';
   return `
-  <div style="display:grid;grid-template-columns:1fr ${customs.length?'1fr':'};gap:20px;align-items:start">
+  <div style="display:grid;grid-template-columns:${gridCols};gap:20px;align-items:start">
     <!-- Form -->
     <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:24px">
       <h3 style="font-size:16px;font-weight:800;color:#261816;margin:0 0 18px;display:flex;align-items:center;gap:8px">
