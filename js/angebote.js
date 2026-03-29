@@ -875,7 +875,11 @@ function _buildNeuView() {
 
 function angebotMerken(id, name, preis, shopName, shopId, einheit, menge) {
   addHistoryEntry({ produktName: name, preis, shopName, shopId, einheit, menge, quelle: 'angebot' });
-  HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  try {
+    HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  } catch (_) {
+    HISTORY = [];
+  }
   // Auch zur Einkaufsliste hinzufügen
   if (typeof elAddItem === 'function') {
     const shopObj = SHOPS.find(s => s.id === shopId);

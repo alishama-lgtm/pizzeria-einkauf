@@ -1594,7 +1594,11 @@ function importUMTradeRechnung93722() {
   for (const it of items) {
     addHistoryEntry({ datum:'2026-03-25', produktName:it.n, menge:it.m, einheit:it.e, preis:it.p, shopName:'UM Trade', shopId:'umtrade', quelle:'rechnung' });
   }
-  HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  try {
+    HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  } catch (_) {
+    HISTORY = [];
+  }
   renderVerlaufTab();
 }
 
