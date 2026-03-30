@@ -754,7 +754,7 @@
 
     <!-- Mehr Dropdown -->
     <div id="mehr-dropdown-wrap" style="position:relative;display:flex;align-items:stretch;">
-      <button id="mehr-desktop-btn" onclick="toggleMehrDD()" class="tab-btn" style="gap:4px;">
+      <button id="mehr-desktop-btn" onclick="toggleMehrDD(event)" class="tab-btn" style="gap:4px;">
         Mehr
         <span class="material-symbols-outlined" id="mehr-arrow" style="font-size:16px;transition:transform .2s">expand_more</span>
       </button>
@@ -1630,7 +1630,8 @@ function renderSingleCombo(combo, rank) {
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════
 
-function toggleMehrDD() {
+function toggleMehrDD(e) {
+  if (e) e.stopPropagation();
   const dd = document.getElementById('mehr-desktop-dd');
   const arrow = document.getElementById('mehr-arrow');
   const open = dd.style.display === 'block';
