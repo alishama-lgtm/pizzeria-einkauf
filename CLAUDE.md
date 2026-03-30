@@ -2,10 +2,10 @@
 
 ## Auto-Commit nach Änderungen
 
-Nach **jeder erfolgreichen Änderung** an `pizzaria.html` oder `pizzeria.db`:
+Nach **jeder erfolgreichen Änderung** an `index.html`, den `/js/`-Dateien oder `pizzeria.db`:
 
 ```bash
-git add pizzaria.html pizzeria.db
+git add index.html js/ css/ pizzeria.db
 git commit -m "YYYY-MM-DD: [kurze Beschreibung der Änderung]"
 git push
 ```
@@ -16,7 +16,8 @@ git push
 
 ## Projekt-Kontext
 
-- **Datei:** `pizzaria.html` — Single-File App, alles in einer Datei
+- **Datei:** `index.html` — Aktive App-Datei (modular, nutzt /js/ + /css/)
+- **ARCHIV:** `pizzaria.html` — alte monolithische Version, NICHT mehr bearbeiten!
 - **DB:** `pizzeria.db` — SQLite Preishistorie (via better-sqlite3)
 - **Shops:** Metro, Billa, Lidl, Spar (österreichische Geschäfte)
 - **Business-Passwort:** ali2024
@@ -43,5 +44,12 @@ Details siehe: `rechnungen\RECHNUNGEN.md`
 
 - JavaScript-Variablen mit `let`/`const` NIE inline vor ihrer Deklaration aufrufen (TDZ-Bug!)
 - `renderKombisTab()` nur in `DOMContentLoaded` aufrufen, nicht inline
-- Alle 10 Panel-IDs müssen existieren: produkte, geschaefte, kombis, suche, upload, verlauf, mitarbeiter, fehlmaterial, checkliste, business
+- Alle Panel-IDs müssen existieren: produkte, geschaefte, kombis, angebote, einkaufsliste, suche, upload, verlauf, mitarbeiter, fehlmaterial, checkliste, business
 - Nach Änderungen immer Syntax prüfen: `node -e "new Function(script)"`
+
+## Zwei-Account-Workflow
+
+- **Account 1 (Maschine 1):** Branch `claude/sync-accounts-work-UXv1h`
+- **Account 2 (Maschine 2):** `git pull origin main` vor jeder Session
+- Stabile Version: Tag `v1.0-stable` → SHA `0f94327`
+- Siehe `STATUS.md` für aktuellen Stand und offene Aufgaben
