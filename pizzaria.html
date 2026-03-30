@@ -638,7 +638,59 @@
     }
   </style>
 </head>
+<style>
+  #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#fff8f6,#ffe4e0);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
+  #login-screen.hide{display:none;}
+</style>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="login-screen">
+  <div style="background:#fff;border-radius:24px;border:1.5px solid #e3beb8;box-shadow:0 20px 60px rgba(139,0,0,0.13);padding:40px 36px;width:100%;max-width:420px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
+      <span style="font-size:42px;line-height:1">🍕</span>
+      <div>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#8B0000">Pizzeria San Carino</div>
+        <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Internes Management System</div>
+      </div>
+    </div>
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:#261816;margin-bottom:6px">Willkommen 👋</div>
+    <div style="font-size:13px;color:#8e706b;margin-bottom:24px">Melde dich mit deinen Zugangsdaten an.</div>
+    <div id="login-error" style="display:none;background:#ffdad6;color:#93000a;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:16px">❌ Falscher Benutzername oder Passwort</div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:700;color:#5a403c;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Benutzername</label>
+      <input id="login-user" type="text" placeholder="z.B. admin" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"
+        style="width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid #e2e2e8;font-size:15px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box"
+        onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e2e2e8'"/>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:12px;font-weight:700;color:#5a403c;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Passwort</label>
+      <div style="position:relative">
+        <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()"
+          style="width:100%;padding:13px 48px 13px 16px;border-radius:12px;border:1.5px solid #e2e2e8;font-size:15px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e2e2e8'"/>
+        <button onclick="toggleLoginPw()" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8e706b;padding:0">
+          <span class="material-symbols-outlined" id="pw-eye" style="font-size:20px">visibility</span>
+        </button>
+      </div>
+    </div>
+    <button onclick="doLogin()" style="width:100%;padding:14px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:24px"
+      onmouseover="this.style.background='#6a0000'" onmouseout="this.style.background='#8B0000'">
+      <span id="login-btn-text">Anmelden</span>
+    </button>
+    <div style="border-top:1px solid #f0e4e1;padding-top:20px">
+      <div style="font-size:11px;font-weight:700;color:#b0948f;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Test-Zugänge</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="quickLogin('admin','admin123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👑 Admin</button>
+        <button onclick="quickLogin('manager','manager123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🏢 Manager</button>
+        <button onclick="quickLogin('employee','employee123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👤 Mitarbeiter</button>
+        <button onclick="quickLogin('kitchen','kitchen123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👨‍🍳 Küche</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ HEADER ═══ -->
 <header id="app-header">
@@ -647,17 +699,23 @@
     <div class="header-logo">
       <span class="header-logo-icon">🍕</span>
       <div>
-        <div class="header-logo-text">Pizzeria Ali Shama KG</div>
+        <div class="header-logo-text">Pizzeria San Carino</div>
         <div class="header-logo-sub">Einkauf &amp; Warenverwaltung</div>
       </div>
     </div>
 
     <!-- Right Actions -->
     <div class="header-right">
+      <!-- Role Badge -->
+      <div id="role-badge" style="display:none;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;border:1.5px solid"></div>
+      <!-- Logout -->
+      <button id="logout-btn" onclick="doLogout()" style="display:none;align-items:center;gap:6px;padding:6px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer">
+        <span class="material-symbols-outlined" style="font-size:16px">logout</span>Abmelden
+      </button>
       <!-- Low-stock badge -->
-      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#ffdad6;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#93000a;">
+      <div id="header-badge" style="display:none;align-items:center;gap:6px;background:#b52619;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;color:#fff;white-space:nowrap;cursor:pointer" onclick="showLowStockPopup()">
         <span class="material-symbols-outlined" style="font-size:16px">warning</span>
-        <span id="header-badge-text"></span>
+        <span id="header-badge-text"></span>&nbsp;Produkte brauchen Nachbestellung
       </div>
       <!-- Bell -->
       <button id="notif-bell-btn" class="header-bell-btn" onclick="showLowStockPopup()">
@@ -674,37 +732,60 @@
 
 <!-- ═══ DESKTOP STAFF TAB BAR ═══ -->
 <nav id="staff-tab-bar" class="hidden md:block">
-  <div class="tabs-inner hide-scrollbar">
-    <button data-nav-tab="produkte" onclick="switchTab('produkte')" class="tab-btn">
-      <span class="material-symbols-outlined">inventory_2</span>Produkte
-    </button>
-    <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte')" class="tab-btn">
-      <span class="material-symbols-outlined">store</span>Geschäfte
-    </button>
+  <div class="tabs-inner hide-scrollbar" style="display:flex;align-items:stretch;position:relative;">
+
     <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn tab-active">
-      <span class="material-symbols-outlined">lightbulb</span>Kombis
-      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+      <span style="font-size:16px">🧮</span>Kombis
+      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
     </button>
+
+    <button data-nav-tab="angebote" onclick="switchTab('angebote')" class="tab-btn">
+      <span style="font-size:16px">🏪</span>Angebote
+    </button>
+
+    <button data-nav-tab="einkaufsliste" onclick="switchTab('einkaufsliste')" class="tab-btn">
+      <span style="font-size:16px">🛒</span>Einkaufsliste
+      <span id="el-tab-badge" style="display:none;background:#610000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
+    </button>
+
     <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
-      <span class="material-symbols-outlined">search</span>Suche
+      <span style="font-size:16px">🔍</span>Suche
     </button>
-    <button data-nav-tab="upload" onclick="switchTab('upload')" class="tab-btn">
-      <span class="material-symbols-outlined">photo_camera</span>Upload
-    </button>
-    <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="tab-btn">
-      <span class="material-symbols-outlined">bar_chart</span>Verlauf
-    </button>
-    <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')" class="tab-btn">
-      <span class="material-symbols-outlined">badge</span>Mitarbeiter
-    </button>
-    <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')" class="tab-btn">
-      <span class="material-symbols-outlined">assignment_late</span>Fehlmaterial
-      <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
-    </button>
-    <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="tab-btn">
-      <span class="material-symbols-outlined">checklist</span>Checkliste
-      <span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-left:2px">✓</span>
-    </button>
+
+    <!-- Mehr Dropdown -->
+    <div id="mehr-dropdown-wrap" style="position:relative;display:flex;align-items:stretch;">
+      <button id="mehr-desktop-btn" onclick="toggleMehrDD()" class="tab-btn" style="gap:4px;">
+        Mehr
+        <span class="material-symbols-outlined" id="mehr-arrow" style="font-size:16px;transition:transform .2s">expand_more</span>
+      </button>
+      <div id="mehr-desktop-dd" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid #e3beb8;border-radius:12px;box-shadow:0 8px 24px rgba(139,0,0,0.1);min-width:180px;z-index:200;padding:6px;overflow:hidden;">
+        <button data-nav-tab="upload" onclick="switchTab('upload');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">📸</span>Upload
+        </button>
+        <button data-nav-tab="verlauf" onclick="switchTab('verlauf');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">📈</span>Verlauf
+        </button>
+        <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">👥</span>Mitarbeiter
+        </button>
+        <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">📋</span>Fehlmaterial
+          <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto"></span>
+        </button>
+        <button data-nav-tab="checkliste" onclick="switchTab('checkliste');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">✅</span>Checkliste
+          <span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto">✓</span>
+        </button>
+        <!-- Hidden tabs still accessible via role-based switching -->
+        <button data-nav-tab="produkte" onclick="switchTab('produkte');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">🗃️</span>Produkte
+        </button>
+        <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte');closeMehrDD()" class="tab-btn" style="width:100%;border-radius:8px;justify-content:flex-start;padding:10px 14px;">
+          <span style="font-size:16px">🏬</span>Geschäfte
+        </button>
+      </div>
+    </div>
+
   </div>
 </nav>
 
@@ -720,6 +801,8 @@
   <div id="panel-produkte" style="display:none"></div>
   <div id="panel-geschaefte" style="display:none"></div>
   <div id="panel-kombis" style="display:block"></div>
+  <div id="panel-angebote" style="display:none"></div>
+  <div id="panel-einkaufsliste" style="display:none"></div>
   <div id="panel-suche" style="display:none"></div>
   <div id="panel-upload" style="display:none"></div>
   <div id="panel-verlauf" style="display:none"></div>
@@ -731,7 +814,7 @@
 
 <!-- ═══ FOOTER ═══ -->
 <footer id="app-footer">
-  <div><strong>Pizzeria Ali Shama KG</strong> &copy; 2024 — Internes Einkaufssystem</div>
+  <div><strong>Pizzeria San Carino</strong> &copy; 2024 — Internes Einkaufssystem</div>
   <div id="footer-last-update" style="display:flex;align-items:center;gap:6px;">
     <span class="material-symbols-outlined" style="font-size:14px">update</span>
     Letzte Aktualisierung: <span id="footer-time">—</span>
@@ -741,20 +824,22 @@
 <!-- ═══ MOBILE BOTTOM NAV ═══ -->
 <nav id="mobile-bottom-nav" class="md:hidden">
   <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
-    <span class="material-symbols-outlined">home</span>Dashboard
+    <span style="font-size:20px;line-height:1">🧮</span>
+    <span>Kombis</span>
   </button>
-  <button data-bottom-nav="produkte" onclick="switchTab('produkte')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">inventory_2</span>Produkte
-  </button>
-  <button data-bottom-nav="suche" onclick="switchTab('suche')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">search</span>Suche
+  <button data-bottom-nav="einkaufsliste" onclick="switchTab('einkaufsliste')" class="mob-nav-btn" style="position:relative">
+    <span style="font-size:20px;line-height:1">🛒</span>
+    <span>Einkauf</span>
+    <span id="el-mob-badge" style="display:none;position:absolute;top:4px;right:8px;background:#610000;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
   <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn" style="position:relative">
-    <span class="material-symbols-outlined">assignment_late</span>Fehlm.
-    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:10px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+    <span style="font-size:20px;line-height:1">📋</span>
+    <span>Fehlm.</span>
+    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:8px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
   <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn">
-    <span class="material-symbols-outlined">more_horiz</span>Mehr
+    <span class="material-symbols-outlined">more_horiz</span>
+    <span>Mehr</span>
   </button>
 </nav>
 
@@ -776,20 +861,23 @@
   <div class="drawer-handle"></div>
   <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding:0 2px">Weitere Bereiche</div>
   <div class="drawer-grid">
-    <button data-drawer-nav="geschaefte" onclick="switchTab('geschaefte');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">store</span>Geschäfte
+    <button data-drawer-nav="angebote" onclick="switchTab('angebote');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">🏪</span>Angebote
+    </button>
+    <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">🔍</span>Suche
     </button>
     <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">photo_camera</span>Upload
+      <span style="font-size:20px">📸</span>Upload
     </button>
     <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">bar_chart</span>Verlauf
+      <span style="font-size:20px">📈</span>Verlauf
     </button>
     <button data-drawer-nav="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">badge</span>Mitarbeiter
+      <span style="font-size:20px">👥</span>Mitarbeiter
     </button>
     <button data-drawer-nav="checkliste" onclick="switchTab('checkliste');closeMehrDrawer()" class="drawer-item" style="position:relative">
-      <span class="material-symbols-outlined">checklist</span>Checkliste
+      <span style="font-size:20px">✅</span>Checkliste
       <span id="cl-drawer-badge" style="display:none;position:absolute;top:8px;right:8px;width:10px;height:10px;background:#2e7d32;border-radius:50%"></span>
     </button>
     <button id="mob-biz-btn" onclick="switchTab('business');closeMehrDrawer()" class="drawer-item" style="background:#1a1a2e;border-color:#2d2d4a;color:#D4AF37">
@@ -803,7 +891,7 @@
 // ═══════════════════════════════════════════════════════════════
 // API KEY — hier deinen Anthropic API Key eintragen
 // ═══════════════════════════════════════════════════════════════
-const ANTHROPIC_API_KEY = "sk-ant-api03-CR_0cdTg8WSsyeVXcl6WHPK23LKA3jHxFfvNiFNCeCB9ORNWaECQ2Vtgn8r32FL1Qr4ADfmA5dDwSlMgq44+Dsw-kHu9LwAA";
+const ANTHROPIC_API_KEY ="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";
 
 // ═══════════════════════════════════════════════════════════════
 // DATA
@@ -1542,11 +1630,33 @@ function renderSingleCombo(combo, rank) {
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════
 
+function toggleMehrDD() {
+  const dd = document.getElementById('mehr-desktop-dd');
+  const arrow = document.getElementById('mehr-arrow');
+  const open = dd.style.display === 'block';
+  dd.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function closeMehrDD() {
+  const dd = document.getElementById('mehr-desktop-dd');
+  const arrow = document.getElementById('mehr-arrow');
+  if (dd) dd.style.display = 'none';
+  if (arrow) arrow.style.transform = '';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('mehr-dropdown-wrap');
+  if (wrap && !wrap.contains(e.target)) closeMehrDD();
+});
+
 function switchTab(tab) {
+  closeMehrDD();
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -6742,8 +6852,105 @@ function renderClHistorie() {
   }).join('');
 }
 
-// Set correct lock icons on load + render default tab
-document.addEventListener('DOMContentLoaded', () => {
+// ════ LOGIN SYSTEM ════
+const USERS = [
+  { username:'admin',    password:'admin123',    role:'admin',    label:'👑 Admin'      },
+  { username:'manager',  password:'manager123',  role:'manager',  label:'🏢 Manager'    },
+  { username:'employee', password:'employee123', role:'employee', label:'👤 Mitarbeiter' },
+  { username:'kitchen',  password:'kitchen123',  role:'kitchen',  label:'👨‍🍳 Küche'       },
+];
+
+const ROLE_TABS = {
+  admin:    ['kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','business'],
+  manager:  ['kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste'],
+  employee: ['kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste'],
+  kitchen:  ['fehlmaterial','checkliste'],
+};
+
+const ROLE_COLORS = {
+  admin:    'background:#fff0ee;color:#8B0000;border-color:#e3beb8',
+  manager:  'background:#fff3e0;color:#e65100;border-color:#ffcc80',
+  employee: 'background:#e3f2fd;color:#0d47a1;border-color:#90caf9',
+  kitchen:  'background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7',
+};
+
+let currentUser = null;
+
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  const btnTxt = document.getElementById('login-btn-text');
+  btnTxt.textContent = 'Prüfe...';
+  setTimeout(() => {
+    const user = USERS.find(x => x.username === u && x.password === p);
+    if (!user) {
+      err.style.display = 'block';
+      btnTxt.textContent = 'Anmelden';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-pass').focus();
+      return;
+    }
+    err.style.display = 'none';
+    currentUser = user;
+    try { sessionStorage.setItem('pizzeria_user', JSON.stringify(user)); } catch(_) {}
+    showApp();
+  }, 300);
+}
+
+function quickLogin(u, p) {
+  document.getElementById('login-user').value = u;
+  document.getElementById('login-pass').value = p;
+  doLogin();
+}
+
+function doLogout() {
+  currentUser = null;
+  try { sessionStorage.removeItem('pizzeria_user'); } catch(_) {}
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-btn-text').textContent = 'Anmelden';
+  document.getElementById('login-screen').classList.remove('hide');
+  document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('role-badge').style.display = 'none';
+}
+
+function toggleLoginPw() {
+  const inp = document.getElementById('login-pass');
+  const eye = document.getElementById('pw-eye');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  eye.textContent = inp.type === 'password' ? 'visibility' : 'visibility_off';
+}
+
+function showApp() {
+  document.getElementById('login-screen').classList.add('hide');
+
+  // Role badge
+  const rb = document.getElementById('role-badge');
+  rb.textContent = currentUser.label;
+  rb.style.cssText = 'display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;border:1.5px solid;' + (ROLE_COLORS[currentUser.role] || '');
+
+  // Logout button
+  document.getElementById('logout-btn').style.display = 'flex';
+
+  // Tabs je nach Rolle anzeigen/verstecken
+  const allowed = ROLE_TABS[currentUser.role] || [];
+  document.querySelectorAll('#staff-tab-bar [data-nav-tab]').forEach(b => {
+    b.style.display = allowed.includes(b.dataset.navTab) ? '' : 'none';
+  });
+  document.querySelectorAll('[data-bottom-nav]').forEach(b => {
+    b.style.display = allowed.includes(b.dataset.bottomNav) ? '' : 'none';
+  });
+  document.querySelectorAll('[data-drawer-nav]').forEach(b => {
+    b.style.display = allowed.includes(b.dataset.drawerNav) ? '' : 'none';
+  });
+
+  // Business-Button nur für Admin
+  const bizBtn = document.getElementById('biz-header-btn');
+  if (bizBtn) bizBtn.style.display = currentUser.role === 'admin' ? '' : 'none';
+
+  // App initialisieren
   const unlocked = bizIsAuth();
   const li1 = document.getElementById('biz-lock-icon');
   const li2 = document.getElementById('mob-biz-lock');
@@ -6751,7 +6958,19 @@ document.addEventListener('DOMContentLoaded', () => {
   if (li2) li2.textContent = unlocked ? 'lock_open' : 'lock';
   fmUpdateBadge();
   clUpdateBadge();
-  renderKombisTab(); // Render the default tab on page load
+
+  // Ersten erlaubten Tab öffnen
+  switchTab(allowed[0] || 'kombis');
+}
+
+// Set correct lock icons on load + render default tab
+document.addEventListener('DOMContentLoaded', () => {
+  // Session wiederherstellen
+  try {
+    const saved = sessionStorage.getItem('pizzeria_user');
+    if (saved) { currentUser = JSON.parse(saved); showApp(); return; }
+  } catch(_) {}
+  // Login-Screen ist bereits sichtbar
 });
 </script>
 </body>
