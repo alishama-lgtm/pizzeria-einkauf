@@ -776,6 +776,10 @@
         <span class="material-symbols-outlined" style="font-size:16px">warning</span>
         <span id="header-badge-text"></span>&nbsp;Produkte brauchen Nachbestellung
       </div>
+      <!-- Settings -->
+      <button id="settings-btn" onclick="openSettings()" style="display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;line-height:0" title="Einstellungen">
+        <span class="material-symbols-outlined" style="font-size:22px;color:#5a403c">settings</span>
+      </button>
       <!-- Bell -->
       <button id="notif-bell-btn" class="header-bell-btn" onclick="showLowStockPopup()">
         <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
@@ -970,7 +974,7 @@
 // ═══════════════════════════════════════════════════════════════
 // API KEY — hier deinen Anthropic API Key eintragen
 // ═══════════════════════════════════════════════════════════════
-const ANTHROPIC_API_KEY ="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";
+let ANTHROPIC_API_KEY = localStorage.getItem('pizzeria_api_key') || '';
 
 // ═══════════════════════════════════════════════════════════════
 // DATA
@@ -9326,6 +9330,7 @@ function doLogout() {
   document.getElementById('login-btn-text').textContent = 'Anmelden';
   document.getElementById('login-screen').classList.remove('hide');
   document.getElementById('logout-btn').style.display = 'none';
+  document.getElementById('settings-btn').style.display = 'none';
   document.getElementById('role-badge').style.display = 'none';
 }
 
@@ -9344,8 +9349,9 @@ function showApp() {
   rb.textContent = currentUser.label;
   rb.style.cssText = 'display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:700;border:1.5px solid;' + (ROLE_COLORS[currentUser.role] || '');
 
-  // Logout button
+  // Logout + Settings button
   document.getElementById('logout-btn').style.display = 'flex';
+  document.getElementById('settings-btn').style.display = 'flex';
 
   // Tabs je nach Rolle anzeigen/verstecken
   const allowed = ROLE_TABS[currentUser.role] || [];
@@ -9861,6 +9867,85 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch(_) {}
   // Login-Screen ist bereits sichtbar (default)
 });
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS MODAL
+// ═══════════════════════════════════════════════════════════════
+function openSettings() {
+  const existing = document.getElementById('settings-modal');
+  if (existing) { existing.remove(); return; }
+  const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY.length > 10;
+  const modal = document.createElement('div');
+  modal.id = 'settings-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:28px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+        <h2 style="font-size:18px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:8px">
+          <span class="material-symbols-outlined" style="font-size:20px;color:#610000">settings</span>Einstellungen
+        </h2>
+        <button onclick="document.getElementById('settings-modal').remove()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#5a403c">close</span>
+        </button>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:6px">
+          Anthropic API Key
+          <span style="font-weight:400;color:${hasKey?'#2e7d32':'#b52619'}">${hasKey?' (gespeichert ✓)':' (nicht gesetzt)'}</span>
+        </label>
+        <input id="settings-api-key" type="password" placeholder="sk-ant-api03-..."
+          value="${hasKey ? '••••••••••••••••••••••••••••••' : ''}"
+          onfocus="if(this.value.startsWith('•'))this.value=''"
+          style="width:100%;padding:12px 16px;border:1.5px solid ${hasKey?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:14px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='${hasKey?'#a5d6a7':'#e3beb8'}'"/>
+        <p style="font-size:11px;color:#8d6562;margin:6px 0 0">Wird nur lokal in deinem Browser gespeichert (localStorage). Nie auf GitHub.</p>
+      </div>
+
+      <div style="background:#fff8f6;border:1px solid #e3beb8;border-radius:12px;padding:14px;margin-bottom:20px;font-size:12px;color:#5a403c">
+        <strong>Wozu brauche ich den Key?</strong><br>
+        Für die Preissuche (Tab "Suche") und Rechnung-Scan (Tab "Upload"). Ohne Key funktionieren alle anderen Tabs normal.
+        <br><br>Key erstellen: <strong>console.anthropic.com → API Keys</strong>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="saveApiKey()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
+        ${hasKey?`<button onclick="clearApiKey()" style="padding:13px 16px;background:#ffdad6;color:#93000a;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Löschen</button>`:''}
+        <button onclick="document.getElementById('settings-modal').remove()" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('settings-api-key')?.focus(), 50);
+}
+
+function saveApiKey() {
+  const val = document.getElementById('settings-api-key')?.value.trim();
+  if (!val || val.startsWith('•')) { alert('Bitte API Key eingeben.'); return; }
+  if (!val.startsWith('sk-ant-')) { alert('Ungültiges Format. Der Key muss mit "sk-ant-" beginnen.'); return; }
+  localStorage.setItem('pizzeria_api_key', val);
+  ANTHROPIC_API_KEY = val;
+  document.getElementById('settings-modal')?.remove();
+  const btn = document.getElementById('settings-btn');
+  if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
+  _showToast('API Key gespeichert ✓');
+}
+
+function clearApiKey() {
+  if (!confirm('API Key wirklich löschen?')) return;
+  localStorage.removeItem('pizzeria_api_key');
+  ANTHROPIC_API_KEY = '';
+  document.getElementById('settings-modal')?.remove();
+  _showToast('API Key gelöscht');
+}
+
+function _showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#261816;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;opacity:0;transition:opacity .2s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2000); });
+}
 </script>
 </body>
 </html>
