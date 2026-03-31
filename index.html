@@ -9390,6 +9390,467 @@ function showApp() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// DASHBOARD TAB
+// ═══════════════════════════════════════════════════════════════
+function renderDashboardTab() {
+  const panel = document.getElementById('panel-dashboard');
+  if (!panel) return;
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const kassa = typeof bizGetKassa === 'function' ? bizGetKassa() : [];
+    const todayEntry = kassa.find(e => e.date === today);
+    const todayRev = todayEntry ? (todayEntry.gesamt || 0) : 0;
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); weekStart.setHours(0,0,0,0);
+    const weekRev = kassa.filter(e => new Date(e.date) >= weekStart).reduce((s,e) => s + (e.gesamt||0), 0);
+    const low = getLowStockProducts();
+    const fmOpen = (typeof FM_DATA !== 'undefined') ? FM_DATA.filter(e => e.status === 'offen').length : 0;
+    const recentHist = [...HISTORY].reverse().slice(0,5);
+    const activeDeals = DEALS.filter(d => d.week === 'current');
+
+    const kpiStyle = 'background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:18px 20px;flex:1;min-width:130px';
+    const kpiLabel = 'font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px';
+    const kpiVal   = 'font-size:26px;font-weight:900;color:#261816;line-height:1';
+
+    let html = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">dashboard</span>
+      </div>
+      <div>
+        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Dashboard</h2>
+        <p style="font-size:13px;color:#5a403c;margin:0">${new Date().toLocaleDateString('de-AT',{weekday:'long',day:'numeric',month:'long'})}</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+      <div style="${kpiStyle}">
+        <div style="${kpiLabel}">Heute</div>
+        <div style="${kpiVal}">${eur(todayRev)}</div>
+        <div style="font-size:11px;color:#5a403c;margin-top:4px">Umsatz</div>
+      </div>
+      <div style="${kpiStyle}">
+        <div style="${kpiLabel}">Diese Woche</div>
+        <div style="${kpiVal}">${eur(weekRev)}</div>
+        <div style="font-size:11px;color:#5a403c;margin-top:4px">Umsatz</div>
+      </div>
+      <div style="${kpiStyle};${low.length>0?'border-color:#ffb4a8;background:#fff8f6':''}">
+        <div style="${kpiLabel}">Lager</div>
+        <div style="${kpiVal};color:${low.length>0?'#b52619':'#2e7d32'}">${low.length}</div>
+        <div style="font-size:11px;color:#5a403c;margin-top:4px">Knapp/kritisch</div>
+      </div>
+      <div style="${kpiStyle};${fmOpen>0?'border-color:#ffcc80;background:#fffbf5':''}">
+        <div style="${kpiLabel}">Fehlmaterial</div>
+        <div style="${kpiVal};color:${fmOpen>0?'#e65100':'#2e7d32'}">${fmOpen}</div>
+        <div style="font-size:11px;color:#5a403c;margin-top:4px">Offen</div>
+      </div>
+    </div>`;
+
+    // Lagerbestand
+    html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:20px;margin-bottom:20px">
+      <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
+        <span class="material-symbols-outlined" style="font-size:18px;color:#610000">inventory_2</span>Lagerbestand
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:8px">`;
+    for (const p of PRODUCTS) {
+      const cur = stockLevels[p.id] ?? p.currentStock;
+      const pct = Math.min(100, Math.round((cur / p.minStock) * 100));
+      const color = cur >= p.minStock ? '#2e7d32' : cur >= p.minStock * 0.5 ? '#e65100' : '#b52619';
+      const bg    = cur >= p.minStock ? '#e8f5e9' : cur >= p.minStock * 0.5 ? '#fff3e0' : '#ffdad6';
+      html += `<div style="display:flex;align-items:center;gap:12px">
+        <div style="width:130px;font-size:13px;font-weight:600;color:#261816;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+        <div style="flex:1;background:#f3ebe9;border-radius:6px;height:8px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:6px"></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:${color};background:${bg};padding:2px 8px;border-radius:8px;min-width:58px;text-align:right">${cur} ${p.unit}</div>
+      </div>`;
+    }
+    html += `</div></div>`;
+
+    // Aktuelle Deals
+    if (activeDeals.length > 0) {
+      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:20px;margin-bottom:20px">
+        <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">local_offer</span>Aktuelle Aktionen
+        </h3>
+        <div style="display:flex;flex-direction:column;gap:8px">`;
+      for (const d of activeDeals) {
+        const prod = PRODUCTS.find(p => p.id === d.productId);
+        const shop = SHOPS.find(s => s.id === d.shopId);
+        if (!prod || !shop) continue;
+        const saving = d.normalPrice - d.pricePerUnit;
+        html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff8f6;border-radius:12px;border:1px solid #e3beb8">
+          <div style="width:8px;height:8px;border-radius:50%;background:${shop.color};flex-shrink:0"></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#261816">${prod.name}</div>
+          <div style="font-size:11px;color:#8d6562">${shop.name} · bis ${d.validTo}</div></div>
+          <div style="text-align:right"><div style="font-size:15px;font-weight:900;color:#2e7d32">${eur(d.pricePerUnit)}</div>
+          <div style="font-size:11px;color:#8d6562;text-decoration:line-through">${eur(d.normalPrice)}</div></div>
+          <div style="background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:800">-${eur(saving)}</div>
+        </div>`;
+      }
+      html += `</div></div>`;
+    }
+
+    // Letzte Einkäufe
+    if (recentHist.length > 0) {
+      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:20px">
+        <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">history</span>Letzte Einkäufe
+        </h3>
+        <div style="display:flex;flex-direction:column;gap:4px">`;
+      for (const h of recentHist) {
+        const shop = SHOPS.find(s => s.id === h.shopId);
+        html += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f3ebe9">
+          <div style="width:8px;height:8px;border-radius:50%;background:${shop?.color||'#8d6562'};flex-shrink:0"></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#261816">${shop?.name||h.shopId}</div>
+          <div style="font-size:11px;color:#8d6562">${fmtDate(h.date)}</div></div>
+          <div style="font-size:14px;font-weight:800;color:#610000">${eur(h.total||0)}</div>
+        </div>`;
+      }
+      html += `</div></div>`;
+    }
+
+    panel.innerHTML = html;
+  } catch(err) {
+    console.error('Dashboard Fehler:', err);
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SPEISEKARTE TAB
+// ═══════════════════════════════════════════════════════════════
+const SK_KEY = 'pizzeria_speisekarte';
+const SK_KATEGORIEN = ['Pizza','Pasta','Salat','Getränke','Dessert','Sonstiges'];
+let SK_FILTER = '';
+
+function skLoad() {
+  try { return JSON.parse(localStorage.getItem(SK_KEY) || 'null') || _skDefault(); } catch(_) { return _skDefault(); }
+}
+function skSave(d) { try { localStorage.setItem(SK_KEY, JSON.stringify(d)); } catch(_) {} }
+function _skDefault() {
+  return [
+    { id:'sk1', kat:'Pizza',    name:'Margherita',          preis:9.90,  beschr:'Tomatensauce, Mozzarella, Basilikum',      aktiv:true },
+    { id:'sk2', kat:'Pizza',    name:'Salami',              preis:11.50, beschr:'Tomatensauce, Mozzarella, Salami Milano',  aktiv:true },
+    { id:'sk3', kat:'Pizza',    name:'Quattro Formaggi',    preis:12.90, beschr:'Vier Käsesorten, Basilikum',               aktiv:true },
+    { id:'sk4', kat:'Pizza',    name:'Prosciutto',          preis:12.50, beschr:'Tomatensauce, Mozzarella, Schinken',       aktiv:true },
+    { id:'sk5', kat:'Pasta',    name:'Spaghetti Bolognese', preis:10.90, beschr:'Klassische Fleischsauce',                  aktiv:true },
+    { id:'sk6', kat:'Pasta',    name:'Penne Arrabiata',     preis:9.50,  beschr:'Würzige Tomatensauce, Peperoni',           aktiv:true },
+    { id:'sk7', kat:'Getränke', name:'Wasser 0,5L',         preis:2.50,  beschr:'Still oder prickelnd',                    aktiv:true },
+    { id:'sk8', kat:'Getränke', name:'Cola 0,33L',          preis:3.20,  beschr:'Coca-Cola',                               aktiv:true },
+    { id:'sk9', kat:'Dessert',  name:'Tiramisu',            preis:5.90,  beschr:'Klassisches Hausrezept',                  aktiv:true },
+  ];
+}
+function skGenId() { return 'sk' + Date.now(); }
+
+function renderSpeisekarteTab() {
+  const panel = document.getElementById('panel-speisekarte');
+  if (!panel) return;
+  try {
+    const menu = skLoad();
+    const filtered = SK_FILTER ? menu.filter(i => i.kat === SK_FILTER) : menu;
+    const catCounts = {};
+    for (const i of menu) catCounts[i.kat] = (catCounts[i.kat]||0) + 1;
+
+    let html = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">menu_book</span>
+      </div>
+      <div style="flex:1">
+        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Speisekarte</h2>
+        <p style="font-size:13px;color:#5a403c;margin:0">${menu.filter(i=>i.aktiv).length} aktive Gerichte</p>
+      </div>
+      <button onclick="skNeuesGericht()" style="background:#610000;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
+        <span class="material-symbols-outlined" style="font-size:16px">add</span>Neu
+      </button>
+    </div>
+    <div id="sk-form-area"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+      <button onclick="SK_FILTER='';renderSpeisekarteTab()" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${SK_FILTER===''?'#610000':'#e3beb8'};background:${SK_FILTER===''?'#610000':'#fff'};color:${SK_FILTER===''?'#fff':'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Alle (${menu.length})</button>`;
+    for (const kat of SK_KATEGORIEN) {
+      if (!catCounts[kat]) continue;
+      html += `<button onclick="SK_FILTER='${kat}';renderSpeisekarteTab()" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${SK_FILTER===kat?'#610000':'#e3beb8'};background:${SK_FILTER===kat?'#610000':'#fff'};color:${SK_FILTER===kat?'#fff':'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${kat} (${catCounts[kat]})</button>`;
+    }
+    html += `</div>`;
+
+    if (filtered.length === 0) {
+      html += `<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Noch keine Gerichte in dieser Kategorie.</div>`;
+    } else {
+      for (const kat of SK_KATEGORIEN) {
+        const items = filtered.filter(i => i.kat === kat);
+        if (!items.length) continue;
+        html += `<div style="margin-bottom:24px">
+          <h3 style="font-size:12px;font-weight:800;color:#8d6562;text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px">${kat}</h3>
+          <div style="display:flex;flex-direction:column;gap:8px">`;
+        for (const item of items) {
+          html += `<div style="background:#fff;border:1.5px solid ${item.aktiv?'#e3beb8':'#f0d8d4'};border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;opacity:${item.aktiv?1:0.6}">
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                <span style="font-size:14px;font-weight:800;color:#261816">${escHtml(item.name)}</span>
+                ${!item.aktiv?'<span style="font-size:10px;font-weight:700;color:#8d6562;background:#f3ebe9;border-radius:6px;padding:1px 6px">inaktiv</span>':''}
+              </div>
+              ${item.beschr?`<div style="font-size:12px;color:#8d6562;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.beschr)}</div>`:''}
+            </div>
+            <div style="font-size:16px;font-weight:900;color:#610000;white-space:nowrap">${eur(item.preis)}</div>
+            <div style="display:flex;gap:6px">
+              <button onclick="skToggleAktiv('${item.id}')" title="${item.aktiv?'Deaktivieren':'Aktivieren'}" style="background:${item.aktiv?'#e8f5e9':'#f3ebe9'};border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
+                <span class="material-symbols-outlined" style="font-size:16px;color:${item.aktiv?'#2e7d32':'#8d6562'}">${item.aktiv?'visibility':'visibility_off'}</span>
+              </button>
+              <button onclick="skBearbeiten('${item.id}')" style="background:#fff0ee;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
+                <span class="material-symbols-outlined" style="font-size:16px;color:#610000">edit</span>
+              </button>
+              <button onclick="skLoeschen('${item.id}')" style="background:#fff0ee;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
+                <span class="material-symbols-outlined" style="font-size:16px;color:#b52619">delete</span>
+              </button>
+            </div>
+          </div>`;
+        }
+        html += `</div></div>`;
+      }
+    }
+    panel.innerHTML = html;
+  } catch(err) {
+    console.error('Speisekarte Fehler:', err);
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+  }
+}
+
+function skNeuesGericht() { _skShowForm(null); }
+function skBearbeiten(id) { _skShowForm(id); }
+
+function _skShowForm(id) {
+  const menu = skLoad();
+  const item = id ? menu.find(i => i.id === id) : null;
+  const area = document.getElementById('sk-form-area');
+  if (!area) return;
+  area.innerHTML = `
+    <div style="background:#fff;border:2px solid #610000;border-radius:18px;padding:20px;margin-bottom:20px">
+      <h3 style="font-size:15px;font-weight:800;color:#610000;margin:0 0 16px">${item?'Gericht bearbeiten':'Neues Gericht'}</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie</label>
+          <select id="sk-f-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
+            ${SK_KATEGORIEN.map(k=>`<option${item&&item.kat===k?' selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Preis (€)</label>
+          <input id="sk-f-preis" type="number" step="0.1" min="0" value="${item?item.preis:''}" placeholder="0.00"
+            style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name</label>
+        <input id="sk-f-name" type="text" value="${item?escHtml(item.name):''}" placeholder="z.B. Margherita"
+          style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Beschreibung</label>
+        <input id="sk-f-beschr" type="text" value="${item?escHtml(item.beschr||''):''}" placeholder="Zutaten, Hinweise..."
+          style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="_skSpeichern('${id||''}')" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
+        <button onclick="document.getElementById('sk-form-area').innerHTML=''" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>
+      </div>
+    </div>`;
+  area.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function _skSpeichern(id) {
+  const name  = document.getElementById('sk-f-name')?.value.trim();
+  const preis = parseFloat(document.getElementById('sk-f-preis')?.value);
+  const kat   = document.getElementById('sk-f-kat')?.value;
+  const beschr= document.getElementById('sk-f-beschr')?.value.trim();
+  if (!name) { alert('Bitte Namen eingeben.'); return; }
+  if (isNaN(preis) || preis < 0) { alert('Bitte gültigen Preis eingeben.'); return; }
+  let menu = skLoad();
+  if (id) {
+    menu = menu.map(i => i.id === id ? { ...i, name, preis, kat, beschr } : i);
+  } else {
+    menu.push({ id: skGenId(), kat, name, preis, beschr, aktiv: true });
+  }
+  skSave(menu);
+  renderSpeisekarteTab();
+}
+
+function skToggleAktiv(id) {
+  skSave(skLoad().map(i => i.id === id ? { ...i, aktiv: !i.aktiv } : i));
+  renderSpeisekarteTab();
+}
+
+function skLoeschen(id) {
+  if (!confirm('Gericht wirklich löschen?')) return;
+  skSave(skLoad().filter(i => i.id !== id));
+  renderSpeisekarteTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LIEFERANTEN TAB
+// ═══════════════════════════════════════════════════════════════
+const LF_KEY = 'pizzeria_lieferanten';
+const LF_TYPEN = ['Großhandel','Supermarkt','Discounter','Direktlieferant','Sonstiges'];
+const LF_KATEGORIEN = ['Lebensmittel','Getränke','Verpackung','Reinigung','Sonstiges'];
+
+function lfLoad() {
+  try { return JSON.parse(localStorage.getItem(LF_KEY) || 'null') || _lfDefault(); } catch(_) { return _lfDefault(); }
+}
+function lfSave(d) { try { localStorage.setItem(LF_KEY, JSON.stringify(d)); } catch(_) {} }
+function _lfDefault() {
+  return [
+    { id:'lf-metro', name:'Metro',  typ:'Großhandel', kat:'Lebensmittel', tel:'0800 201 2000', email:'info@metro.at',          notiz:'Mo–Sa 6–22 Uhr. Kundenkarte erforderlich.', bewertung:5, farbe:'#003DA5' },
+    { id:'lf-billa', name:'Billa',  typ:'Supermarkt', kat:'Lebensmittel', tel:'0800 202 0101', email:'kundenservice@billa.at', notiz:'Lieferservice ab 35 €.',                    bewertung:4, farbe:'#ed1c24' },
+    { id:'lf-lidl',  name:'Lidl',   typ:'Discounter', kat:'Lebensmittel', tel:'',              email:'',                      notiz:'Günstig für Grundzutaten.',                 bewertung:4, farbe:'#0050AA' },
+    { id:'lf-spar',  name:'Spar',   typ:'Supermarkt', kat:'Lebensmittel', tel:'0810 507 260',  email:'',                      notiz:'Filiale 5 min entfernt.',                   bewertung:3, farbe:'#007f3e' },
+  ];
+}
+function lfGenId() { return 'lf' + Date.now(); }
+
+function renderLieferantenTab() {
+  const panel = document.getElementById('panel-lieferanten');
+  if (!panel) return;
+  try {
+    const list = lfLoad();
+    let html = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">local_shipping</span>
+      </div>
+      <div style="flex:1">
+        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Lieferanten</h2>
+        <p style="font-size:13px;color:#5a403c;margin:0">${list.length} gespeichert</p>
+      </div>
+      <button onclick="lfNeu()" style="background:#610000;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
+        <span class="material-symbols-outlined" style="font-size:16px">add</span>Neu
+      </button>
+    </div>
+    <div id="lf-form-area"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">`;
+
+    if (!list.length) html += `<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Noch keine Lieferanten angelegt.</div>`;
+
+    for (const lf of list) {
+      const stars = '★'.repeat(lf.bewertung||0) + '☆'.repeat(5-(lf.bewertung||0));
+      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:18px 20px">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="width:44px;height:44px;border-radius:12px;background:${lf.farbe||'#610000'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <span class="material-symbols-outlined" style="font-size:22px;color:#fff">store</span>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+              <span style="font-size:16px;font-weight:800;color:#261816">${escHtml(lf.name)}</span>
+              <span style="font-size:11px;background:#f3ebe9;color:#5a403c;border-radius:6px;padding:2px 8px;font-weight:700">${escHtml(lf.typ||'')}</span>
+              <span style="font-size:11px;background:#e8f5e9;color:#2e7d32;border-radius:6px;padding:2px 8px;font-weight:700">${escHtml(lf.kat||'')}</span>
+            </div>
+            <div style="color:#c9a227;font-size:13px;margin-bottom:6px">${stars}</div>
+            ${lf.tel?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">phone</span><a href="tel:${lf.tel}" style="color:#610000;text-decoration:none;font-weight:600">${escHtml(lf.tel)}</a></div>`:''}
+            ${lf.email?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">mail</span><a href="mailto:${lf.email}" style="color:#610000;text-decoration:none;font-weight:600">${escHtml(lf.email)}</a></div>`:''}
+            ${lf.notiz?`<div style="font-size:12px;color:#8d6562;margin-top:6px;font-style:italic">${escHtml(lf.notiz)}</div>`:''}
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="lfBearbeiten('${lf.id}')" style="background:#fff0ee;border:none;border-radius:8px;padding:7px;cursor:pointer;line-height:0">
+              <span class="material-symbols-outlined" style="font-size:16px;color:#610000">edit</span>
+            </button>
+            <button onclick="lfLoeschen('${lf.id}')" style="background:#fff0ee;border:none;border-radius:8px;padding:7px;cursor:pointer;line-height:0">
+              <span class="material-symbols-outlined" style="font-size:16px;color:#b52619">delete</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+    panel.innerHTML = html;
+  } catch(err) {
+    console.error('Lieferanten Fehler:', err);
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+  }
+}
+
+function lfNeu() { _lfShowForm(null); }
+function lfBearbeiten(id) { _lfShowForm(id); }
+
+function _lfShowForm(id) {
+  const list = lfLoad();
+  const lf = id ? list.find(i => i.id === id) : null;
+  const area = document.getElementById('lf-form-area');
+  if (!area) return;
+  area.innerHTML = `
+    <div style="background:#fff;border:2px solid #610000;border-radius:18px;padding:20px;margin-bottom:20px">
+      <h3 style="font-size:15px;font-weight:800;color:#610000;margin:0 0 16px">${lf?'Lieferant bearbeiten':'Neuer Lieferant'}</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name *</label>
+          <input id="lf-f-name" type="text" value="${lf?escHtml(lf.name):''}" placeholder="z.B. Metro"
+            style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Typ</label>
+          <select id="lf-f-typ" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
+            ${LF_TYPEN.map(t=>`<option${lf&&lf.typ===t?' selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie</label>
+          <select id="lf-f-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
+            ${LF_KATEGORIEN.map(k=>`<option${lf&&lf.kat===k?' selected':''}>${k}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Bewertung</label>
+          <select id="lf-f-bew" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
+            ${[5,4,3,2,1].map(n=>`<option value="${n}"${lf&&lf.bewertung===n?' selected':''}>${'★'.repeat(n)} (${n})</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Telefon</label>
+          <input id="lf-f-tel" type="tel" value="${lf?escHtml(lf.tel||''):''}" placeholder="0800 ..."
+            style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">E-Mail</label>
+          <input id="lf-f-email" type="email" value="${lf?escHtml(lf.email||''):''}" placeholder="info@..."
+            style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Notiz</label>
+        <input id="lf-f-notiz" type="text" value="${lf?escHtml(lf.notiz||''):''}" placeholder="Öffnungszeiten, Mindestbestellung..."
+          style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="_lfSpeichern('${id||''}')" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
+        <button onclick="document.getElementById('lf-form-area').innerHTML=''" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>
+      </div>
+    </div>`;
+  area.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function _lfSpeichern(id) {
+  const name = document.getElementById('lf-f-name')?.value.trim();
+  if (!name) { alert('Bitte Namen eingeben.'); return; }
+  const entry = {
+    id:        id || lfGenId(),
+    name,
+    typ:       document.getElementById('lf-f-typ')?.value,
+    kat:       document.getElementById('lf-f-kat')?.value,
+    bewertung: parseInt(document.getElementById('lf-f-bew')?.value||'3'),
+    tel:       document.getElementById('lf-f-tel')?.value.trim(),
+    email:     document.getElementById('lf-f-email')?.value.trim(),
+    notiz:     document.getElementById('lf-f-notiz')?.value.trim(),
+    farbe:     '#610000',
+  };
+  let list = lfLoad();
+  list = id ? list.map(i => i.id === id ? entry : i) : [...list, entry];
+  lfSave(list);
+  renderLieferantenTab();
+}
+
+function lfLoeschen(id) {
+  if (!confirm('Lieferant wirklich löschen?')) return;
+  lfSave(lfLoad().filter(i => i.id !== id));
+  renderLieferantenTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DOMContentLoaded — Session wiederherstellen oder Login zeigen
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
