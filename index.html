@@ -981,23 +981,68 @@ let ANTHROPIC_API_KEY = localStorage.getItem('pizzeria_api_key') || '';
 // ═══════════════════════════════════════════════════════════════
 
 const PRODUCTS = [
-  { id: 'mehl',       name: 'Pizzamehl Tipo 00',       category: 'Grundzutaten', unit: 'kg',      currentStock: 1.5,  minStock: 5,   orderQuantity: 10 },
-  { id: 'tomaten',    name: 'San Marzano Tomaten',      category: 'Grundzutaten', unit: 'Dosen',   currentStock: 3,    minStock: 10,  orderQuantity: 24 },
-  { id: 'mozzarella', name: 'Mozzarella di Bufala',     category: 'Käse',         unit: 'kg',      currentStock: 0.8,  minStock: 4,   orderQuantity: 5  },
-  { id: 'olivenoel',  name: 'Olivenöl Extra Vergine',   category: 'Grundzutaten', unit: 'Liter',   currentStock: 1.2,  minStock: 3,   orderQuantity: 5  },
-  { id: 'salami',     name: 'Salami Milano',            category: 'Belag',        unit: 'kg',      currentStock: 0.4,  minStock: 2,   orderQuantity: 3  },
-  { id: 'parmesan',   name: 'Parmigiano Reggiano',      category: 'Käse',         unit: 'kg',      currentStock: 0.3,  minStock: 1,   orderQuantity: 2  },
-  { id: 'basilikum',  name: 'Frischer Basilikum',       category: 'Gewürze',      unit: 'Bund',    currentStock: 2,    minStock: 5,   orderQuantity: 10 },
-  { id: 'hefe',       name: 'Frische Hefe',             category: 'Grundzutaten', unit: 'Päckchen',currentStock: 15,   minStock: 10,  orderQuantity: 20 },
-  { id: 'salz',       name: 'Meersalz',                 category: 'Gewürze',      unit: 'kg',      currentStock: 3,    minStock: 2,   orderQuantity: 5  },
-  { id: 'peperoni',   name: 'Peperoni',                 category: 'Belag',        unit: 'kg',      currentStock: 0.2,  minStock: 1.5, orderQuantity: 2  },
+  // ── Grundzutaten ──────────────────────────────────────────────────────────
+  { id: 'mehl',             name: 'Pizzamehl Tipo 00',              category: 'Grundzutaten', unit: 'kg',    currentStock: 1.5, minStock: 5,  orderQuantity: 10 },
+  { id: 'tomaten',          name: 'San Marzano Tomaten',            category: 'Grundzutaten', unit: 'Dosen', currentStock: 3,   minStock: 10, orderQuantity: 24 },
+  { id: 'olivenoel',        name: 'Olivenöl Extra Vergine',         category: 'Grundzutaten', unit: 'Liter', currentStock: 1.2, minStock: 3,  orderQuantity: 5  },
+  { id: 'hefe',             name: 'Frische Hefe',                   category: 'Grundzutaten', unit: 'Päck.', currentStock: 15,  minStock: 10, orderQuantity: 20 },
+  { id: 'pizzablock',       name: 'Pizzablock EXPORT 5kg',          category: 'Grundzutaten', unit: 'kg',    currentStock: 0,   minStock: 10, orderQuantity: 15 },
+  { id: 'pizza_sauce',      name: 'Campino Pizza Sauce 5/1',        category: 'Grundzutaten', unit: 'Dosen', currentStock: 0,   minStock: 3,  orderQuantity: 6  },
+  // ── Käse ──────────────────────────────────────────────────────────────────
+  { id: 'mozzarella',       name: 'Mozzarella di Bufala',           category: 'Käse',         unit: 'kg',    currentStock: 0.8, minStock: 4,  orderQuantity: 5  },
+  { id: 'mozzarella_stange',name: 'Mozzarella Stange 45% FIT 1kg', category: 'Käse',         unit: 'Pkg',   currentStock: 0,   minStock: 4,  orderQuantity: 6  },
+  { id: 'parmesan',         name: 'Parmigiano Reggiano',            category: 'Käse',         unit: 'kg',    currentStock: 0.3, minStock: 1,  orderQuantity: 2  },
+  { id: 'cheddar',          name: 'Cheddar in Scheiben 1000g',      category: 'Käse',         unit: 'Pkg',   currentStock: 0,   minStock: 2,  orderQuantity: 3  },
+  { id: 'boereklik',        name: 'OBA Kombi Böreklik Weiß 4kg',   category: 'Käse',         unit: 'Ktn',   currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  // ── Belag ─────────────────────────────────────────────────────────────────
+  { id: 'salami',           name: 'Salami Milano',                  category: 'Belag',        unit: 'kg',    currentStock: 0.4, minStock: 2,  orderQuantity: 3  },
+  { id: 'salami_gesch',     name: 'Salami geschnitten 65cm ca.1kg', category: 'Belag',        unit: 'kg',    currentStock: 0,   minStock: 3,  orderQuantity: 5  },
+  { id: 'bacon_gastro',     name: 'Gastro Bacon Hochreiter gesch.', category: 'Belag',        unit: 'kg',    currentStock: 0,   minStock: 2,  orderQuantity: 3  },
+  { id: 'peperoni',         name: 'Peperoni',                       category: 'Belag',        unit: 'kg',    currentStock: 0.2, minStock: 1.5,orderQuantity: 2  },
+  // ── Fleisch & Fleisch TK ──────────────────────────────────────────────────
+  { id: 'doener',           name: 'Döner Kebap geschnitten 1kg',    category: 'Fleisch',      unit: 'Pkg',   currentStock: 0,   minStock: 3,  orderQuantity: 5  },
+  { id: 'cevapcici',        name: 'Cevapcici 800g TK',              category: 'Fleisch TK',   unit: 'Pkg',   currentStock: 0,   minStock: 3,  orderQuantity: 6  },
+  { id: 'huehnerbrust_tk',  name: 'Hühnerbrustfilet TK ca.1kg',    category: 'Fleisch TK',   unit: 'kg',    currentStock: 0,   minStock: 5,  orderQuantity: 10 },
+  // ── Beilagen & Beilagen TK ───────────────────────────────────────────────
+  { id: 'kartoffelsalat',   name: 'Kartoffelsalat 10kg Wienerart',  category: 'Beilagen',     unit: 'Kübel', currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  { id: 'potato_wedges',    name: 'Aviko Potato Wedges 2.5kg TK',  category: 'Beilagen TK',  unit: 'Pkg',   currentStock: 0,   minStock: 4,  orderQuantity: 8  },
+  { id: 'pommes_kebab',     name: 'Aviko Pommes Kebab 9.5mm 2.5kg',category: 'Beilagen TK',  unit: 'Pkg',   currentStock: 0,   minStock: 4,  orderQuantity: 8  },
+  // ── Gemüse & Gemüse TK ───────────────────────────────────────────────────
+  { id: 'champignons_fr',   name: 'Champignon mittel 3kg Frisch',   category: 'Gemüse',       unit: 'kiste', currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  { id: 'karfiol_tk',       name: 'Ardo Karfiol/Blumenkohl 2.5kg',  category: 'Gemüse TK',    unit: 'Pkg',   currentStock: 0,   minStock: 1,  orderQuantity: 3  },
+  { id: 'erbsen_tk',        name: 'Ardo Markerbsen mittelfein 2.5kg',category:'Gemüse TK',    unit: 'Pkg',   currentStock: 0,   minStock: 1,  orderQuantity: 3  },
+  // ── Konserven ─────────────────────────────────────────────────────────────
+  { id: 'artischocken',     name: 'Adria Artischocken Herzen 2650ml',category:'Konserven',    unit: 'Dosen', currentStock: 0,   minStock: 2,  orderQuantity: 4  },
+  { id: 'thunfisch_dose',   name: 'Adria Thunfisch in Öl 1705g',    category: 'Konserven',    unit: 'Dosen', currentStock: 0,   minStock: 3,  orderQuantity: 6  },
+  // ── Saucen & Dips ─────────────────────────────────────────────────────────
+  { id: 'hamburger_sauce',  name: 'Develey Hamburger Sauce 875ml',  category: 'Saucen',       unit: 'PFl',   currentStock: 0,   minStock: 3,  orderQuantity: 6  },
+  { id: 'tartare_port',     name: 'Senna Tartare Portionen 80x25g', category: 'Saucen',       unit: 'Ktn',   currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  { id: 'ketchup_port',     name: 'Senna Ketchup Portionen 100x20g',category: 'Saucen',      unit: 'Ktn',   currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  { id: 'mayo_port',        name: 'Senna Mayo Portionen 100x15g',   category: 'Saucen',       unit: 'Ktn',   currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  // ── Reis & Nudeln ─────────────────────────────────────────────────────────
+  { id: 'basmati_reis',     name: 'Mahmood Basmati Reis 4.5kg',     category: 'Reis & Nudeln',unit: 'Stk',   currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  { id: 'gnocchi',          name: 'Piacelli Gnocchi 1000g',         category: 'Reis & Nudeln',unit: 'Pkg',   currentStock: 0,   minStock: 6,  orderQuantity: 12 },
+  { id: 'spaghetti',        name: 'Barilla Spaghetti 5kg No.5',     category: 'Reis & Nudeln',unit: 'Pkg',   currentStock: 0,   minStock: 3,  orderQuantity: 6  },
+  // ── Brot ──────────────────────────────────────────────────────────────────
+  { id: 'hamburger_brot',   name: 'Giant XL Hamburger Brot 16St TK',category: 'Brot',        unit: 'Ktn',   currentStock: 0,   minStock: 2,  orderQuantity: 4  },
+  // ── Getränke ──────────────────────────────────────────────────────────────
+  { id: 'fuzetea_zitrone',  name: 'Fuzetea Zitrone 12x0.5L',        category: 'Getränke',     unit: 'Tray',  currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  { id: 'fuzetea_pfirsich', name: 'Fuzetea Pfirsich 12x0.5L',       category: 'Getränke',     unit: 'Tray',  currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  // ── Dessert ───────────────────────────────────────────────────────────────
+  { id: 'vanillesauce',     name: 'Debic Vanillesauce 2L',           category: 'Dessert',      unit: 'PFl',   currentStock: 0,   minStock: 2,  orderQuantity: 3  },
+  { id: 'eierbiskotten',    name: 'Manner Eierbiskotten 2.4kg',      category: 'Dessert',      unit: 'Ktn',   currentStock: 0,   minStock: 1,  orderQuantity: 2  },
+  // ── Gewürze ───────────────────────────────────────────────────────────────
+  { id: 'basilikum',        name: 'Frischer Basilikum',              category: 'Gewürze',      unit: 'Bund',  currentStock: 2,   minStock: 5,  orderQuantity: 10 },
+  { id: 'salz',             name: 'Meersalz',                        category: 'Gewürze',      unit: 'kg',    currentStock: 3,   minStock: 2,  orderQuantity: 5  },
 ];
 
 const SHOPS = [
-  { id: 'metro', name: 'Metro',  type: 'Großhandel', color: '#003DA5' },
-  { id: 'billa', name: 'Billa',  type: 'Supermarkt', color: '#ed1c24' },
-  { id: 'lidl',  name: 'Lidl',   type: 'Discounter', color: '#0050AA' },
-  { id: 'spar',  name: 'Spar',   type: 'Supermarkt', color: '#007f3e' },
+  { id: 'metro',        name: 'Metro',            type: 'Großhandel',      color: '#003DA5' },
+  { id: 'billa',        name: 'Billa',            type: 'Supermarkt',      color: '#ed1c24' },
+  { id: 'lidl',         name: 'Lidl',             type: 'Discounter',      color: '#0050AA' },
+  { id: 'spar',         name: 'Spar',             type: 'Supermarkt',      color: '#007f3e' },
+  { id: 'umtrade',      name: 'UM Trade GmbH',    type: 'Großhandel',      color: '#cc0000' },
+  { id: 'essamshehata', name: 'Essam Shehata KG', type: 'Direktlieferant', color: '#f57c00' },
 ];
 
 // pricePerUnit indexed as PRICE_MAP[shopId][productId]
@@ -1006,6 +1051,40 @@ const PRICE_MAP = {
   billa: { mehl:1.19, tomaten:1.39, mozzarella:4.49, olivenoel:5.99, salami:8.49, parmesan:10.99,basilikum:0.89, hefe:0.45, salz:0.59, peperoni:6.49 },
   lidl:  { mehl:0.79, tomaten:0.89, mozzarella:3.99, olivenoel:4.49, salami:6.49, parmesan:7.99, basilikum:0.59, hefe:0.29, salz:0.39, peperoni:4.99 },
   spar:  { mehl:1.09, tomaten:1.29, mozzarella:4.29, olivenoel:5.49, salami:7.99, parmesan:9.99, basilikum:0.79, hefe:0.39, salz:0.55, peperoni:5.99 },
+  // UM Trade GmbH — Rechnung Nr. 93722 vom 25.03.2026 (Preise pro Einheit)
+  umtrade: {
+    pizzablock:        4.99,  // kg  — ArtNr 6090
+    salami_gesch:      6.19,  // kg  — ArtNr 3130
+    salami:            6.19,  // kg  — ArtNr 3130 (gleicher Preis wie salami_gesch)
+    bacon_gastro:      8.99,  // kg  — ArtNr 5175
+    mozzarella_stange: 6.99,  // Pkg — ArtNr 2106
+    cheddar:           8.99,  // Pkg — ArtNr 5182
+    kartoffelsalat:   30.59,  // Kübel— ArtNr 2269
+    vanillesauce:      8.19,  // PFl — ArtNr 3132
+    cevapcici:         9.99,  // Pkg — ArtNr 4847
+    doener:            8.99,  // Pkg — ArtNr 2516
+    huehnerbrust_tk:   6.09,  // kg  — ArtNr 4881
+    hamburger_brot:    8.99,  // Ktn — ArtNr 2387
+    boereklik:        17.99,  // Ktn — ArtNr 6096
+    potato_wedges:     1.99,  // /kg — ArtNr 2306
+    pommes_kebab:      1.89,  // /kg — ArtNr 2710
+    karfiol_tk:        1.69,  // /kg — ArtNr 2098
+    erbsen_tk:         1.89,  // /kg — ArtNr 2129
+    hamburger_sauce:   4.69,  // PFl — ArtNr 4706
+    artischocken:      8.79,  // Dosen— ArtNr 2822
+    basmati_reis:     14.90,  // Stk — ArtNr 6374
+    tartare_port:     10.99,  // Ktn — ArtNr 4341
+    ketchup_port:      8.99,  // Ktn — ArtNr 4837
+    mayo_port:         8.99,  // Ktn — ArtNr 4343
+    fuzetea_zitrone:   0.55,  // /PFl— ArtNr 4776
+    fuzetea_pfirsich:  0.55,  // /PFl— ArtNr 4775
+    pizza_sauce:       6.49,  // Dosen— ArtNr 2906
+    thunfisch_dose:    8.59,  // Dosen— ArtNr 2026
+    gnocchi:           2.49,  // Pkg — ArtNr 2231
+    spaghetti:         7.59,  // Pkg — ArtNr 2256
+    eierbiskotten:    19.99,  // Ktn — ArtNr 2056
+    champignons_fr:    9.19,  // kiste— ArtNr 3538
+  },
 };
 
 // Weekly deals — populated here or via Upload tab
@@ -1051,6 +1130,50 @@ function addHistoryEntry(entry) {
   saveHistory();
 }
 
+// ── Einmalig: Rechnung Nr. 93722 (UM Trade, 25.03.2026) in Historie laden ──
+(function() {
+  const FLAG = 'invoice_umtrade_93722_imported';
+  if (localStorage.getItem(FLAG)) return;
+  const items = [
+    { produktName:'Pizzablock EXPORT 5kg',          produktId:'pizzablock',       menge:14.885,einheit:'kg',    preis:4.99  },
+    { produktName:'Salami geschnitten 65cm ca.1kg', produktId:'salami_gesch',     menge:4.1,   einheit:'kg',    preis:6.19  },
+    { produktName:'Gastro Bacon Hochreiter gesch.', produktId:'bacon_gastro',     menge:2.994, einheit:'kg',    preis:8.99  },
+    { produktName:'Goldsteig Mozzarella Stange 1kg',produktId:'mozzarella_stange',menge:2,     einheit:'Pkg',   preis:6.99  },
+    { produktName:'SARAY Cheddar Scheiben 1000g',   produktId:'cheddar',          menge:1,     einheit:'Pkg',   preis:8.99  },
+    { produktName:'BL Kartoffelsalat 10kg Wienerart',produktId:'kartoffelsalat',  menge:1,     einheit:'Kübel', preis:30.59 },
+    { produktName:'Debic Vanillesauce 2L',          produktId:'vanillesauce',     menge:1,     einheit:'PFl',   preis:8.19  },
+    { produktName:'Brajlovic Cevapcici 800g TK',    produktId:'cevapcici',        menge:3,     einheit:'Pkg',   preis:9.99  },
+    { produktName:'Döner Kebap geschnitten 1kg',    produktId:'doener',           menge:3,     einheit:'Pkg',   preis:8.99  },
+    { produktName:'Hühnerbrustfilet TK ca.1kg',     produktId:'huehnerbrust_tk',  menge:10,    einheit:'kg',    preis:6.09  },
+    { produktName:'Giant XL Hamburger Brot 16St TK',produktId:'hamburger_brot',   menge:2,     einheit:'Ktn',   preis:8.99  },
+    { produktName:'OBA Kombi Böreklik Weiß 4kg',   produktId:'boereklik',        menge:1,     einheit:'Ktn',   preis:17.99 },
+    { produktName:'Aviko Potato Wedges Gew. 2.5kg', produktId:'potato_wedges',    menge:4,     einheit:'Pkg',   preis:1.99  },
+    { produktName:'Aviko Pommes Kebab 9.5mm 2.5kg', produktId:'pommes_kebab',     menge:4,     einheit:'Pkg',   preis:1.89  },
+    { produktName:'Ardo Karfiol/Blumenkohl 2.5kg',  produktId:'karfiol_tk',       menge:1,     einheit:'Pkg',   preis:1.69  },
+    { produktName:'Ardo Markerbsen mittelfein 2.5kg',produktId:'erbsen_tk',       menge:1,     einheit:'Pkg',   preis:1.89  },
+    { produktName:'Develey Hamburger Sauce 875ml',  produktId:'hamburger_sauce',  menge:3,     einheit:'PFl',   preis:4.69  },
+    { produktName:'Adria Artischocken Herzen 2650ml',produktId:'artischocken',    menge:1,     einheit:'Dosen', preis:8.79  },
+    { produktName:'Mahmood Basmati Reis 4.5kg',     produktId:'basmati_reis',     menge:1,     einheit:'Stk',   preis:14.90 },
+    { produktName:'Senna Sauce Tartare 80x25g',     produktId:'tartare_port',     menge:1,     einheit:'Ktn',   preis:10.99 },
+    { produktName:'Senna Ketchup Portionen 100x20g',produktId:'ketchup_port',     menge:1,     einheit:'Ktn',   preis:8.99  },
+    { produktName:'Senna Mayonnaise 50% 100x15g',   produktId:'mayo_port',        menge:1,     einheit:'Ktn',   preis:8.99  },
+    { produktName:'Fuzetea Zitrone 12x0.5L',        produktId:'fuzetea_zitrone',  menge:1,     einheit:'Tray',  preis:0.55  },
+    { produktName:'Fuzetea Pfirsich 12x0.5L',       produktId:'fuzetea_pfirsich', menge:1,     einheit:'Tray',  preis:0.55  },
+    { produktName:'Campino Pizza Sauce 5/1',         produktId:'pizza_sauce',      menge:3,     einheit:'Dosen', preis:6.49  },
+    { produktName:'Adria Thunfisch in Öl 1705g',    produktId:'thunfisch_dose',   menge:6,     einheit:'Dosen', preis:8.59  },
+    { produktName:'Piacelli Gnocchi 1000g',          produktId:'gnocchi',          menge:6,     einheit:'Pkg',   preis:2.49  },
+    { produktName:'Barilla Spaghetti 5kg No.5',      produktId:'spaghetti',        menge:3,     einheit:'Pkg',   preis:7.59  },
+    { produktName:'Manner Eierbiskotten 2.4kg',      produktId:'eierbiskotten',    menge:1,     einheit:'Ktn',   preis:19.99 },
+    { produktName:'Champignon mittel 3kg Frisch',    produktId:'champignons_fr',   menge:1,     einheit:'kiste', preis:9.19  },
+  ];
+  for (const item of items) {
+    addHistoryEntry({ ...item, datum:'2026-03-25', shopName:'UM Trade GmbH', shopId:'umtrade', quelle:'rechnung-93722' });
+  }
+  // Essam Shehata Rechnung 28.03.2026 (Gesamtrechnung als Sammeleintrag)
+  addHistoryEntry({ produktName:'Essam Shehata Rechnung 28.03.2026 (Gesamtlieferung)', produktId:null, menge:1, einheit:'Rechnung', preis:1304.19, datum:'2026-03-28', shopName:'Essam Shehata KG', shopId:'essamshehata', quelle:'rechnung-essamshehata' });
+  localStorage.setItem(FLAG, '1');
+})();
+
 const VERLAUF_FILTER = { shop: '', produkt: '', monat: '' };
 
 const SUCHE_STATE = {
@@ -1062,6 +1185,7 @@ const SUCHE_STATE = {
   addedIds: new Set(),
   fromCache: false,
   cacheDate: null,
+  shopFilter: '',   // '' = Alle; 'hofer'|'billa'|'spar'|'lidl'|'metro'|'etsan'
 };
 
 // Such-Cache: Ergebnisse werden 7 Tage gespeichert
@@ -5946,13 +6070,15 @@ function renderSucheTab() {
         </button>
       </div>
       <div class="filter-chip-row">
-        <button class="filter-chip active" onclick="void(0)">🌐 Alle Shops</button>
-        <button class="filter-chip" onclick="void(0)">🏪 Hofer</button>
-        <button class="filter-chip" onclick="void(0)">🛒 Billa</button>
-        <button class="filter-chip" onclick="void(0)">🌿 Spar</button>
-        <button class="filter-chip" onclick="void(0)">🔵 Lidl</button>
-        <button class="filter-chip" onclick="void(0)">🏭 Metro</button>
-        <button class="filter-chip" onclick="void(0)">🥩 Etsan</button>
+        ${[
+          {id:'',       label:'🌐 Alle Shops'},
+          {id:'hofer',  label:'🏪 Hofer'},
+          {id:'billa',  label:'🛒 Billa'},
+          {id:'spar',   label:'🌿 Spar'},
+          {id:'lidl',   label:'🔵 Lidl'},
+          {id:'metro',  label:'🏭 Metro'},
+          {id:'etsan',  label:'🥩 Etsan'},
+        ].map(f=>`<button class="filter-chip${SUCHE_STATE.shopFilter===f.id?' active':''}" onclick="setSucheShopFilter('${f.id}')">${f.label}</button>`).join('')}
       </div>
     </div>
     <div class="deals-scroll-row">
@@ -6069,21 +6195,29 @@ function renderSucheTab() {
   }
 }
 
+function setSucheShopFilter(shopId) {
+  SUCHE_STATE.shopFilter = shopId;
+  renderSucheTab();
+}
+
 function renderSearchResults() {
-  const { results, query } = SUCHE_STATE;
+  const { results, query, shopFilter } = SUCHE_STATE;
+  const filtered = shopFilter
+    ? results.filter(r => (r.shop||'').toLowerCase() === shopFilter)
+    : results;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   let html = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <span style="font-size:14px;color:#5a403c">
-        <span style="font-weight:700;color:#261816">${results.length} Angebot${results.length !== 1 ? 'e' : ''}</span>
-        für „${escHtml(query)}"
+        <span style="font-weight:700;color:#261816">${filtered.length} Angebot${filtered.length !== 1 ? 'e' : ''}</span>
+        für „${escHtml(query)}"${shopFilter ? ` · <span style="color:#610000">${shopFilter}</span>` : ''}
       </span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px">`;
 
-  results.forEach((r, idx) => {
+  filtered.forEach((r, idx) => {
     const color = shopColor(r.shop);
     const savings = (r.originalPrice && r.price && r.originalPrice > r.price)
       ? Math.round((1 - r.price / r.originalPrice) * 100)
@@ -9525,79 +9659,321 @@ function renderDashboardTab() {
 // SPEISEKARTE TAB
 // ═══════════════════════════════════════════════════════════════
 const SK_KEY = 'pizzeria_speisekarte';
-const SK_KATEGORIEN = ['Pizza','Pasta','Salat','Getränke','Dessert','Sonstiges'];
+const SK_VER_KEY = 'pizzeria_sk_ver';
+const SK_VERSION = 2;
+const SK_KATEGORIEN = [
+  {id:'Vorspeisen',    label:'Vorspeisen',    farbe:'#00838f', bg:'#e0f7fa'},
+  {id:'Suppen',        label:'Suppen',        farbe:'#f9a825', bg:'#fffde7'},
+  {id:'Salate',        label:'Salate',        farbe:'#2e7d32', bg:'#e8f5e9'},
+  {id:'Pizza',         label:'Pizza (AG)',    farbe:'#b52619', bg:'#ffdad6'},
+  {id:'Pizza Spezial', label:'Pizza Spezial', farbe:'#c62828', bg:'#ffebee'},
+  {id:'Pizzakugeln',   label:'Pizzakugeln',   farbe:'#d32f2f', bg:'#ffcdd2'},
+  {id:'American Pizza',label:'American Pizza',farbe:'#1a237e', bg:'#e8eaf6'},
+  {id:'Pasta',         label:'Pasta',         farbe:'#e65100', bg:'#fff3e0'},
+  {id:'Al Forno',      label:'Al Forno',      farbe:'#f57c00', bg:'#fbe9e7'},
+  {id:'Risotto',       label:'Risotto',       farbe:'#bf360c', bg:'#fbe9e7'},
+  {id:'Fleisch',       label:'Fleisch/Carne', farbe:'#5d4037', bg:'#efebe9'},
+  {id:'Fisch',         label:'Fisch',         farbe:'#1565c0', bg:'#e3f2fd'},
+  {id:'Burger',        label:'Burger',        farbe:'#4e342e', bg:'#d7ccc8'},
+  {id:'Nachspeisen',   label:'Nachspeisen',   farbe:'#ad1457', bg:'#fce4ec'},
+  {id:'Getränke',      label:'Getränke',      farbe:'#6a1b9a', bg:'#f3e5f5'},
+];
 let SK_FILTER = '';
+let SK_SEARCH = '';
 
+function skCatInfo(katId) { return SK_KATEGORIEN.find(k=>k.id===katId)||{farbe:'#610000',bg:'#fff0ee',label:katId}; }
 function skLoad() {
-  try { return JSON.parse(localStorage.getItem(SK_KEY) || 'null') || _skDefault(); } catch(_) { return _skDefault(); }
+  try {
+    const ver = parseInt(localStorage.getItem(SK_VER_KEY)||'0');
+    if (ver < SK_VERSION) { const d=_skDefault(); skSave(d); return d; }
+    return JSON.parse(localStorage.getItem(SK_KEY)||'null')||_skDefault();
+  } catch(_) { return _skDefault(); }
 }
-function skSave(d) { try { localStorage.setItem(SK_KEY, JSON.stringify(d)); } catch(_) {} }
+function skSave(d) { try { localStorage.setItem(SK_KEY,JSON.stringify(d)); localStorage.setItem(SK_VER_KEY,String(SK_VERSION)); } catch(_) {} }
 function _skDefault() {
   return [
-    { id:'sk1', kat:'Pizza',    name:'Margherita',          preis:9.90,  beschr:'Tomatensauce, Mozzarella, Basilikum',      aktiv:true },
-    { id:'sk2', kat:'Pizza',    name:'Salami',              preis:11.50, beschr:'Tomatensauce, Mozzarella, Salami Milano',  aktiv:true },
-    { id:'sk3', kat:'Pizza',    name:'Quattro Formaggi',    preis:12.90, beschr:'Vier Käsesorten, Basilikum',               aktiv:true },
-    { id:'sk4', kat:'Pizza',    name:'Prosciutto',          preis:12.50, beschr:'Tomatensauce, Mozzarella, Schinken',       aktiv:true },
-    { id:'sk5', kat:'Pasta',    name:'Spaghetti Bolognese', preis:10.90, beschr:'Klassische Fleischsauce',                  aktiv:true },
-    { id:'sk6', kat:'Pasta',    name:'Penne Arrabiata',     preis:9.50,  beschr:'Würzige Tomatensauce, Peperoni',           aktiv:true },
-    { id:'sk7', kat:'Getränke', name:'Wasser 0,5L',         preis:2.50,  beschr:'Still oder prickelnd',                    aktiv:true },
-    { id:'sk8', kat:'Getränke', name:'Cola 0,33L',          preis:3.20,  beschr:'Coca-Cola',                               aktiv:true },
-    { id:'sk9', kat:'Dessert',  name:'Tiramisu',            preis:5.90,  beschr:'Klassisches Hausrezept',                  aktiv:true },
+    // VORSPEISEN
+    {id:'v10', nr:'10',  kat:'Vorspeisen',name:'Fritto Misto Gemüse',      preis:10.90,beschr:'Gemischtes gebackenes Gemüse',         aktiv:true},
+    {id:'v11', nr:'11',  kat:'Vorspeisen',name:'Gebackene Champignons',    preis:10.90,beschr:'Mit Knoblauch und Kräutern',           aktiv:true},
+    {id:'v13', nr:'13',  kat:'Vorspeisen',name:'Zucchini & Artischocken',  preis:10.90,beschr:'Gebacken',                             aktiv:true},
+    {id:'v14', nr:'14',  kat:'Vorspeisen',name:'Shrimpscocktail',          preis:10.90,beschr:'Mit Cocktailsauce',                    aktiv:true},
+    {id:'v18', nr:'18',  kat:'Vorspeisen',name:'Karfiol oder Broccoli',    preis:10.90,beschr:'Gebacken',                             aktiv:true},
+    {id:'v133',nr:'133', kat:'Vorspeisen',name:'Mozzarella & Prosciutto',  preis:13.90,beschr:'Büffelmozzarella mit Schinken',        aktiv:true},
+    {id:'v134',nr:'134', kat:'Vorspeisen',name:'Käseplatte',               preis:12.90,beschr:'ab 12.90 – 25.90€',                   aktiv:true},
+    // SUPPEN
+    {id:'s1',  nr:'1',   kat:'Suppen',name:'Frittatensuppe',      preis:4.90, beschr:'Klassische Rindssuppe',          aktiv:true},
+    {id:'s2',  nr:'2',   kat:'Suppen',name:'Knoblauchsuppe',      preis:4.90, beschr:'Cremig mit Croutons',             aktiv:true},
+    {id:'s3',  nr:'3',   kat:'Suppen',name:'Minestrone',          preis:4.90, beschr:'Italienische Gemüsesuppe',        aktiv:true},
+    {id:'s4',  nr:'4',   kat:'Suppen',name:'Minestrone Gemüse',  preis:4.90, beschr:'Vegetarisch',                     aktiv:true},
+    {id:'s5',  nr:'5',   kat:'Suppen',name:'Broccolisuppe',       preis:4.90, beschr:'Cremig',                          aktiv:true},
+    {id:'s6',  nr:'6',   kat:'Suppen',name:'Meeresfrüchtesuppe',  preis:4.90, beschr:'Garnelen und Muscheln',           aktiv:true},
+    {id:'s7',  nr:'7',   kat:'Suppen',name:'Broccoligratin',      preis:4.90, beschr:'Überbacken',                      aktiv:true},
+    {id:'s17', nr:'17',  kat:'Suppen',name:'Melanzane al Forno',  preis:11.90,beschr:'Überbackene Auberginen',          aktiv:true},
+    // SALATE
+    {id:'sa19',nr:'19',  kat:'Salate',name:'Gemischter Salat klein',  preis:5.20, beschr:'Saisonal',              aktiv:true},
+    {id:'sa20',nr:'20',  kat:'Salate',name:'Gemischter Salat groß',   preis:10.50,beschr:'Saisonal',              aktiv:true},
+    {id:'sa21',nr:'21',  kat:'Salate',name:'Schafskäsesalat',         preis:11.90,beschr:'Mit Feta',              aktiv:true},
+    {id:'sa22',nr:'22',  kat:'Salate',name:'Schinkensalat',           preis:11.90,beschr:'Mit Schinken',          aktiv:true},
+    {id:'sa23',nr:'23',  kat:'Salate',name:'Gasthaussalat',           preis:11.90,beschr:'Hausrezept',             aktiv:true},
+    {id:'sa24',nr:'24',  kat:'Salate',name:'Ei Knoblauch Salat',      preis:11.90,beschr:'Mit Ei und Knoblauch',  aktiv:true},
+    {id:'sa25',nr:'25',  kat:'Salate',name:'Schnittlauch Salat',      preis:11.90,beschr:'Mit Schnittlauch',      aktiv:true},
+    {id:'sa26',nr:'26',  kat:'Salate',name:'Bachhendt Salat',         preis:11.90,beschr:'Mit gebackenem Huhn',   aktiv:true},
+    {id:'sa27',nr:'27',  kat:'Salate',name:'Shrimps Salat',           preis:11.90,beschr:'Mit Garnelen',          aktiv:true},
+    {id:'sa28',nr:'28',  kat:'Salate',name:'Salat Frutti di Mare',    preis:11.90,beschr:'Mit Meeresfrüchten',    aktiv:true},
+    // PIZZA (AG)
+    {id:'p101',nr:'101',kat:'Pizza',name:'Marinara',         preise:[9.50,16.90,23.90], beschr:'Tomatensauce, Knoblauch, Oregano',                        aktiv:true},
+    {id:'p102',nr:'102',kat:'Pizza',name:'Margherita',       preise:[9.50,16.90,23.90], beschr:'Tomatensauce, Mozzarella, Basilikum',                     aktiv:true},
+    {id:'p103',nr:'103',kat:'Pizza',name:'Funghi',           preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Champignons',                  aktiv:true},
+    {id:'p104',nr:'104',kat:'Pizza',name:'Carciofi',         preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Artischocken',                 aktiv:true},
+    {id:'p105',nr:'105',kat:'Pizza',name:'Salami',           preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Salami',                       aktiv:true},
+    {id:'p106',nr:'106',kat:'Pizza',name:'Ros Kas',          preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Rosé, Käse',                   aktiv:true},
+    {id:'p107',nr:'107',kat:'Pizza',name:'Salami Sardellen', preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Salami, Sardellen',            aktiv:true},
+    {id:'p108',nr:'108',kat:'Pizza',name:'Hawaii',           preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Schinken, Ananas',             aktiv:true},
+    {id:'p109',nr:'109',kat:'Pizza',name:'Di Carne',         preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Hackfleisch',                  aktiv:true},
+    {id:'p110',nr:'110',kat:'Pizza',name:'Toscana',          preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Speck, Zwiebeln',              aktiv:true},
+    {id:'p111',nr:'111',kat:'Pizza',name:'Contadino',        preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Gemüse',                       aktiv:true},
+    {id:'p112',nr:'112',kat:'Pizza',name:'Diavolo',          preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, Salami, Peperoni scharf',      aktiv:true},
+    {id:'p113',nr:'113',kat:'Pizza',name:'Primavera',        preise:[10.90,17.90,24.90],beschr:'Tomatensauce, Mozzarella, frisches Gemüse',              aktiv:true},
+    {id:'p114',nr:'114',kat:'Pizza',name:'Provinciale',      preise:[11.50,18.50,24.90],beschr:'Tomatensauce, Mozzarella, Kräuter, Oliven',              aktiv:true},
+    {id:'p115',nr:'115',kat:'Pizza',name:'Quattro Stagioni', preise:[11.50,18.50,24.90],beschr:'Schinken, Champignons, Artischocken',                    aktiv:true},
+    {id:'p116',nr:'116',kat:'Pizza',name:'Spinaci',          preise:[11.50,18.50,24.90],beschr:'Tomatensauce, Mozzarella, Spinat',                       aktiv:true},
+    {id:'p117',nr:'117',kat:'Pizza',name:'Tonno',            preise:[11.50,18.50,24.90],beschr:'Tomatensauce, Mozzarella, Thunfisch, Zwiebeln',          aktiv:true},
+    {id:'p118',nr:'118',kat:'Pizza',name:'Al Capone',        preise:[11.50,18.50,24.90],beschr:'Tomatensauce, Mozzarella, Salami, Peperoni, Zwiebeln',   aktiv:true},
+    {id:'p119',nr:'119',kat:'Pizza',name:'Capricciosa',      preise:[12.50,19.50,25.90],beschr:'Tomatensauce, Mozzarella, Schinken, Champignons, Oliven',aktiv:true},
+    {id:'p120',nr:'120',kat:'Pizza',name:'Valentino',        preise:[12.50,19.50,25.90],beschr:'Tomatensauce, Mozzarella, Schinken, Champignons',        aktiv:true},
+    {id:'p121',nr:'121',kat:'Pizza',name:'Rusticana',        preise:[12.50,19.50,25.90],beschr:'Tomatensauce, Mozzarella, Speck, Zwiebeln, Ei',          aktiv:true},
+    {id:'p122',nr:'122',kat:'Pizza',name:'Rustica',          preise:[12.50,19.50,25.90],beschr:'Tomatensauce, Mozzarella, Speck, Rucola, Parmesan',      aktiv:true},
+    // PIZZA SPEZIAL
+    {id:'ps125',nr:'125',kat:'Pizza Spezial',name:'San Carlo',       preise:[11.50,18.50,25.90],beschr:'Hausspezialität',             aktiv:true},
+    {id:'ps126',nr:'126',kat:'Pizza Spezial',name:'Pizza Mozzarella',preise:[11.50,18.50,25.90],beschr:'Extra viel Mozzarella',       aktiv:true},
+    {id:'ps127',nr:'127',kat:'Pizza Spezial',name:'Cardinale',       preise:[11.50,18.50,25.90],beschr:'Hausspezialität',             aktiv:true},
+    {id:'ps128',nr:'128',kat:'Pizza Spezial',name:'Frutti di Mare',  preise:[12.90,19.90,25.90],beschr:'Mit Meeresfrüchten',          aktiv:true},
+    {id:'ps129',nr:'129',kat:'Pizza Spezial',name:'Mexican',         preise:[12.90,19.90,25.90],beschr:'Scharf, mit Jalapeños',       aktiv:true},
+    {id:'ps130',nr:'130',kat:'Pizza Spezial',name:'Symi/Naxo',       preise:[12.90,19.90,25.90],beschr:'Griechische Spezialität',     aktiv:true},
+    {id:'ps131',nr:'131',kat:'Pizza Spezial',name:'Pizzabäger',      preise:[12.90,19.90,25.90],beschr:'Auch als Calzone erhältlich', aktiv:true},
+    // PIZZAKUGELN
+    {id:'pk1', nr:'P1', kat:'Pizzakugeln',name:'Margherita',                 preis:12.90,beschr:'Mozzarella, Tomatensauce',          aktiv:true},
+    {id:'pk2', nr:'P2', kat:'Pizzakugeln',name:'Greco',                      preis:12.90,beschr:'Griechisch',                         aktiv:true},
+    {id:'pk3', nr:'P3', kat:'Pizzakugeln',name:'Funghi',                     preis:12.90,beschr:'Champignons',                        aktiv:true},
+    {id:'pk4', nr:'P4', kat:'Pizzakugeln',name:'Prosciutto',                 preis:12.90,beschr:'Schinken',                           aktiv:true},
+    {id:'pk5', nr:'P5', kat:'Pizzakugeln',name:'Prosciutto e Funghi e Mais', preis:12.90,beschr:'Schinken, Champignons, Mais',         aktiv:true},
+    {id:'pk6', nr:'P6', kat:'Pizzakugeln',name:'Prosciutto e Mais',          preis:12.90,beschr:'Schinken, Mais',                     aktiv:true},
+    {id:'pk7', nr:'P7', kat:'Pizzakugeln',name:'Salami',                     preis:12.90,beschr:'Salami',                             aktiv:true},
+    {id:'pk8', nr:'P8', kat:'Pizzakugeln',name:'Carbonara',                  preis:12.90,beschr:'Speck, Ei, Creme',                   aktiv:true},
+    {id:'pk9', nr:'P9', kat:'Pizzakugeln',name:'Quattro Stagioni',           preis:12.90,beschr:'Vier Jahreszeiten',                  aktiv:true},
+    {id:'pk10',nr:'P10',kat:'Pizzakugeln',name:'Tonno',                      preis:12.90,beschr:'Thunfisch',                          aktiv:true},
+    {id:'pk11',nr:'P11',kat:'Pizzakugeln',name:'Tonno Verde',                preis:12.90,beschr:'Thunfisch, Spinat',                  aktiv:true},
+    {id:'pk12',nr:'P12',kat:'Pizzakugeln',name:'Hawaii',                     preis:12.90,beschr:'Schinken, Ananas',                   aktiv:true},
+    {id:'pk13',nr:'P13',kat:'Pizzakugeln',name:'Baconetta',                  preis:12.90,beschr:'Bacon, Ei',                          aktiv:true},
+    {id:'pk14',nr:'P14',kat:'Pizzakugeln',name:'Diavola',                    preis:12.90,beschr:'Scharf, Peperoni',                   aktiv:true},
+    {id:'pk15',nr:'P15',kat:'Pizzakugeln',name:'Capricciosa',                preis:12.90,beschr:'Schinken, Champignons, Oliven',      aktiv:true},
+    // AMERICAN PIZZA
+    {id:'ap1', nr:'A1', kat:'American Pizza',name:'Chicago',       preis:17.90,beschr:'Salami, Mozzarella, Tomatensauce',              aktiv:true},
+    {id:'ap2', nr:'A2', kat:'American Pizza',name:'San Francisco', preis:17.90,beschr:'Schinken, Champignons, Mozzarella',               aktiv:true},
+    {id:'ap3', nr:'A3', kat:'American Pizza',name:'Manhattan',     preis:17.90,beschr:'Salami, Peperoni, Zwiebeln, Mozzarella',          aktiv:true},
+    {id:'ap4', nr:'A4', kat:'American Pizza',name:'San Diego',     preis:17.90,beschr:'Thunfisch, Zwiebeln, Kapern, Mozzarella',         aktiv:true},
+    {id:'ap5', nr:'A5', kat:'American Pizza',name:'Alaska',        preis:17.90,beschr:'Lachs, Kapern, Dill, Mozzarella',                 aktiv:true},
+    {id:'ap6', nr:'A6', kat:'American Pizza',name:'Nivada',        preis:17.90,beschr:'Speck, Ei, Zwiebeln, Mozzarella',                 aktiv:true},
+    {id:'ap7', nr:'A7', kat:'American Pizza',name:'Florida',       preis:17.90,beschr:'Garnelen, Knoblauch, Petersilie, Mozzarella',     aktiv:true},
+    {id:'ap8', nr:'A8', kat:'American Pizza',name:'Dallas',        preis:17.90,beschr:'Hackfleisch, Jalapeños, Zwiebeln, Mozzarella',    aktiv:true},
+    {id:'ap9', nr:'A9', kat:'American Pizza',name:'Texas',         preis:17.90,beschr:'Hackfleisch, BBQ-Sauce, Zwiebeln, Mozzarella',    aktiv:true},
+    {id:'ap10',nr:'A10',kat:'American Pizza',name:'New York',      preis:17.90,beschr:'Salami, Oliven, Paprika, Mozzarella',             aktiv:true},
+    {id:'ap11',nr:'A11',kat:'American Pizza',name:'Las Vegas',     preis:17.90,beschr:'Schinken, Ananas, Mais, Mozzarella',              aktiv:true},
+    // PASTA
+    {id:'pa31',nr:'31', kat:'Pasta',name:'Maccheroni',           preis:10.90,beschr:'Tomaten-Hackfleischsauce',   aktiv:true},
+    {id:'pa32',nr:'32', kat:'Pasta',name:'Carbonara',            preis:10.90,beschr:'Speck, Ei, Parmesan, Sahne', aktiv:true},
+    {id:'pa33',nr:'33', kat:'Pasta',name:'Bolognese',            preis:10.90,beschr:'Klassische Fleischsauce',    aktiv:true},
+    {id:'pa34',nr:'34', kat:'Pasta',name:'Frutti di Mare',       preis:11.90,beschr:'Meeresfrüchte, Tomaten',     aktiv:true},
+    {id:'pa35',nr:'35', kat:'Pasta',name:'San Camillo',          preis:10.90,beschr:'Hausspezialität',             aktiv:true},
+    {id:'pa36',nr:'36', kat:'Pasta',name:'Al Pesto',             preis:10.90,beschr:'Basilikum-Pesto',             aktiv:true},
+    {id:'pa37',nr:'37', kat:'Pasta',name:'Al Pomodoro',          preis:10.90,beschr:'Tomatensauce, Basilikum',    aktiv:true},
+    {id:'pa38',nr:'38', kat:'Pasta',name:'Arrabiata',            preis:10.90,beschr:'Scharfe Tomatensauce',        aktiv:true},
+    {id:'pa39',nr:'39', kat:'Pasta',name:'Contadina',            preis:10.90,beschr:'Bauernsauce, Gemüse',         aktiv:true},
+    {id:'pa40',nr:'40', kat:'Pasta',name:'Quattro Formaggi',     preis:11.90,beschr:'Vier Käsesorten',             aktiv:true},
+    {id:'pa41',nr:'41', kat:'Pasta',name:'Pomodoro Rustico',     preis:10.90,beschr:'Rustikale Tomatensauce',      aktiv:true},
+    {id:'pa42',nr:'42', kat:'Pasta',name:'Al Arrabiata',         preis:10.90,beschr:'Scharf',                      aktiv:true},
+    {id:'pa43',nr:'43', kat:'Pasta',name:'Boscaiola Speck',      preis:11.90,beschr:'Waldpilze, Speck, Sahne',    aktiv:true},
+    {id:'pa44',nr:'44', kat:'Pasta',name:'Boscaiola Fleisch',    preis:11.90,beschr:'Waldpilze, Fleisch, Sahne',  aktiv:true},
+    {id:'pa45',nr:'45', kat:'Pasta',name:'Primavera',            preis:10.90,beschr:'Frühlingssauce, Gemüse',      aktiv:true},
+    {id:'pa46',nr:'46', kat:'Pasta',name:'Alla Crema',           preis:10.90,beschr:'Cremesauce',                  aktiv:true},
+    {id:'pa52',nr:'52', kat:'Pasta',name:'Alla Crema Schinken',  preis:11.90,beschr:'Cremesauce mit Schinken',    aktiv:true},
+    {id:'pa53',nr:'53', kat:'Pasta',name:'Emiliana Cherry',      preis:11.90,beschr:'Kirschtomaten, Basilikum',   aktiv:true},
+    {id:'pa61',nr:'61', kat:'Pasta',name:'Gorgonzola',           preis:11.90,beschr:'Gorgonzolasauce',             aktiv:true},
+    {id:'pa62',nr:'62', kat:'Pasta',name:'Alla Romana Gnocchi',  preis:11.90,beschr:'Gnocchi, Römersauce',         aktiv:true},
+    {id:'pa63',nr:'63', kat:'Pasta',name:'Spinaci Gnocchi',      preis:11.90,beschr:'Gnocchi, Spinat',             aktiv:true},
+    {id:'pa72',nr:'72g',kat:'Pasta',name:'Gnocchi alla Panna',   preis:11.90,beschr:'Gnocchi, Sahnesauce',         aktiv:true},
+    {id:'pa47',nr:'47', kat:'Pasta',name:'Tortellini Bolognese', preis:11.90,beschr:'Gefüllte Nudeln, Fleischsauce', aktiv:true},
+    {id:'pa48',nr:'48', kat:'Pasta',name:'Tagliatelle Funghi',   preis:11.90,beschr:'Bandnudeln, Waldpilze, Sahne',  aktiv:true},
+    // AL FORNO
+    {id:'af71',nr:'71',kat:'Al Forno',name:'Lasagne Verde',        preis:11.90,beschr:'Grüne Lasagne, Béchamel',      aktiv:true},
+    {id:'af72',nr:'72',kat:'Al Forno',name:'Nudeln al Forno',      preis:11.90,beschr:'Überbackene Nudeln',            aktiv:true},
+    {id:'af73',nr:'73',kat:'Al Forno',name:'Crespelle Fiorentina', preis:11.90,beschr:'Pfannkuchen, Spinat, überbacken',aktiv:true},
+    {id:'af81',nr:'81',kat:'Al Forno',name:'Crespelle Prosciutto', preis:11.90,beschr:'Pfannkuchen, Schinken',         aktiv:true},
+    {id:'af82',nr:'82',kat:'Al Forno',name:'Crespelle Boscaiola',  preis:11.90,beschr:'Pfannkuchen, Waldpilze',        aktiv:true},
+    // RISOTTO
+    {id:'ri171',nr:'171',kat:'Risotto',name:'Risotto Marinara',           preis:11.90,beschr:'Mit Meeresfrüchten',      aktiv:true},
+    {id:'ri172',nr:'172',kat:'Risotto',name:'Risotto Panna e Prosciutto', preis:11.90,beschr:'Sahne und Schinken',      aktiv:true},
+    // FLEISCH
+    {id:'c197', nr:'197', kat:'Fleisch',name:'Cevapcici',                       preis:12.90,beschr:'Balkan-Hackfleisch, Pommes',           aktiv:true},
+    {id:'c198', nr:'198', kat:'Fleisch',name:'Pariser Schnitzel',               preis:13.50,beschr:'Paniert, Pommes',                       aktiv:true},
+    {id:'c199', nr:'199', kat:'Fleisch',name:'Natur Schnitzel',                 preis:13.50,beschr:'Natur, Pommes',                          aktiv:true},
+    {id:'c200', nr:'200', kat:'Fleisch',name:'Wiener Schnitzel',                preis:13.90,beschr:'Klassiker, Pommes',                     aktiv:true},
+    {id:'c201', nr:'201', kat:'Fleisch',name:'Schweinskotelette',               preis:13.90,beschr:'Gegrillt mit Beilage',                  aktiv:true},
+    {id:'c202', nr:'202', kat:'Fleisch',name:'Pollo Diavolo',                   preis:14.90,beschr:'Scharfes Hühnchen',                     aktiv:true},
+    {id:'c203', nr:'203', kat:'Fleisch',name:'Hühne Spieß',                     preis:13.50,beschr:'Gegrillt',                               aktiv:true},
+    {id:'c203a',nr:'203a',kat:'Fleisch',name:'Hühnerbrust gebacken',            preis:13.90,beschr:'Paniert',                                aktiv:true},
+    {id:'c204', nr:'204', kat:'Fleisch',name:'Puten/Hühnerbrust gegrillt',      preis:15.90,beschr:'Gegrillt',                               aktiv:true},
+    {id:'c204a',nr:'204a',kat:'Fleisch',name:'Puten Piccata',                   preis:14.90,beschr:'In Zitronensauce',                      aktiv:true},
+    {id:'c205', nr:'205', kat:'Fleisch',name:'Spezzatino',                      preis:14.90,beschr:'Italienischer Fleischeintopf',          aktiv:true},
+    {id:'c206', nr:'206', kat:'Fleisch',name:'Cordon Bleu',                     preis:14.90,beschr:'Mit Schinken und Käse gefüllt',         aktiv:true},
+    {id:'c207', nr:'207', kat:'Fleisch',name:'Spareribs',                       preis:19.90,beschr:'Gegrillte Rippchen',                    aktiv:true},
+    {id:'c207a',nr:'207a',kat:'Fleisch',name:'Spareribs Mexicana',              preis:19.90,beschr:'Mit mexikanischer Sauce',              aktiv:true},
+    {id:'c207b',nr:'207b',kat:'Fleisch',name:'Spareribs American',              preis:19.90,beschr:'Mit BBQ Sauce',                        aktiv:true},
+    {id:'c208', nr:'208', kat:'Fleisch',name:'Lammkotelett gegrillt',           preis:18.90,beschr:'Gegrillt',                               aktiv:true},
+    {id:'c208a',nr:'208a',kat:'Fleisch',name:'Lammkotelett Siciliana',          preis:18.90,beschr:'Sizilianisch',                           aktiv:true},
+    {id:'c209', nr:'209', kat:'Fleisch',name:'Schweinslungenbraten gebacken',   preis:15.90,beschr:'Paniert',                                aktiv:true},
+    {id:'c210', nr:'210', kat:'Fleisch',name:'Schweinslungenbraten gebraten',   preis:15.90,beschr:'Gebraten',                               aktiv:true},
+    {id:'c210a',nr:'210a',kat:'Fleisch',name:'Schweinslungenbraten mit Gnocchi',preis:15.90,beschr:'Mit Gnocchi',                           aktiv:true},
+    {id:'c211', nr:'211', kat:'Fleisch',name:'Pute San Carino al Gorgonzola',   preis:14.90,beschr:'Hausspezialität',                       aktiv:true},
+    {id:'c212', nr:'212', kat:'Fleisch',name:'Grillplatte für 2 Personen',      preis:41.90,beschr:'Gemischte Grillplatte',                 aktiv:true},
+    {id:'c213', nr:'213', kat:'Fleisch',name:'Grillteller',                     preis:23.90,beschr:'Gemischter Grillteller',                aktiv:true},
+    {id:'c214', nr:'214', kat:'Fleisch',name:'Chicken Wings',                   preis:12.90,beschr:'Knusprige Hühnerflügel',               aktiv:true},
+    {id:'c215', nr:'215', kat:'Fleisch',name:'Cordon Bleu Hawaii',              preis:14.90,beschr:'Mit Ananas und Käse',                  aktiv:true},
+    {id:'c216', nr:'216', kat:'Fleisch',name:'WOK Pfanne',                      preis:14.90,beschr:'Asiatisch',                             aktiv:true},
+    {id:'c217', nr:'217', kat:'Fleisch',name:'Chicken Nuggets',                 preis:12.90,beschr:'Mit Pommes',                            aktiv:true},
+    {id:'c219', nr:'219', kat:'Fleisch',name:'Bauern Cordon Bleu',              preis:14.90,beschr:'Bäuerliche Art',                       aktiv:true},
+    {id:'c220', nr:'220', kat:'Fleisch',name:'Bauern Schnitzel',                preis:14.90,beschr:'Bäuerliche Art',                       aktiv:true},
+    {id:'c221', nr:'221', kat:'Fleisch',name:'Halbes Huhn gegrillt',            preis:12.90,beschr:'Gegrillt',                               aktiv:true},
+    {id:'c222', nr:'222', kat:'Fleisch',name:'Kebapteller',                     preis:13.90,beschr:'Mit Pommes und Salat',                  aktiv:true},
+    {id:'c218', nr:'218', kat:'Fleisch',name:'Puten Cordon Bleu',               preis:14.90,beschr:'Mit Schinken und Käse gefüllt',         aktiv:true},
+    // FISCH
+    {id:'f149',nr:'149',kat:'Fisch',name:'Scholle',                   preis:13.90,beschr:'Gebacken',                      aktiv:true},
+    {id:'f151',nr:'151',kat:'Fisch',name:'Calamari gebacken',         preis:13.90,beschr:'Tintenfischringe gebacken',      aktiv:true},
+    {id:'f152',nr:'152',kat:'Fisch',name:'Calamari gegrillt',         preis:13.90,beschr:'Tintenfischringe gegrillt',      aktiv:true},
+    {id:'f153',nr:'153',kat:'Fisch',name:'Zanderfilet',               preis:13.90,beschr:'13.90 – 15.90€',                aktiv:true},
+    {id:'f154',nr:'154',kat:'Fisch',name:'Scampi gebacken',           preis:13.90,beschr:'13.90 – 15.90€',                aktiv:true},
+    {id:'f155',nr:'155',kat:'Fisch',name:'Fischplatte gebacken',      preis:15.90,beschr:'Gemischte Fischplatte',          aktiv:true},
+    {id:'f156',nr:'156',kat:'Fisch',name:'Fischplatte groß',          preis:19.90,beschr:'Große gemischte Fischplatte',   aktiv:true},
+    {id:'f157',nr:'157',kat:'Fisch',name:'Scampi in Bierteig',        preis:19.90,beschr:'In Bierteig ausgebacken',       aktiv:true},
+    {id:'f158',nr:'158',kat:'Fisch',name:'Fischfilet für 4 Personen', preis:21.90,beschr:'Großes Fischfilet',             aktiv:true},
+    {id:'f159',nr:'159',kat:'Fisch',name:'Scampi scharf',             preis:21.90,beschr:'Scharf',                         aktiv:true},
+    {id:'f160',nr:'160',kat:'Fisch',name:'Scampi in Bierteig groß',   preis:21.90,beschr:'Große Portion',                 aktiv:true},
+    // BURGER
+    {id:'b1', nr:'B1', kat:'Burger',name:'Star Burger',    preis:12.90,beschr:'100% Rindfleisch, Pommes', aktiv:true},
+    {id:'b2', nr:'B2', kat:'Burger',name:'Cheese Burger',  preis:12.90,beschr:'Mit Cheddar',               aktiv:true},
+    {id:'b3', nr:'B3', kat:'Burger',name:'Chicken Burger', preis:12.90,beschr:'Mit Hühnchen',              aktiv:true},
+    {id:'b4', nr:'B4', kat:'Burger',name:'Mexican Burger', preis:12.90,beschr:'Scharf, Jalapeños',         aktiv:true},
+    {id:'b8', nr:'B8', kat:'Burger',name:'Chicago Burger', preis:13.90,beschr:'Mit Bacon',                  aktiv:true},
+    {id:'b9', nr:'B9', kat:'Burger',name:'Salsa Burger',   preis:12.90,beschr:'Mit Salsasauce',            aktiv:true},
+    {id:'b10',nr:'B10',kat:'Burger',name:'Hawaii Burger',  preis:13.90,beschr:'Mit Ananas',                 aktiv:true},
+    {id:'b11',nr:'B11',kat:'Burger',name:'Haus Burger',    preis:11.90,beschr:'Klassischer Hausburger',     aktiv:true},
+    {id:'b12',nr:'B12',kat:'Burger',name:'Kebapburger',    preis:12.90,beschr:'Mit Kebap-Fleisch',         aktiv:true},
+    // NACHSPEISEN
+    {id:'d250',nr:'250',kat:'Nachspeisen',name:'Tiramisu',             preis:5.90,beschr:'Klassisches Hausrezept',  aktiv:true},
+    {id:'d251',nr:'251',kat:'Nachspeisen',name:'Schoko-Banane',        preis:5.90,beschr:'Mit Schokolade',          aktiv:true},
+    {id:'d252',nr:'252',kat:'Nachspeisen',name:'Mohr im Hemd',         preis:5.90,beschr:'Schokoladenkuchen warm',  aktiv:true},
+    {id:'d253',nr:'253',kat:'Nachspeisen',name:'Bananasplit',          preis:6.50,beschr:'Mit Eis und Sahne',       aktiv:true},
+    {id:'d254',nr:'254',kat:'Nachspeisen',name:'Nalspatatschnitzen',   preis:6.50,beschr:'',                        aktiv:true},
+    {id:'d255',nr:'255',kat:'Nachspeisen',name:'Eispalatschinken',     preis:6.50,beschr:'Palatschinken mit Eis',   aktiv:true},
+    {id:'d256',nr:'256',kat:'Nachspeisen',name:'Topfenpalatschinken',  preis:6.90,beschr:'Mit Topfen',              aktiv:true},
+    {id:'d257',nr:'257',kat:'Nachspeisen',name:'Eisbecher',            preis:6.90,beschr:'Gemischter Eisbecher',    aktiv:true},
+    {id:'d258',nr:'258',kat:'Nachspeisen',name:'Mantilernes Knödel',   preis:6.90,beschr:'Süße Knödel',             aktiv:true},
+    {id:'d259',nr:'259',kat:'Nachspeisen',name:'Gebackene Champignons',preis:6.90,beschr:'Als Nachspeise',         aktiv:true},
+    // GETRÄNKE
+    {id:'g1', nr:'–',kat:'Getränke',name:'Red Bull 0,25l',             preis:3.90,beschr:'Energy Drink',           aktiv:true},
+    {id:'g2', nr:'–',kat:'Getränke',name:'Mineral 0,25l',              preis:1.50,beschr:'0,50l: 2.40€',           aktiv:true},
+    {id:'g3', nr:'–',kat:'Getränke',name:'Cola/Fanta/Almdudler 0,25l', preis:2.40,beschr:'0,50l: 3.30€',           aktiv:true},
+    {id:'g4', nr:'–',kat:'Getränke',name:'Cola Light/Fanta 0,50l',     preis:3.30,beschr:'',                        aktiv:true},
+    {id:'g5', nr:'–',kat:'Getränke',name:'Bier Flasche 0,50l',         preis:3.90,beschr:'',                        aktiv:true},
+    {id:'g6', nr:'–',kat:'Getränke',name:'Bier Dose 0,50l',            preis:3.90,beschr:'',                        aktiv:true},
+    {id:'g7', nr:'–',kat:'Getränke',name:'Bier AG 0,50l',              preis:4.90,beschr:'Vom Fass',                aktiv:true},
+    {id:'g8', nr:'–',kat:'Getränke',name:'Weißwein 0,25l',             preis:3.90,beschr:'0,75l: 12.90€',          aktiv:true},
+    {id:'g9', nr:'–',kat:'Getränke',name:'Rotwein 0,25l',              preis:3.90,beschr:'0,75l: 12.90€',          aktiv:true},
+    {id:'g14',nr:'–',kat:'Getränke',name:'Orangensaft / Apfelsaft',    preis:2.90,beschr:'0,25l frisch',            aktiv:true},
+    {id:'g10',nr:'–',kat:'Getränke',name:'Lambrusco 0,75l',            preis:14.90,beschr:'Prickelnd',              aktiv:true},
+    {id:'g11',nr:'–',kat:'Getränke',name:'Frascati 0,75l',             preis:14.90,beschr:'Weißwein',               aktiv:true},
+    {id:'g12',nr:'–',kat:'Getränke',name:'Chianti 0,75l',              preis:14.90,beschr:'Rotwein',                aktiv:true},
+    {id:'g13',nr:'–',kat:'Getränke',name:'Valpolicella 0,75l',         preis:14.90,beschr:'Rotwein',                aktiv:true},
   ];
 }
 function skGenId() { return 'sk' + Date.now(); }
+
+function skPreisAnzeige(item) {
+  if (item.preise && Array.isArray(item.preise) && item.preise.length) {
+    return item.preise.map(p => eur(p)).join(' / ');
+  }
+  return eur(item.preis || 0);
+}
 
 function renderSpeisekarteTab() {
   const panel = document.getElementById('panel-speisekarte');
   if (!panel) return;
   try {
     const menu = skLoad();
-    const filtered = SK_FILTER ? menu.filter(i => i.kat === SK_FILTER) : menu;
+    const q = (SK_SEARCH||'').toLowerCase();
+    let filtered = SK_FILTER ? menu.filter(i => i.kat === SK_FILTER) : menu;
+    if (q) filtered = filtered.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      (i.beschr||'').toLowerCase().includes(q) ||
+      (i.nr||'').toLowerCase().includes(q)
+    );
     const catCounts = {};
     for (const i of menu) catCounts[i.kat] = (catCounts[i.kat]||0) + 1;
 
     let html = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
       <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
         <span class="material-symbols-outlined" style="font-size:26px;color:#fff">menu_book</span>
       </div>
       <div style="flex:1">
         <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Speisekarte</h2>
-        <p style="font-size:13px;color:#5a403c;margin:0">${menu.filter(i=>i.aktiv).length} aktive Gerichte</p>
+        <p style="font-size:13px;color:#5a403c;margin:0">${menu.filter(i=>i.aktiv).length} aktive Gerichte · ${menu.length} gesamt</p>
       </div>
       <button onclick="skNeuesGericht()" style="background:#610000;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
         <span class="material-symbols-outlined" style="font-size:16px">add</span>Neu
       </button>
     </div>
     <div id="sk-form-area"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
-      <button onclick="SK_FILTER='';renderSpeisekarteTab()" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${SK_FILTER===''?'#610000':'#e3beb8'};background:${SK_FILTER===''?'#610000':'#fff'};color:${SK_FILTER===''?'#fff':'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Alle (${menu.length})</button>`;
+    <div style="margin-bottom:14px">
+      <input type="text" placeholder="Suchen (Name, Nr., Zutaten)…" oninput="SK_SEARCH=this.value;renderSpeisekarteTab()"
+        value="${escHtml(SK_SEARCH)}"
+        style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:12px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">
+      <button onclick="SK_FILTER='';SK_SEARCH='';renderSpeisekarteTab()" style="padding:6px 13px;border-radius:20px;border:1.5px solid ${SK_FILTER===''?'#610000':'#e3beb8'};background:${SK_FILTER===''?'#610000':'#fff'};color:${SK_FILTER===''?'#fff':'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Alle (${menu.length})</button>`;
     for (const kat of SK_KATEGORIEN) {
-      if (!catCounts[kat]) continue;
-      html += `<button onclick="SK_FILTER='${kat}';renderSpeisekarteTab()" style="padding:7px 14px;border-radius:20px;border:1.5px solid ${SK_FILTER===kat?'#610000':'#e3beb8'};background:${SK_FILTER===kat?'#610000':'#fff'};color:${SK_FILTER===kat?'#fff':'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${kat} (${catCounts[kat]})</button>`;
+      if (!catCounts[kat.id]) continue;
+      const active = SK_FILTER === kat.id;
+      html += `<button onclick="SK_FILTER='${kat.id}';renderSpeisekarteTab()" style="padding:6px 13px;border-radius:20px;border:1.5px solid ${active?kat.farbe:'#e3beb8'};background:${active?kat.farbe:'#fff'};color:${active?'#fff':'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${kat.label} (${catCounts[kat.id]})</button>`;
     }
     html += `</div>`;
 
     if (filtered.length === 0) {
-      html += `<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Noch keine Gerichte in dieser Kategorie.</div>`;
+      html += `<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Keine Gerichte gefunden.</div>`;
     } else {
       for (const kat of SK_KATEGORIEN) {
-        const items = filtered.filter(i => i.kat === kat);
+        const items = filtered.filter(i => i.kat === kat.id);
         if (!items.length) continue;
         html += `<div style="margin-bottom:24px">
-          <h3 style="font-size:12px;font-weight:800;color:#8d6562;text-transform:uppercase;letter-spacing:.08em;margin:0 0 10px">${kat}</h3>
-          <div style="display:flex;flex-direction:column;gap:8px">`;
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="width:4px;height:20px;border-radius:2px;background:${kat.farbe}"></div>
+            <h3 style="font-size:13px;font-weight:800;color:${kat.farbe};text-transform:uppercase;letter-spacing:.08em;margin:0">${kat.label}</h3>
+            <span style="font-size:11px;color:#8d6562;font-weight:600">${items.length} Gerichte</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">`;
         for (const item of items) {
-          html += `<div style="background:#fff;border:1.5px solid ${item.aktiv?'#e3beb8':'#f0d8d4'};border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;opacity:${item.aktiv?1:0.6}">
+          const nr = item.nr ? `<span style="font-size:11px;font-weight:700;color:${kat.farbe};background:${kat.bg};border-radius:6px;padding:1px 7px;margin-right:4px">#${item.nr}</span>` : '';
+          html += `<div style="background:#fff;border:1.5px solid ${item.aktiv?kat.bg:'#f0d8d4'};border-left:3px solid ${item.aktiv?kat.farbe:'#ccc'};border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px;opacity:${item.aktiv?1:0.55}">
             <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">
+                ${nr}
                 <span style="font-size:14px;font-weight:800;color:#261816">${escHtml(item.name)}</span>
                 ${!item.aktiv?'<span style="font-size:10px;font-weight:700;color:#8d6562;background:#f3ebe9;border-radius:6px;padding:1px 6px">inaktiv</span>':''}
               </div>
               ${item.beschr?`<div style="font-size:12px;color:#8d6562;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.beschr)}</div>`:''}
             </div>
-            <div style="font-size:16px;font-weight:900;color:#610000;white-space:nowrap">${eur(item.preis)}</div>
-            <div style="display:flex;gap:6px">
+            <div style="font-size:15px;font-weight:900;color:${kat.farbe};white-space:nowrap;text-align:right">${skPreisAnzeige(item)}</div>
+            <div style="display:flex;gap:5px">
               <button onclick="skToggleAktiv('${item.id}')" title="${item.aktiv?'Deaktivieren':'Aktivieren'}" style="background:${item.aktiv?'#e8f5e9':'#f3ebe9'};border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
                 <span class="material-symbols-outlined" style="font-size:16px;color:${item.aktiv?'#2e7d32':'#8d6562'}">${item.aktiv?'visibility':'visibility_off'}</span>
               </button>
@@ -9635,12 +10011,12 @@ function _skShowForm(id) {
         <div>
           <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie</label>
           <select id="sk-f-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
-            ${SK_KATEGORIEN.map(k=>`<option${item&&item.kat===k?' selected':''}>${k}</option>`).join('')}
+            ${SK_KATEGORIEN.map(k=>`<option value="${k.id}"${item&&item.kat===k.id?' selected':''}>${k.label}</option>`).join('')}
           </select>
         </div>
         <div>
           <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Preis (€)</label>
-          <input id="sk-f-preis" type="number" step="0.1" min="0" value="${item?item.preis:''}" placeholder="0.00"
+          <input id="sk-f-preis" type="number" step="0.1" min="0" value="${item?(item.preis||(item.preise&&item.preise[0])||''):''}" placeholder="0.00"
             style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
         </div>
       </div>
@@ -9703,10 +10079,12 @@ function lfLoad() {
 function lfSave(d) { try { localStorage.setItem(LF_KEY, JSON.stringify(d)); } catch(_) {} }
 function _lfDefault() {
   return [
-    { id:'lf-metro', name:'Metro',  typ:'Großhandel', kat:'Lebensmittel', tel:'0800 201 2000', email:'info@metro.at',          notiz:'Mo–Sa 6–22 Uhr. Kundenkarte erforderlich.', bewertung:5, farbe:'#003DA5' },
-    { id:'lf-billa', name:'Billa',  typ:'Supermarkt', kat:'Lebensmittel', tel:'0800 202 0101', email:'kundenservice@billa.at', notiz:'Lieferservice ab 35 €.',                    bewertung:4, farbe:'#ed1c24' },
-    { id:'lf-lidl',  name:'Lidl',   typ:'Discounter', kat:'Lebensmittel', tel:'',              email:'',                      notiz:'Günstig für Grundzutaten.',                 bewertung:4, farbe:'#0050AA' },
-    { id:'lf-spar',  name:'Spar',   typ:'Supermarkt', kat:'Lebensmittel', tel:'0810 507 260',  email:'',                      notiz:'Filiale 5 min entfernt.',                   bewertung:3, farbe:'#007f3e' },
+    { id:'lf-metro',        name:'Metro',            typ:'Großhandel',     kat:'Lebensmittel', tel:'0800 201 2000',  email:'info@metro.at',          notiz:'Mo–Sa 6–22 Uhr. Kundenkarte erforderlich.',                                                                                               bewertung:5, farbe:'#003DA5' },
+    { id:'lf-billa',        name:'Billa',            typ:'Supermarkt',     kat:'Lebensmittel', tel:'0800 202 0101',  email:'kundenservice@billa.at', notiz:'Lieferservice ab 35 €.',                                                                                                                    bewertung:4, farbe:'#ed1c24' },
+    { id:'lf-lidl',         name:'Lidl',             typ:'Discounter',     kat:'Lebensmittel', tel:'',               email:'',                      notiz:'Günstig für Grundzutaten.',                                                                                                                 bewertung:4, farbe:'#0050AA' },
+    { id:'lf-spar',         name:'Spar',             typ:'Supermarkt',     kat:'Lebensmittel', tel:'0810 507 260',   email:'',                      notiz:'Filiale 5 min entfernt.',                                                                                                                   bewertung:3, farbe:'#007f3e' },
+    { id:'lf-umtrade',      name:'UM Trade GmbH',    typ:'Großhandel',     kat:'Lebensmittel', tel:'+43 1 615 09 23',email:'office@umgroup.at',      notiz:'Südrandstraße 17, 1230 Wien. UID: ATU80370037. IBAN: AT27 2020 5010 0010 5971. KundenNr: 219220. Web: umgroup.at. Letzte Rechnung: Nr. 93722 vom 25.03.2026 — €676,27.', bewertung:5, farbe:'#cc0000' },
+    { id:'lf-essamshehata', name:'Essam Shehata KG', typ:'Direktlieferant',kat:'Lebensmittel', tel:'',               email:'',                      notiz:'1120 Wien, Vivenotgasse 42. UID: ATU60941600. Letzte Rechnung: 28.03.2026 — ca. €1.304.',                                                    bewertung:4, farbe:'#f57c00' },
   ];
 }
 function lfGenId() { return 'lf' + Date.now(); }
