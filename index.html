@@ -843,6 +843,16 @@
         <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte');closeMehrDD()" class="dd-item">
           <span class="material-symbols-outlined">store</span>Geschäfte
         </button>
+        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
+        <button data-nav-tab="dashboard" onclick="switchTab('dashboard');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">dashboard</span>📊 Dashboard
+        </button>
+        <button data-nav-tab="speisekarte" onclick="switchTab('speisekarte');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">menu_book</span>🍕 Speisekarte
+        </button>
+        <button data-nav-tab="lieferanten" onclick="switchTab('lieferanten');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">local_shipping</span>🏭 Lieferanten
+        </button>
       </div>
     </div>
 
@@ -870,6 +880,9 @@
   <div id="panel-fehlmaterial" style="display:none"></div>
   <div id="panel-checkliste"   style="display:none"></div>
   <div id="panel-business"     style="display:none"></div>
+  <div id="panel-dashboard"    style="display:none"></div>
+  <div id="panel-speisekarte"  style="display:none"></div>
+  <div id="panel-lieferanten"  style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -5822,7 +5835,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -5871,6 +5884,9 @@ function switchTab(tab) {
   if (ft) ft.textContent = new Date().toLocaleTimeString('de-AT', {hour:'2-digit',minute:'2-digit'}) + ' Uhr';
 
   // ── render content ──
+  if (tab === 'dashboard')    renderDashboardTab();
+  if (tab === 'speisekarte')  renderSpeisekarteTab();
+  if (tab === 'lieferanten')  renderLieferantenTab();
   if (tab === 'produkte')    renderProductsTab();
   if (tab === 'geschaefte')  renderShopsTab();
   if (tab === 'kombis')      renderKombisTab();
@@ -9258,10 +9274,10 @@ const USERS = [
 ];
 
 const ROLE_TABS = {
-  admin:    ['kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','business'],
-  manager:  ['kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste'],
-  employee: ['kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste'],
-  kitchen:  ['fehlmaterial','checkliste'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte'],
+  employee: ['dashboard','kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste','speisekarte'],
+  kitchen:  ['fehlmaterial','checkliste','speisekarte'],
 };
 
 const ROLE_COLORS = {
