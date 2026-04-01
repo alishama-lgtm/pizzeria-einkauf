@@ -1079,27 +1079,32 @@
 
 <!-- ═══ MOBILE BOTTOM NAV <768px — 5 Buttons ═══ -->
 <nav id="mobile-bottom-nav">
-  <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
-    <span style="font-size:20px;line-height:1">🧮</span>
-    <span>Kombis</span>
+  <button data-bottom-nav="dashboard" onclick="switchTab('dashboard')"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+    <span style="font-size:20px">🏠</span>
+    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Dashboard</span>
   </button>
-  <button data-bottom-nav="einkaufsliste" onclick="switchTab('einkaufsliste')" class="mob-nav-btn" style="position:relative">
-    <span class="material-symbols-outlined">shopping_cart</span>
-    <span>Einkauf</span>
-    <span id="el-mob-badge" style="display:none;position:absolute;top:4px;right:6px;background:#610000;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+  <button data-bottom-nav="aufgaben" onclick="switchTab('aufgaben')"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+    <span style="font-size:20px">✅</span>
+    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Aufgaben</span>
+    <span id="aufg-mob-badge" style="display:none;position:absolute;top:6px;right:calc(50% - 16px);background:#8B0000;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:16px;text-align:center"></span>
   </button>
-  <button data-bottom-nav="checkliste" onclick="switchTab('checkliste')" class="mob-nav-btn">
-    <span class="material-symbols-outlined">checklist</span>
-    <span>Betrieb</span>
+  <button data-bottom-nav="schichtcheck" onclick="switchTab('schichtcheck')"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+    <span style="font-size:20px">📋</span>
+    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Checkliste</span>
   </button>
-  <button data-bottom-nav="lager" onclick="switchTab('lager')" class="mob-nav-btn">
-    <span style="font-size:20px;line-height:1">📦</span>
-    <span>Lager</span>
+  <button data-bottom-nav="lager" onclick="switchTab('lager')"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+    <span style="font-size:20px">📦</span>
+    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Lager</span>
   </button>
-  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn" style="position:relative">
-    <span class="material-symbols-outlined">more_horiz</span>
-    <span>Mehr</span>
-    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:6px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()"
+    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+    <span class="material-symbols-outlined" style="font-size:24px;color:#5a403c">more_horiz</span>
+    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Mehr</span>
+    <span id="fehl-mob-badge" style="display:none;position:absolute;top:6px;right:calc(50% - 16px);background:#8B0000;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:16px;text-align:center"></span>
   </button>
 </nav>
 
@@ -1141,7 +1146,6 @@
     <div class="bs-title">Betrieb</div>
     <div class="bs-grid">
       <button data-drawer-nav="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📋</span>Schicht-Check</button>
-      <button data-drawer-nav="aufgaben" onclick="switchTab('aufgaben');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">✅</span>Aufgaben</button>
       <button data-drawer-nav="dienstplan" onclick="switchTab('dienstplan');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>Dienstplan</button>
       <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🔍</span>Suche</button>
     </div>
@@ -1151,7 +1155,6 @@
     <div class="bs-grid">
       <button data-drawer-nav="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">badge</span>Mitarbeiter</button>
       <button data-drawer-nav="speisekarte" onclick="switchTab('speisekarte');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🍕</span>Speisekarte</button>
-      <button data-drawer-nav="dashboard" onclick="switchTab('dashboard');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">dashboard</span>Dashboard</button>
       <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">bar_chart</span>Verlauf</button>
     </div>
   </div>
@@ -6198,6 +6201,13 @@ function _syncNavActiveStates(tab) {
   const mobileDirectTabs = NAV_GROUPS.filter(g => g.mobile).flatMap(g => g.tabs).concat(NAV_GROUPS.filter(g => g.mobile).map(g => g.id));
   const mehrBtn = document.getElementById('mob-mehr-btn');
   if (mehrBtn) mehrBtn.classList.toggle('mob-active', !mobileDirectTabs.includes(tab) && tab !== 'business');
+  // Mobile bottom-nav: direkte Tab-Buttons aktiv setzen
+  document.querySelectorAll('[data-bottom-nav]').forEach(el => {
+    const isActive = el.dataset.bottomNav === tab;
+    el.classList.toggle('mob-active', isActive);
+    const lbl = el.querySelector('.mob-nav-label');
+    if (lbl) lbl.style.color = isActive ? '#8B0000' : '#5a403c';
+  });
   // Bottom sheet items
   document.querySelectorAll('[data-bs-tab]').forEach(el => {
     el.classList.toggle('bs-active', el.dataset.bsTab === tab);
@@ -9604,6 +9614,18 @@ function elUpdateBadge() {
   }
 }
 
+function aufgUpdateBadge() {
+  const el = document.getElementById('aufg-mob-badge');
+  if (!el) return;
+  let count = 0;
+  try {
+    const alle = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]');
+    count = alle.filter(a => a.status !== 'erledigt' && !a.erledigt).length;
+  } catch(_) {}
+  if (count > 0) { el.textContent = count > 9 ? '9+' : String(count); el.style.display = ''; }
+  else { el.style.display = 'none'; }
+}
+
 
 // ═══════════════════════════════════════════════════════════════
 // Desktop "Mehr" Dropdown
@@ -9642,7 +9664,7 @@ function _updateMehrDDActive() {
 }
 
 function _updateMobMehrActive() {
-  const drawerTabs = ['angebote','suche','upload','verlauf','mitarbeiter','checkliste','business'];
+  const drawerTabs = ['angebote','suche','upload','verlauf','mitarbeiter','kombis','einkaufsliste','fehlmaterial','bestellung','schichtcheck','wareneinsatz','preisalarm','business'];
   const btn = document.getElementById('mob-mehr-btn');
   if (!btn) return;
   const anyActive = drawerTabs.some(t =>
@@ -9760,6 +9782,7 @@ function showApp() {
   fmUpdateBadge();
   clUpdateBadge();
   elUpdateBadge();
+  aufgUpdateBadge();
 
   // switchTab wrappen damit Mehr-Buttons aktualisiert werden
   const _orig = window.switchTab;
@@ -10858,6 +10881,7 @@ function aufgabenMigriere() {
 function _aufDashRefresh() {
   const dp = document.getElementById('panel-dashboard');
   if (dp && dp.style.display !== 'none') renderDashboardTab();
+  aufgUpdateBadge();
 }
 
 function renderAufgabenTab() {
