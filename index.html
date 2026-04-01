@@ -1531,7 +1531,7 @@ function editStock(productId) {
   const input = prompt(`Aktuellen Bestand für "${product.name}" eingeben (${product.unit}):`, current);
   if (input === null) return;
   const val = parseFloat(input.replace(',', '.'));
-  if (isNaN(val) || val < 0) { alert('Ungültiger Wert'); return; }
+  if (isNaN(val) || val < 0) { _showToast('Ungültiger Wert', 'error'); return; }
   stockLevels[productId] = val;
 
   // Auto-Fehlmaterial wenn unter Minimum
@@ -1677,7 +1677,7 @@ function showLowStockPopup() {
 }
 
 async function requestNotificationPermission() {
-  if (!('Notification' in window)) { alert('Dein Browser unterstützt keine Benachrichtigungen.'); return; }
+  if (!('Notification' in window)) { _showToast('Dein Browser unterstützt keine Benachrichtigungen.', 'warning'); return; }
   const btn = document.getElementById('notif-req-btn');
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
@@ -7052,7 +7052,7 @@ function printCombo(comboId) {
 </body></html>`;
 
   const win = window.open('', '_blank', 'width=860,height=700');
-  if (!win) { alert('Popup blockiert! Bitte Popup-Blocker deaktivieren.'); return; }
+  if (!win) { _showToast('Popup blockiert! Bitte Popup-Blocker deaktivieren.', 'warning'); return; }
   win.document.write(html);
   win.document.close();
   win.focus();
@@ -7155,7 +7155,7 @@ function exportMonthAsText() {
   });
 
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => alert('Monatsbericht in Zwischenablage kopiert! ✓')).catch(() => prompt('Text kopieren:', text));
+    navigator.clipboard.writeText(text).then(() => _showToast('Monatsbericht in Zwischenablage kopiert!', 'success')).catch(() => prompt('Text kopieren:', text));
   } else {
     prompt('Text kopieren:', text);
   }
@@ -8845,7 +8845,7 @@ function angebotSpeichern() {
   const shopId  = document.getElementById('nd-shop')?.value;
   const kat     = document.getElementById('nd-kat')?.value;
 
-  if (!produkt || isNaN(preis) || preis <= 0) { alert('Bitte Produktname und Preis eingeben.'); return; }
+  if (!produkt || isNaN(preis) || preis <= 0) { _showToast('Bitte Produktname und Preis eingeben.', 'error'); return; }
   const shopObj  = SHOPS.find(s => s.id === shopId);
   const discount = normal ? Math.round((1 - preis/normal)*100) : 0;
   const deal = {
@@ -9181,7 +9181,7 @@ function _buildLiveView() {
     html += 'var d=deals.deals.filter(function(x){return !ANGEBOTE_STATE.liveFilterCat||x.category===ANGEBOTE_STATE.liveFilterCat;});';
     html += 'd.forEach(function(x){if(typeof elAddItem===\'function\')elAddItem({name:x.name,menge:1,einheit:x.unit||\'Stk\',preis:x.price,shop:\'' + store.name + '\',shopId:\'' + storeId + '\',shopColor:\'' + store.color + '\',source:\'angebot\'});});';
     html += 'if(typeof elUpdateBadge===\'function\')elUpdateBadge();';
-    html += 'alert(d.length+\' Artikel zur Einkaufsliste hinzugefügt!\');';
+    html += '_showToast(d.length+\' Artikel zur Einkaufsliste hinzugefügt!\',\'success\');';
     html += '})()" style="padding:12px 28px;background:' + store.color + ';color:#fff;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px">';
     html += '<span class="material-symbols-outlined" style="font-size:18px">add_shopping_cart</span>Alle zur Einkaufsliste</button>';
     html += '</div>';
@@ -10501,8 +10501,8 @@ function _skSpeichern(id) {
   const preis = parseFloat(document.getElementById('sk-f-preis')?.value);
   const kat   = document.getElementById('sk-f-kat')?.value;
   const beschr= document.getElementById('sk-f-beschr')?.value.trim();
-  if (!name) { alert('Bitte Namen eingeben.'); return; }
-  if (isNaN(preis) || preis < 0) { alert('Bitte gültigen Preis eingeben.'); return; }
+  if (!name) { _showToast('Bitte Namen eingeben.', 'error'); return; }
+  if (isNaN(preis) || preis < 0) { _showToast('Bitte gültigen Preis eingeben.', 'error'); return; }
   let menu = skLoad();
   if (id) {
     menu = menu.map(i => i.id === id ? { ...i, name, preis, kat, beschr } : i);
@@ -10668,7 +10668,7 @@ function _lfShowForm(id) {
 
 function _lfSpeichern(id) {
   const name = document.getElementById('lf-f-name')?.value.trim();
-  if (!name) { alert('Bitte Namen eingeben.'); return; }
+  if (!name) { _showToast('Bitte Namen eingeben.', 'error'); return; }
   const entry = {
     id:        id || lfGenId(),
     name,
@@ -10757,14 +10757,14 @@ function openSettings() {
 
 function saveApiKey() {
   const val = document.getElementById('settings-api-key')?.value.trim();
-  if (!val || val.startsWith('•')) { alert('Bitte API Key eingeben.'); return; }
-  if (!val.startsWith('sk-ant-')) { alert('Ungültiges Format. Der Key muss mit "sk-ant-" beginnen.'); return; }
+  if (!val || val.startsWith('•')) { _showToast('Bitte API Key eingeben.', 'error'); return; }
+  if (!val.startsWith('sk-ant-')) { _showToast('Ungültiges Format. Key muss mit "sk-ant-" beginnen.', 'error'); return; }
   localStorage.setItem('pizzeria_api_key', val);
   ANTHROPIC_API_KEY = val;
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
-  _showToast('API Key gespeichert ✓');
+  _showToast('API Key gespeichert', 'success');
 }
 
 function clearApiKey() {
@@ -10772,7 +10772,7 @@ function clearApiKey() {
   localStorage.removeItem('pizzeria_api_key');
   ANTHROPIC_API_KEY = '';
   document.getElementById('settings-modal')?.remove();
-  _showToast('API Key gelöscht');
+  _showToast('API Key gelöscht', 'info');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -10863,7 +10863,7 @@ function dienstplanSet(weekKey, ma, day, schicht) {
   if (!plan[weekKey][ma]) plan[weekKey][ma] = {};
   if (schicht) plan[weekKey][ma][day] = schicht; else delete plan[weekKey][ma][day];
   localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
-  _showToast('Dienstplan gespeichert ✓');
+  _showToast('Dienstplan gespeichert', 'success');
 }
 function dienstplanWoche(dir) {
   const p = document.getElementById('panel-dienstplan');
@@ -11092,7 +11092,7 @@ function renderAufgabenTab() {
 
 function aufgabeAdd() {
   const titel = (document.getElementById('auf-titel')?.value||'').trim();
-  if (!titel) { _showToast('Bitte Titel eingeben'); return; }
+  if (!titel) { _showToast('Bitte Titel eingeben', 'error'); return; }
   const aufgaben = aufgabenMigriere();
   aufgaben.push({
     id: Date.now(),
@@ -11109,7 +11109,7 @@ function aufgabeAdd() {
   });
   try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
   aufgabenSelectedPrio = 'mittel';
-  _showToast('Aufgabe erstellt ✓');
+  _showToast('Aufgabe erstellt', 'success');
   renderAufgabenTab();
   _aufDashRefresh();
 }
@@ -11127,7 +11127,7 @@ function aufgabeDelete(id) {
   let aufgaben = [];
   try { aufgaben = JSON.parse(localStorage.getItem(AUF_KEY)||'[]'); } catch(e) {}
   try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben.filter(x => x.id !== id))); } catch(e) {}
-  _showToast('Aufgabe gelöscht');
+  _showToast('Aufgabe gelöscht', 'info');
   renderAufgabenTab();
   _aufDashRefresh();
 }
@@ -11292,12 +11292,12 @@ function renderBestellungTab() {
 }
 function bestellungHinzufuegen() {
   const name = document.getElementById('best-name')?.value.trim();
-  if (!name) { _showToast('Bitte Artikelname eingeben'); return; }
+  if (!name) { _showToast('Bitte Artikelname eingeben', 'error'); return; }
   let artikel = [];
   try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   artikel.unshift({ id:Date.now(), name, menge:document.getElementById('best-menge')?.value||'1', einheit:document.getElementById('best-einheit')?.value||'Stück', kategorie:document.getElementById('best-kat')?.value||'Küche', dringlich:document.getElementById('best-dringend')?.checked||false, erledigt:false });
   localStorage.setItem('pizzeria_bestellung', JSON.stringify(artikel));
-  _showToast('Artikel hinzugefügt ✓'); renderBestellungTab();
+  _showToast('Artikel hinzugefügt', 'success'); renderBestellungTab();
 }
 function bestellungToggle(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
@@ -11312,12 +11312,12 @@ function bestellungDringlich(id) {
 function bestellungDelete(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   localStorage.setItem('pizzeria_bestellung', JSON.stringify(a.filter(i=>i.id!==id)));
-  _showToast('Artikel gelöscht'); renderBestellungTab();
+  _showToast('Artikel gelöscht', 'info'); renderBestellungTab();
 }
 function bestellungErledigtLoeschen() {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   localStorage.setItem('pizzeria_bestellung', JSON.stringify(a.filter(i=>!i.erledigt)));
-  _showToast('Erledigte gelöscht'); renderBestellungTab();
+  _showToast('Erledigte gelöscht', 'info'); renderBestellungTab();
 }
 function bestellungFilter(type, val) {
   const p = document.getElementById('panel-bestellung');
@@ -11432,11 +11432,11 @@ function renderLagerTab() {
 }
 function lagerHinzufuegen() {
   const name = document.getElementById('lag-name')?.value.trim();
-  if (!name) { _showToast('Bitte Artikelname eingeben'); return; }
+  if (!name) { _showToast('Bitte Artikelname eingeben', 'error'); return; }
   let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
   lager.push({ id:Date.now(), name, kategorie:document.getElementById('lag-kat')?.value||'Küche', menge:parseFloat(document.getElementById('lag-menge')?.value)||0, einheit:document.getElementById('lag-einheit')?.value||'Stück', mindest:parseFloat(document.getElementById('lag-mindest')?.value)||5 });
   localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
-  _showToast('Artikel hinzugefügt ✓'); renderLagerTab();
+  _showToast('Artikel hinzugefügt', 'success'); renderLagerTab();
 }
 function lagerAnpassen(id, delta) {
   let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
@@ -11446,7 +11446,7 @@ function lagerAnpassen(id, delta) {
 function lagerDelete(id) {
   let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
   localStorage.setItem('pizzeria_lager', JSON.stringify(lager.filter(x=>x.id!==id)));
-  _showToast('Artikel gelöscht'); renderLagerTab();
+  _showToast('Artikel gelöscht', 'info'); renderLagerTab();
 }
 function lagerFilter(type, val) {
   const p = document.getElementById('panel-lager');
@@ -11459,7 +11459,7 @@ function lagerCheckAlarm(a) {
     if (!best.find(x=>x.name===a.name&&!x.erledigt)) {
       best.unshift({ id:Date.now(), name:a.name, menge:a.mindest*2, einheit:a.einheit, kategorie:a.kategorie||'Küche', dringlich:a.menge<=0, erledigt:false });
       localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
-      _showToast('🔴 '+a.name+' → Bestellliste hinzugefügt!');
+      _showToast(a.name+' → Bestellliste hinzugefügt!', 'warning');
     }
   }
 }
@@ -11474,7 +11474,7 @@ function lagerAlleRotBestellen() {
     }
   });
   localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
-  _showToast(added+' Artikel zur Bestellliste hinzugefügt ✓');
+  _showToast(added+' Artikel zur Bestellliste hinzugefügt', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -11559,15 +11559,15 @@ function renderWareneinsatzTab() {
 }
 function weGerichtAdd() {
   const name = document.getElementById('we-name')?.value.trim();
-  if (!name) { _showToast('Bitte Gerichtname eingeben'); return; }
+  if (!name) { _showToast('Bitte Gerichtname eingeben', 'error'); return; }
   let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
   gerichte.push({ id:Date.now(), name, verkaufspreis:parseFloat(document.getElementById('we-vk')?.value)||0, kosten:0, zutaten:[] });
   localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte));
-  _showToast('Gericht angelegt ✓'); renderWareneinsatzTab();
+  _showToast('Gericht angelegt', 'success'); renderWareneinsatzTab();
 }
 function weZutatAdd(id) {
   const n = document.getElementById('wez-name-'+id)?.value.trim();
-  if (!n) { _showToast('Bitte Zutatname eingeben'); return; }
+  if (!n) { _showToast('Bitte Zutatname eingeben', 'error'); return; }
   let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
   const g = gerichte.find(x=>x.id===id);
   if (g) {
@@ -11576,7 +11576,7 @@ function weZutatAdd(id) {
     g.zutaten.push({ name:n, menge, einheit:'Stück', preis });
     g.kosten = g.zutaten.reduce((s,z)=>s+z.menge*z.preis, 0);
     localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte));
-    _showToast('Zutat hinzugefügt ✓'); renderWareneinsatzTab();
+    _showToast('Zutat hinzugefügt', 'success'); renderWareneinsatzTab();
   }
 }
 function weZutatDelete(gId, zIdx) {
@@ -11588,7 +11588,7 @@ function weGericht(id, action) {
   if (action==='delete') {
     let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
     localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte.filter(x=>x.id!==id)));
-    _showToast('Gericht gelöscht'); renderWareneinsatzTab();
+    _showToast('Gericht gelöscht', 'info'); renderWareneinsatzTab();
   }
 }
 
@@ -11653,12 +11653,12 @@ function renderPreisalarmTab() {
 function preisAdd() {
   const produkt = document.getElementById('pa-produkt')?.value.trim();
   const lieferant = document.getElementById('pa-lieferant')?.value.trim();
-  if (!produkt || !lieferant) { _showToast('Bitte Produkt und Lieferant eingeben'); return; }
+  if (!produkt || !lieferant) { _showToast('Bitte Produkt und Lieferant eingeben', 'error'); return; }
   let eintraege = []; try { eintraege = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
   const aktuell = parseFloat(document.getElementById('pa-aktuell')?.value)||0;
   eintraege.push({ id:Date.now(), produkt, lieferant, aktuell, ziel:parseFloat(document.getElementById('pa-ziel')?.value)||aktuell, historie:[{datum:new Date().toLocaleDateString('de-AT'),preis:aktuell}] });
   localStorage.setItem('pizzeria_preisalarm', JSON.stringify(eintraege));
-  _showToast('Produkt hinzugefügt ✓'); renderPreisalarmTab();
+  _showToast('Produkt hinzugefügt', 'success'); renderPreisalarmTab();
 }
 function preisUpdate(id) {
   let eintraege = []; try { eintraege = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
@@ -11671,14 +11671,14 @@ function preisUpdate(id) {
       e.historie.push({ datum:new Date().toLocaleDateString('de-AT'), preis:neuerPreis });
     }
     localStorage.setItem('pizzeria_preisalarm', JSON.stringify(eintraege));
-    _showToast(neuerPreis>e.ziel?'🔔 ALARM: Preis über Zielwert!':'Preis aktualisiert ✓');
+    _showToast(neuerPreis>e.ziel?'ALARM: Preis über Zielwert!':'Preis aktualisiert', neuerPreis>e.ziel?'warning':'success');
     renderPreisalarmTab();
   }
 }
 function preisDelete(id) {
   let e = []; try { e = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(ex) {}
   localStorage.setItem('pizzeria_preisalarm', JSON.stringify(e.filter(x=>x.id!==id)));
-  _showToast('Gelöscht'); renderPreisalarmTab();
+  _showToast('Gelöscht', 'info'); renderPreisalarmTab();
 }
 
 // ===== PHASE 4: STATISTIK, TAGESANGEBOTE, UMSATZ =====
@@ -11830,10 +11830,10 @@ function statistikAdd() {
   var gericht = document.getElementById('stat-gericht').value.trim();
   var anzahl = parseInt(document.getElementById('stat-anzahl').value);
   var preis = parseFloat(document.getElementById('stat-preis').value);
-  if (!datum) { _showToast('Bitte Datum angeben'); return; }
-  if (!gericht) { _showToast('Bitte Gericht angeben'); return; }
-  if (!anzahl || anzahl < 1) { _showToast('Bitte g\u00fcltige Anzahl angeben'); return; }
-  if (isNaN(preis) || preis < 0) { _showToast('Bitte g\u00fcltigen Preis angeben'); return; }
+  if (!datum) { _markField('stat-datum', true); _showToast('Bitte Datum angeben', 'error'); return; }
+  if (!gericht) { _markField('stat-gericht', true); _showToast('Bitte Gericht angeben', 'error'); return; }
+  if (!anzahl || anzahl < 1) { _markField('stat-anzahl', true); _showToast('Bitte gültige Anzahl angeben', 'error'); return; }
+  if (isNaN(preis) || preis < 0) { _markField('stat-preis', true); _showToast('Bitte gültigen Preis angeben', 'error'); return; }
   var data = [];
   try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
   data.push({ id: Date.now().toString(), datum: datum, gericht: gericht, anzahl: anzahl, preis: preis });
@@ -11841,7 +11841,7 @@ function statistikAdd() {
   document.getElementById('stat-gericht').value = '';
   document.getElementById('stat-anzahl').value = '';
   document.getElementById('stat-preis').value = '';
-  _showToast('Eintrag gespeichert \u2713');
+  _showToast('Eintrag gespeichert', 'success');
   renderStatistikTab();
 }
 
@@ -11850,7 +11850,7 @@ function statistikDelete(id) {
   try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
   data = data.filter(function(e) { return e.id !== id; });
   localStorage.setItem('pizzeria_statistik', JSON.stringify(data));
-  _showToast('Gel\u00f6scht');
+  _showToast('Gel\u00f6scht', 'info');
   renderStatistikTab();
 }
 
@@ -11958,13 +11958,13 @@ function angebotAdd() {
   var preis = parseFloat(document.getElementById('angebot-preis').value);
   var von = document.getElementById('angebot-von').value;
   var bis = document.getElementById('angebot-bis').value;
-  if (!gericht) { _showToast('Bitte Gericht angeben'); return; }
-  if (isNaN(original) || original <= 0) { _showToast('Bitte g\u00fcltigen Originalpreis angeben'); return; }
-  if (isNaN(preis) || preis <= 0) { _showToast('Bitte g\u00fcltigen Angebotspreis angeben'); return; }
-  if (preis >= original) { _showToast('Angebotspreis muss kleiner als Originalpreis sein'); return; }
-  if (!von) { _showToast('Bitte Von-Datum angeben'); return; }
-  if (!bis) { _showToast('Bitte Bis-Datum angeben'); return; }
-  if (bis < von) { _showToast('Bis-Datum muss nach Von-Datum liegen'); return; }
+  if (!gericht) { _markField('angebot-gericht', true); _showToast('Bitte Gericht angeben', 'error'); return; }
+  if (isNaN(original) || original <= 0) { _markField('angebot-original', true); _showToast('Bitte g\u00fcltigen Originalpreis angeben', 'error'); return; }
+  if (isNaN(preis) || preis <= 0) { _markField('angebot-preis', true); _showToast('Bitte g\u00fcltigen Angebotspreis angeben', 'error'); return; }
+  if (preis >= original) { _markField('angebot-preis', true); _showToast('Angebotspreis muss kleiner als Originalpreis sein', 'error'); return; }
+  if (!von) { _markField('angebot-von', true); _showToast('Bitte Von-Datum angeben', 'error'); return; }
+  if (!bis) { _markField('angebot-bis', true); _showToast('Bitte Bis-Datum angeben', 'error'); return; }
+  if (bis < von) { _markField('angebot-bis', true); _showToast('Bis-Datum muss nach Von-Datum liegen', 'error'); return; }
   var data = [];
   try { data = JSON.parse(localStorage.getItem('pizzeria_tagesangebote') || '[]'); } catch(ex) {}
   data.push({ id: Date.now().toString(), gericht: gericht, original: original, preis: preis, von: von, bis: bis });
@@ -11974,7 +11974,7 @@ function angebotAdd() {
   document.getElementById('angebot-preis').value = '';
   document.getElementById('angebot-von').value = '';
   document.getElementById('angebot-bis').value = '';
-  _showToast('Angebot gespeichert \u2713');
+  _showToast('Angebot gespeichert \u2713', 'success');
   renderTagesangeboteTab();
 }
 
@@ -11983,7 +11983,7 @@ function angebotDelete(id) {
   try { data = JSON.parse(localStorage.getItem('pizzeria_tagesangebote') || '[]'); } catch(ex) {}
   data = data.filter(function(a) { return a.id !== id; });
   localStorage.setItem('pizzeria_tagesangebote', JSON.stringify(data));
-  _showToast('Angebot gel\u00f6scht');
+  _showToast('Angebot gel\u00f6scht', 'info');
   renderTagesangeboteTab();
 }
 
@@ -12139,15 +12139,15 @@ function umsatzAddEinnahme() {
   var datum = document.getElementById('ein-datum').value;
   var kasse = parseFloat(document.getElementById('ein-kasse').value) || 0;
   var lieferdienst = parseFloat(document.getElementById('ein-lieferdienst').value) || 0;
-  if (!datum) { _showToast('Bitte Datum angeben'); return; }
-  if (kasse <= 0 && lieferdienst <= 0) { _showToast('Bitte mindestens einen Betrag angeben'); return; }
+  if (!datum) { _markField('ein-datum', true); _showToast('Bitte Datum angeben', 'error'); return; }
+  if (kasse <= 0 && lieferdienst <= 0) { _markField('ein-kasse', true); _markField('ein-lieferdienst', true); _showToast('Bitte mindestens einen Betrag angeben', 'error'); return; }
   var data = [];
   try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen') || '[]'); } catch(ex) {}
   data.push({ id: Date.now().toString(), datum: datum, kasse: kasse, lieferdienst: lieferdienst });
   localStorage.setItem('pizzeria_umsatz_einnahmen', JSON.stringify(data));
   document.getElementById('ein-kasse').value = '';
   document.getElementById('ein-lieferdienst').value = '';
-  _showToast('Einnahme gespeichert \u2713');
+  _showToast('Einnahme gespeichert \u2713', 'success');
   renderUmsatzTab();
 }
 
@@ -12155,14 +12155,14 @@ function umsatzAddAusgabe() {
   var datum = document.getElementById('aus-datum').value;
   var kategorie = document.getElementById('aus-kategorie').value;
   var betrag = parseFloat(document.getElementById('aus-betrag').value);
-  if (!datum) { _showToast('Bitte Datum angeben'); return; }
-  if (isNaN(betrag) || betrag <= 0) { _showToast('Bitte g\u00fcltigen Betrag angeben'); return; }
+  if (!datum) { _markField('aus-datum', true); _showToast('Bitte Datum angeben', 'error'); return; }
+  if (isNaN(betrag) || betrag <= 0) { _markField('aus-betrag', true); _showToast('Bitte g\u00fcltigen Betrag angeben', 'error'); return; }
   var data = [];
   try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_ausgaben') || '[]'); } catch(ex) {}
   data.push({ id: Date.now().toString(), datum: datum, kategorie: kategorie, betrag: betrag });
   localStorage.setItem('pizzeria_umsatz_ausgaben', JSON.stringify(data));
   document.getElementById('aus-betrag').value = '';
-  _showToast('Ausgabe gespeichert \u2713');
+  _showToast('Ausgabe gespeichert \u2713', 'success');
   renderUmsatzTab();
 }
 
@@ -12171,7 +12171,7 @@ function umsatzDeleteEinnahme(id) {
   try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen') || '[]'); } catch(ex) {}
   data = data.filter(function(e) { return e.id !== id; });
   localStorage.setItem('pizzeria_umsatz_einnahmen', JSON.stringify(data));
-  _showToast('Gel\u00f6scht');
+  _showToast('Gel\u00f6scht', 'info');
   renderUmsatzTab();
 }
 
@@ -12180,24 +12180,56 @@ function umsatzDeleteAusgabe(id) {
   try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_ausgaben') || '[]'); } catch(ex) {}
   data = data.filter(function(e) { return e.id !== id; });
   localStorage.setItem('pizzeria_umsatz_ausgaben', JSON.stringify(data));
-  _showToast('Gel\u00f6scht');
+  _showToast('Gel\u00f6scht', 'info');
   renderUmsatzTab();
 }
 
 function umsatzSetZiel() {
   var val = parseFloat(document.getElementById('umsatz-ziel').value);
-  if (isNaN(val) || val <= 0) { _showToast('Bitte g\u00fcltiges Ziel angeben'); return; }
+  if (isNaN(val) || val <= 0) { _showToast('Bitte g\u00fcltiges Ziel angeben', 'error'); return; }
   localStorage.setItem('pizzeria_umsatz_ziel', val.toString());
-  _showToast('Monatsziel gesetzt \u2713');
+  _showToast('Monatsziel gesetzt \u2713', 'success');
   renderUmsatzTab();
 }
 
-function _showToast(msg) {
+function _markField(id, isError) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (isError) {
+    el.style.borderColor = '#ef4444';
+    el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.15)';
+    el.addEventListener('input', function clearErr() {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+      el.removeEventListener('input', clearErr);
+    });
+    el.addEventListener('change', function clearErr2() {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+      el.removeEventListener('change', clearErr2);
+    });
+  } else {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+  }
+}
+
+function _showToast(msg, type) {
+  // Bestehende Toasts entfernen um Überlappung zu verhindern
+  document.querySelectorAll('._toast-popup').forEach(el => el.remove());
+  const colors = {
+    success: { bg: '#1b5e20', icon: '✓' },
+    error:   { bg: '#93000a', icon: '✕' },
+    warning: { bg: '#e65100', icon: '⚠' },
+    info:    { bg: '#261816', icon: 'ℹ' }
+  };
+  const c = colors[type] || colors.info;
   const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#261816;color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;opacity:0;transition:opacity .2s';
-  t.textContent = msg;
+  t.className = '_toast-popup';
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:'+c.bg+';color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;opacity:0;transition:opacity .2s;display:flex;align-items:center;gap:8px;white-space:nowrap;max-width:90vw';
+  t.innerHTML = '<span style="font-size:15px;flex-shrink:0">'+c.icon+'</span><span>'+msg+'</span>';
   document.body.appendChild(t);
-  requestAnimationFrame(() => { t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2000); });
+  requestAnimationFrame(() => { t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2500); });
 }
 </script>
 </body>
