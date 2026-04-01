@@ -4,6 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pizzeria San Carino</title>
+  <script src="users.js"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -742,10 +743,13 @@
     <div style="border-top:1px solid #f0e4e1;padding-top:20px">
       <div style="font-size:11px;font-weight:700;color:#b0948f;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Test-Zugänge</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="quickLogin('admin','admin123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👑 Admin</button>
-        <button onclick="quickLogin('manager','manager123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🏢 Manager</button>
-        <button onclick="quickLogin('employee','employee123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👤 Mitarbeiter</button>
-        <button onclick="quickLogin('kitchen','kitchen123')" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👨‍🍳 Küche</button>
+        <button onclick="quickLogin('admin')"      style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👑 Admin</button>
+        <button onclick="quickLogin('manager')"    style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🏢 Manager</button>
+        <button onclick="quickLogin('kueche')"     style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👨‍🍳 Küche</button>
+        <button onclick="quickLogin('pizza')"      style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🍕 Pizza</button>
+        <button onclick="quickLogin('fahrer')"     style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🚗 Fahrer</button>
+        <button onclick="quickLogin('reinigung')"  style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🧹 Reinigung</button>
+        <button onclick="quickLogin('service')"    style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🍽️ Service</button>
       </div>
     </div>
   </div>
@@ -857,6 +861,29 @@
         <button data-nav-tab="lieferanten" onclick="switchTab('lieferanten');closeMehrDD()" class="dd-item">
           <span class="material-symbols-outlined">local_shipping</span>🏭 Lieferanten
         </button>
+        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
+        <button data-nav-tab="dienstplan" onclick="switchTab('dienstplan');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">calendar_month</span>📅 Dienstplan
+        </button>
+        <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">task_alt</span>✅ Aufgaben
+        </button>
+        <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">fact_check</span>📋 Schicht-Check
+        </button>
+        <button data-nav-tab="bestellung" onclick="switchTab('bestellung');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">shopping_cart</span>🛍️ Bestellliste
+        </button>
+        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
+        <button data-nav-tab="lager" onclick="switchTab('lager');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">inventory</span>📦 Lagerbestand
+        </button>
+        <button data-nav-tab="wareneinsatz" onclick="switchTab('wareneinsatz');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">calculate</span>💰 Wareneinsatz
+        </button>
+        <button data-nav-tab="preisalarm" onclick="switchTab('preisalarm');closeMehrDD()" class="dd-item">
+          <span class="material-symbols-outlined">notifications</span>🔔 Preisalarm
+        </button>
       </div>
     </div>
 
@@ -887,6 +914,13 @@
   <div id="panel-dashboard"    style="display:none"></div>
   <div id="panel-speisekarte"  style="display:none"></div>
   <div id="panel-lieferanten"  style="display:none"></div>
+  <div id="panel-dienstplan"   style="display:none"></div>
+  <div id="panel-aufgaben"     style="display:none"></div>
+  <div id="panel-schichtcheck" style="display:none"></div>
+  <div id="panel-bestellung"   style="display:none"></div>
+  <div id="panel-lager"        style="display:none"></div>
+  <div id="panel-wareneinsatz" style="display:none"></div>
+  <div id="panel-preisalarm"   style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -959,6 +993,27 @@
     <button data-drawer-nav="checkliste" onclick="switchTab('checkliste');closeMehrDrawer()" class="drawer-item" style="position:relative">
       <span class="material-symbols-outlined">checklist</span>Checkliste
       <span id="cl-drawer-badge" style="display:none;position:absolute;top:8px;right:8px;width:10px;height:10px;background:#2e7d32;border-radius:50%"></span>
+    </button>
+    <button data-drawer-nav="dienstplan" onclick="switchTab('dienstplan');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">📅</span>Dienstplan
+    </button>
+    <button data-drawer-nav="aufgaben" onclick="switchTab('aufgaben');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">✅</span>Aufgaben
+    </button>
+    <button data-drawer-nav="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">📋</span>Schicht-Check
+    </button>
+    <button data-drawer-nav="bestellung" onclick="switchTab('bestellung');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">🛍️</span>Bestellliste
+    </button>
+    <button data-drawer-nav="lager" onclick="switchTab('lager');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">📦</span>Lager
+    </button>
+    <button data-drawer-nav="wareneinsatz" onclick="switchTab('wareneinsatz');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">💰</span>Wareneinsatz
+    </button>
+    <button data-drawer-nav="preisalarm" onclick="switchTab('preisalarm');closeMehrDrawer()" class="drawer-item">
+      <span style="font-size:20px">🔔</span>Preisalarm
     </button>
     <button id="mob-biz-btn" onclick="switchTab('business');closeMehrDrawer()" class="drawer-item" style="background:#1a1a2e;border-color:#2d2d4a;color:#D4AF37">
       <span class="material-symbols-outlined" id="mob-biz-lock" style="color:#D4AF37">lock</span>
@@ -5963,7 +6018,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -6025,7 +6080,14 @@ function switchTab(tab) {
   if (tab === 'verlauf')     renderVerlaufTab();
   if (tab === 'mitarbeiter')   renderMitarbeiterTab();
   if (tab === 'fehlmaterial') renderFehlmaterialTab();
-  if (tab === 'checkliste')  renderChecklisteTab();
+  if (tab === 'checkliste')    renderChecklisteTab();
+  if (tab === 'dienstplan')    renderDienstplanTab();
+  if (tab === 'aufgaben')      renderAufgabenTab();
+  if (tab === 'schichtcheck')  renderSchichtCheckTab();
+  if (tab === 'bestellung')    renderBestellungTab();
+  if (tab === 'lager')         renderLagerTab();
+  if (tab === 'wareneinsatz')  renderWareneinsatzTab();
+  if (tab === 'preisalarm')    renderPreisalarmTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -9404,18 +9466,13 @@ function _updateMobMehrActive() {
 // ═══════════════════════════════════════════════════════════════
 // LOGIN SYSTEM
 // ═══════════════════════════════════════════════════════════════
-const USERS = [
-  { username:'admin',    password:'admin123',    role:'admin',    label:'👑 Admin'      },
-  { username:'manager',  password:'manager123',  role:'manager',  label:'🏢 Manager'    },
-  { username:'employee', password:'employee123', role:'employee', label:'👤 Mitarbeiter' },
-  { username:'kitchen',  password:'kitchen123',  role:'kitchen',  label:'👨‍🍳 Küche'       },
-];
+const USERS = PIZZERIA_USERS;
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte'],
-  employee: ['dashboard','kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste','speisekarte'],
-  kitchen:  ['fehlmaterial','checkliste','speisekarte'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm'],
+  employee: ['dashboard','kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
+  kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
 
 const ROLE_COLORS = {
@@ -9450,6 +9507,7 @@ function doLogin() {
 }
 
 function quickLogin(u, p) {
+  if (p === undefined) { const found = PIZZERIA_USERS.find(x => x.username === u); p = found ? found.password : ''; }
   document.getElementById('login-user').value = u;
   document.getElementById('login-pass').value = p;
   doLogin();
@@ -10315,6 +10373,755 @@ function clearApiKey() {
   ANTHROPIC_API_KEY = '';
   document.getElementById('settings-modal')?.remove();
   _showToast('API Key gelöscht');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2 — DIENSTPLAN
+// ═══════════════════════════════════════════════════════════════
+function renderDienstplanTab() {
+  const p = document.getElementById('panel-dienstplan');
+  const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const MA_LABELS = { kueche:'👨‍🍳 Küche', pizza:'🍕 Pizza', fahrer:'🚗 Fahrer', reinigung:'🧹 Reinigung', service:'🍽️ Service' };
+  const MITARBEITER = Object.keys(MA_LABELS);
+  const SCHICHTEN = ['Früh (08-16)','Spät (14-22)','Nacht (20-04)','Frei'];
+  const SCHICHT_BG  = { 'Früh (08-16)':'#e3f2fd', 'Spät (14-22)':'#fff3e0', 'Nacht (20-04)':'#1a1a2e', 'Frei':'#f5f5f5' };
+  const SCHICHT_CLR = { 'Früh (08-16)':'#0d47a1', 'Spät (14-22)':'#e65100', 'Nacht (20-04)':'#D4AF37',  'Frei':'#9e9e9e'  };
+
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan') || '{}'); } catch(e) {}
+
+  const offset = parseInt(p.dataset.weekOffset || '0');
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
+  monday.setHours(0,0,0,0);
+
+  const weekKey = monday.toISOString().slice(0,10);
+  if (!plan[weekKey]) plan[weekKey] = {};
+
+  const weekDates = DAYS.map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+  const fmt = d => d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'});
+  const kw = (() => {
+    const d = new Date(Date.UTC(monday.getFullYear(),monday.getMonth(),monday.getDate()));
+    const dn = d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dn);
+    return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7);
+  })();
+
+  const headerCells = DAYS.map((day,i) =>
+    `<th style="padding:8px 6px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:center;background:#fff8f6;min-width:110px">
+      <div>${day}</div><div style="font-weight:400;color:#5a403c;font-size:11px">${fmt(weekDates[i])}</div>
+    </th>`).join('');
+
+  const rows = MITARBEITER.map(ma => {
+    const cells = DAYS.map(day => {
+      const schicht = (plan[weekKey][ma]||{})[day]||'';
+      const bg  = schicht ? (SCHICHT_BG[schicht]||'#fff8f6')  : '#fff8f6';
+      const clr = schicht ? (SCHICHT_CLR[schicht]||'#5a403c') : '#5a403c';
+      const opts = SCHICHTEN.map(s=>`<option value="${s}" ${schicht===s?'selected':''}>${s}</option>`).join('');
+      return `<td style="padding:6px;border:1px solid #e3beb8">
+        <select onchange="dienstplanSet('${weekKey}','${ma}','${day}',this.value)"
+          style="width:100%;padding:5px 6px;border-radius:8px;border:1px solid #e3beb8;background:${bg};color:${clr};font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">
+          <option value="">— —</option>${opts}
+        </select></td>`;
+    }).join('');
+    return `<tr><td style="padding:8px 12px;font-weight:600;font-size:13px;border:1px solid #e3beb8;white-space:nowrap;background:#fff0ee">${MA_LABELS[ma]}</td>${cells}</tr>`;
+  }).join('');
+
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">📅 Dienstplan</h2>
+      <p style="color:#5a403c;font-size:14px">Wochenübersicht — Schichten per Klick zuweisen</p>
+    </div>
+    <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <button onclick="dienstplanWoche(-1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">← Vorwoche</button>
+        <span style="font-weight:700;font-size:15px;color:#261816">KW ${kw} — ${fmt(weekDates[0])} bis ${fmt(weekDates[6])}</span>
+        <button onclick="dienstplanWoche(1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">Nächste Woche →</button>
+        <button onclick="dienstplanHeute()" style="padding:8px 14px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-left:auto">Heute</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="border-collapse:collapse;width:100%;min-width:700px">
+          <thead><tr>
+            <th style="padding:8px 12px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6">Mitarbeiter</th>
+            ${headerCells}
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#e3f2fd;color:#0d47a1;font-weight:600">🌅 Früh 08–16</span>
+        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#fff3e0;color:#e65100;font-weight:600">🌆 Spät 14–22</span>
+        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#1a1a2e;color:#D4AF37;font-weight:600">🌙 Nacht 20–04</span>
+        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#f5f5f5;color:#9e9e9e;font-weight:600">🏖️ Frei</span>
+      </div>
+    </div>`;
+}
+function dienstplanSet(weekKey, ma, day, schicht) {
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  if (!plan[weekKey]) plan[weekKey] = {};
+  if (!plan[weekKey][ma]) plan[weekKey][ma] = {};
+  if (schicht) plan[weekKey][ma][day] = schicht; else delete plan[weekKey][ma][day];
+  localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  _showToast('Dienstplan gespeichert ✓');
+}
+function dienstplanWoche(dir) {
+  const p = document.getElementById('panel-dienstplan');
+  p.dataset.weekOffset = String(parseInt(p.dataset.weekOffset||'0') + dir);
+  renderDienstplanTab();
+}
+function dienstplanHeute() {
+  const p = document.getElementById('panel-dienstplan');
+  p.dataset.weekOffset = '0';
+  renderDienstplanTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2 — AUFGABEN
+// ═══════════════════════════════════════════════════════════════
+function renderAufgabenTab() {
+  const p = document.getElementById('panel-aufgaben');
+  let aufgaben = [];
+  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+
+  const MA_LABELS = { kueche:'👨‍🍳 Küche', pizza:'🍕 Pizza', fahrer:'🚗 Fahrer', reinigung:'🧹 Reinigung', service:'🍽️ Service', admin:'👑 Admin', manager:'🏢 Manager', alle:'👥 Alle' };
+  const PRIO = { hoch:{bg:'#ffebee',clr:'#c62828',bc:'#ef9a9a'}, mittel:{bg:'#fff8e1',clr:'#f57f17',bc:'#ffe082'}, niedrig:{bg:'#e8f5e9',clr:'#2e7d32',bc:'#a5d6a7'} };
+
+  const filterMA = p.dataset.filterMA||'';
+  const filterStatus = p.dataset.filterStatus||'';
+
+  const visible = aufgaben.filter(a => {
+    if (filterMA && a.mitarbeiter !== filterMA && a.mitarbeiter !== 'alle') return false;
+    if (filterStatus === 'offen' && a.erledigt) return false;
+    if (filterStatus === 'erledigt' && !a.erledigt) return false;
+    return true;
+  });
+
+  const offenCount = aufgaben.filter(a=>!a.erledigt).length;
+
+  const rows = visible.length ? visible.map(a => {
+    const pr = PRIO[a.prioritaet]||PRIO.mittel;
+    const faellig = a.faellig ? new Date(a.faellig).toLocaleDateString('de-AT') : '—';
+    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:12px;border:1.5px solid ${a.erledigt?'#e0e0e0':pr.bc};background:${a.erledigt?'#fafafa':pr.bg};margin-bottom:10px;opacity:${a.erledigt?'.6':'1'}">
+      <input type="checkbox" ${a.erledigt?'checked':''} onchange="aufgabeToggle(${a.id})" style="width:18px;height:18px;cursor:pointer;margin-top:2px;accent-color:#8B0000">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">${a.titel}</div>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:#fff0ee;color:#8B0000;font-weight:600">${MA_LABELS[a.mitarbeiter]||a.mitarbeiter}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:${pr.bg};color:${pr.clr};font-weight:600;border:1px solid ${pr.bc}">${a.prioritaet.toUpperCase()}</span>
+          <span style="font-size:11px;color:#9e9e9e">📅 ${faellig}</span>
+        </div>
+      </div>
+      <button onclick="aufgabeDelete(${a.id})" style="padding:4px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Keine Aufgaben gefunden</div>`;
+
+  const maOpts = Object.entries(MA_LABELS).map(([k,v])=>`<option value="${k}" ${filterMA===k?'selected':''}>${v}</option>`).join('');
+
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">✅ Aufgaben</h2>
+      <p style="color:#5a403c;font-size:14px">${offenCount} offen — ${aufgaben.length} gesamt</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+      <div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <select onchange="aufgabenFilter('ma',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+            <option value="">👥 Alle Mitarbeiter</option>${maOpts}
+          </select>
+          <select onchange="aufgabenFilter('status',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+            <option value="" ${filterStatus===''?'selected':''}>📋 Alle</option>
+            <option value="offen" ${filterStatus==='offen'?'selected':''}>🔴 Offen</option>
+            <option value="erledigt" ${filterStatus==='erledigt'?'selected':''}>✅ Erledigt</option>
+          </select>
+        </div>
+        ${rows}
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
+        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Neue Aufgabe</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input id="auf-titel" placeholder="Aufgabe beschreiben..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <select id="auf-ma" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <option value="alle">👥 Alle</option>
+            ${Object.entries(MA_LABELS).filter(([k])=>k!=='alle').map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+          </select>
+          <select id="auf-prio" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <option value="hoch">🔴 Hoch</option>
+            <option value="mittel" selected>🟡 Mittel</option>
+            <option value="niedrig">🟢 Niedrig</option>
+          </select>
+          <input id="auf-datum" type="date" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <button onclick="aufgabeHinzufuegen()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Aufgabe erstellen</button>
+        </div>
+      </div>
+    </div>`;
+}
+function aufgabeHinzufuegen() {
+  const titel = document.getElementById('auf-titel')?.value.trim();
+  if (!titel) { _showToast('Bitte Titel eingeben'); return; }
+  let aufgaben = [];
+  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+  aufgaben.push({ id:Date.now(), titel, mitarbeiter:document.getElementById('auf-ma')?.value||'alle', prioritaet:document.getElementById('auf-prio')?.value||'mittel', faellig:document.getElementById('auf-datum')?.value||'', erledigt:false, erstellt:new Date().toISOString() });
+  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
+  _showToast('Aufgabe erstellt ✓');
+  renderAufgabenTab();
+}
+function aufgabeToggle(id) {
+  let aufgaben = [];
+  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+  const a = aufgaben.find(x=>x.id===id); if(a) a.erledigt=!a.erledigt;
+  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
+  renderAufgabenTab();
+}
+function aufgabeDelete(id) {
+  let aufgaben = [];
+  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben.filter(x=>x.id!==id)));
+  _showToast('Aufgabe gelöscht'); renderAufgabenTab();
+}
+function aufgabenFilter(type, val) {
+  const p = document.getElementById('panel-aufgaben');
+  if(type==='ma') p.dataset.filterMA=val; else p.dataset.filterStatus=val;
+  renderAufgabenTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2 — SCHICHT-CHECKLISTE
+// ═══════════════════════════════════════════════════════════════
+function renderSchichtCheckTab() {
+  const p = document.getElementById('panel-schichtcheck');
+  const OEFFNUNG = ['Kasse öffnen & Kassenstand prüfen','Kühlschrank & Temperaturen kontrollieren','Mise en place vorbereiten','Küche reinigen & desinfizieren','Tagesbestellung prüfen','Mitarbeiter einweisen','Musik & Beleuchtung einstellen','Hygiene-Check durchführen'];
+  const SCHLIESSUNG = ['Kasse abrechnen & Kassenstand notieren','Kühlschrank & Tiefkühler kontrollieren','Küche reinigen & desinfizieren','Müll entsorgen','Restbestände inventarisieren','Alarmanlage aktivieren','Türen & Fenster kontrollieren','Strom & Gas abschalten'];
+
+  const today = new Date().toISOString().slice(0,10);
+  let checks = {};
+  try { checks = JSON.parse(localStorage.getItem('pizzeria_schichtcheck')||'{}'); } catch(e) {}
+  if (checks.datum !== today) { checks = {datum:today, oeffnung:{}, schliessung:{}}; localStorage.setItem('pizzeria_schichtcheck', JSON.stringify(checks)); }
+
+  const renderListe = (liste, typ) => liste.map((item,i) => {
+    const done = !!(checks[typ]||{})[i];
+    const zeit = (checks[typ]||{})[i+'_z']||'';
+    return `<div onclick="schichtCheckToggle('${typ}',${i})" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:${done?'#e8f5e9':'#fff8f6'};border:1.5px solid ${done?'#a5d6a7':'#e3beb8'};margin-bottom:8px;cursor:pointer;transition:all .2s">
+      <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${done?'#2e7d32':'#e3beb8'};background:${done?'#2e7d32':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0">${done?'<span style="color:#fff;font-size:13px;font-weight:700">✓</span>':''}</div>
+      <span style="flex:1;font-size:13px;font-weight:600;color:${done?'#1b5e20':'#261816'};text-decoration:${done?'line-through':'none'}">${item}</span>
+      ${zeit?`<span style="font-size:11px;color:#9e9e9e;white-space:nowrap">${zeit}</span>`:''}
+    </div>`;
+  }).join('');
+
+  const oCount = Object.keys(checks.oeffnung||{}).filter(k=>!k.endsWith('_z')).length;
+  const sCount = Object.keys(checks.schliessung||{}).filter(k=>!k.endsWith('_z')).length;
+
+  const progress = (done, total, color) => `
+    <div style="height:6px;border-radius:4px;background:#f0e4e1;margin-bottom:16px">
+      <div style="height:100%;border-radius:4px;background:${color};width:${Math.round(done/total*100)}%;transition:width .3s"></div>
+    </div>`;
+
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">📋 Schicht-Checkliste</h2>
+      <p style="color:#5a403c;font-size:14px">${today} — Wird täglich automatisch zurückgesetzt</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div><div style="font-size:16px;font-weight:800;color:#261816">🌅 Öffnung</div><div style="font-size:12px;color:#5a403c;margin-top:2px">${oCount}/${OEFFNUNG.length} erledigt</div></div>
+          <div style="width:38px;height:38px;border-radius:50%;background:${oCount===OEFFNUNG.length?'#2e7d32':'#f0e4e1'};display:flex;align-items:center;justify-content:center;font-size:16px">${oCount===OEFFNUNG.length?'✅':'⏳'}</div>
+        </div>
+        ${progress(oCount, OEFFNUNG.length, '#2e7d32')}
+        ${renderListe(OEFFNUNG,'oeffnung')}
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div><div style="font-size:16px;font-weight:800;color:#261816">🌙 Schließung</div><div style="font-size:12px;color:#5a403c;margin-top:2px">${sCount}/${SCHLIESSUNG.length} erledigt</div></div>
+          <div style="width:38px;height:38px;border-radius:50%;background:${sCount===SCHLIESSUNG.length?'#1a1a2e':'#f0e4e1'};display:flex;align-items:center;justify-content:center;font-size:16px">${sCount===SCHLIESSUNG.length?'✅':'⏳'}</div>
+        </div>
+        ${progress(sCount, SCHLIESSUNG.length, '#1a1a2e')}
+        ${renderListe(SCHLIESSUNG,'schliessung')}
+      </div>
+    </div>`;
+}
+function schichtCheckToggle(typ, index) {
+  let checks = {};
+  try { checks = JSON.parse(localStorage.getItem('pizzeria_schichtcheck')||'{}'); } catch(e) {}
+  if (!checks[typ]) checks[typ] = {};
+  if (checks[typ][index]) { delete checks[typ][index]; delete checks[typ][index+'_z']; }
+  else { checks[typ][index]=true; checks[typ][index+'_z']=new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}); }
+  localStorage.setItem('pizzeria_schichtcheck', JSON.stringify(checks));
+  renderSchichtCheckTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2 — BESTELLLISTE
+// ═══════════════════════════════════════════════════════════════
+function renderBestellungTab() {
+  const p = document.getElementById('panel-bestellung');
+  let artikel = [];
+  try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+
+  const KATS = ['Küche','Bar','Reinigung','Sonstiges'];
+  const KAT_STYLE = { 'Küche':'#fff3e0;#e65100', 'Bar':'#e3f2fd;#0d47a1', 'Reinigung':'#e8f5e9;#2e7d32', 'Sonstiges':'#f3e5f5;#6a1b9a' };
+
+  const filterKat = p.dataset.filterKat||'';
+  const filterStatus = p.dataset.filterStatus2||'';
+
+  const visible = artikel.filter(a => {
+    if (filterKat && a.kategorie !== filterKat) return false;
+    if (filterStatus==='offen' && a.erledigt) return false;
+    if (filterStatus==='erledigt' && !a.erledigt) return false;
+    return true;
+  });
+
+  const offenCount = artikel.filter(a=>!a.erledigt).length;
+  const dringlichCount = artikel.filter(a=>a.dringlich&&!a.erledigt).length;
+
+  const rows = visible.length ? visible.map(a => {
+    const ks = (KAT_STYLE[a.kategorie]||KAT_STYLE['Sonstiges']).split(';');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid ${a.dringlich&&!a.erledigt?'#ef9a9a':a.erledigt?'#e0e0e0':'#e3beb8'};background:${a.dringlich&&!a.erledigt?'#ffebee':a.erledigt?'#fafafa':'#fff8f6'};margin-bottom:8px;opacity:${a.erledigt?'.6':'1'}">
+      <input type="checkbox" ${a.erledigt?'checked':''} onchange="bestellungToggle(${a.id})" style="width:18px;height:18px;cursor:pointer;accent-color:#8B0000">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">${a.name}${a.dringlich&&!a.erledigt?' <span style="color:#c62828;font-size:11px;font-weight:700">🔴 DRINGEND</span>':''}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:600;color:#5a403c">${a.menge} ${a.einheit}</span>
+          <span style="font-size:11px;padding:1px 7px;border-radius:6px;background:${ks[0]};color:${ks[1]};font-weight:600">${a.kategorie}</span>
+        </div>
+      </div>
+      <button onclick="bestellungDringlich(${a.id})" title="Dringend" style="padding:5px 8px;border-radius:8px;border:1px solid ${a.dringlich?'#ef9a9a':'#e3beb8'};background:${a.dringlich?'#ffebee':'#fff8f6'};font-size:12px;cursor:pointer">${a.dringlich?'🔴':'⚪'}</button>
+      <button onclick="bestellungDelete(${a.id})" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Keine Artikel gefunden</div>`;
+
+  const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton'];
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">🛍️ Bestellliste</h2>
+      <p style="color:#5a403c;font-size:14px">${offenCount} zu bestellen${dringlichCount?' — <span style="color:#c62828;font-weight:700">🔴 '+dringlichCount+' dringend</span>':''}</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
+      <div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <select onchange="bestellungFilter('kat',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+            <option value="">📦 Alle Kategorien</option>
+            ${KATS.map(k=>`<option value="${k}" ${filterKat===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+          <select onchange="bestellungFilter('status',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+            <option value="" ${filterStatus===''?'selected':''}>📋 Alle</option>
+            <option value="offen" ${filterStatus==='offen'?'selected':''}>🔴 Offen</option>
+            <option value="erledigt" ${filterStatus==='erledigt'?'selected':''}>✅ Gekauft</option>
+          </select>
+          <button onclick="bestellungErledigtLoeschen()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer;margin-left:auto">🗑️ Erledigte löschen</button>
+        </div>
+        ${rows}
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
+        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Artikel hinzufügen</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input id="best-name" placeholder="Artikelname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <input id="best-menge" type="number" placeholder="Menge" min="1" value="1" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <select id="best-einheit" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+              ${EINHEITEN.map(e=>`<option>${e}</option>`).join('')}
+            </select>
+          </div>
+          <select id="best-kat" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            ${KATS.map(k=>`<option>${k}</option>`).join('')}
+          </select>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#c62828;cursor:pointer">
+            <input id="best-dringend" type="checkbox" style="width:16px;height:16px;accent-color:#c62828"> 🔴 Dringend markieren
+          </label>
+          <button onclick="bestellungHinzufuegen()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
+        </div>
+      </div>
+    </div>`;
+}
+function bestellungHinzufuegen() {
+  const name = document.getElementById('best-name')?.value.trim();
+  if (!name) { _showToast('Bitte Artikelname eingeben'); return; }
+  let artikel = [];
+  try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+  artikel.unshift({ id:Date.now(), name, menge:document.getElementById('best-menge')?.value||'1', einheit:document.getElementById('best-einheit')?.value||'Stück', kategorie:document.getElementById('best-kat')?.value||'Küche', dringlich:document.getElementById('best-dringend')?.checked||false, erledigt:false });
+  localStorage.setItem('pizzeria_bestellung', JSON.stringify(artikel));
+  _showToast('Artikel hinzugefügt ✓'); renderBestellungTab();
+}
+function bestellungToggle(id) {
+  let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+  const x = a.find(i=>i.id===id); if(x) x.erledigt=!x.erledigt;
+  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
+}
+function bestellungDringlich(id) {
+  let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+  const x = a.find(i=>i.id===id); if(x) x.dringlich=!x.dringlich;
+  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
+}
+function bestellungDelete(id) {
+  let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a.filter(i=>i.id!==id)));
+  _showToast('Artikel gelöscht'); renderBestellungTab();
+}
+function bestellungErledigtLoeschen() {
+  let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a.filter(i=>!i.erledigt)));
+  _showToast('Erledigte gelöscht'); renderBestellungTab();
+}
+function bestellungFilter(type, val) {
+  const p = document.getElementById('panel-bestellung');
+  if(type==='kat') p.dataset.filterKat=val; else p.dataset.filterStatus2=val;
+  renderBestellungTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3 — LAGERBESTAND
+// ═══════════════════════════════════════════════════════════════
+function renderLagerTab() {
+  const p = document.getElementById('panel-lager');
+  let lager = [];
+  try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+
+  const KATS = ['Küche','Bar','Reinigung','Verpackung','Sonstiges'];
+  const KAT_STYLE = { 'Küche':'#fff3e0;#e65100','Bar':'#e3f2fd;#0d47a1','Reinigung':'#e8f5e9;#2e7d32','Verpackung':'#f3e5f5;#6a1b9a','Sonstiges':'#f5f5f5;#616161' };
+  const filterKat = p.dataset.filterKat||'';
+  const filterAmpel = p.dataset.filterAmpel||'';
+
+  // Ampel berechnen
+  const ampel = a => {
+    if (a.menge <= 0) return 'rot';
+    if (a.menge <= a.mindest) return 'rot';
+    if (a.menge <= a.mindest * 1.5) return 'gelb';
+    return 'gruen';
+  };
+  const AMPEL_STYLE = { gruen:{bg:'#e8f5e9',clr:'#1b5e20',bc:'#a5d6a7',icon:'🟢'}, gelb:{bg:'#fff8e1',clr:'#f57f17',bc:'#ffe082',icon:'🟡'}, rot:{bg:'#ffebee',clr:'#c62828',bc:'#ef9a9a',icon:'🔴'} };
+
+  const visible = lager.filter(a => {
+    if (filterKat && a.kategorie !== filterKat) return false;
+    if (filterAmpel && ampel(a) !== filterAmpel) return false;
+    return true;
+  });
+
+  const rotCount = lager.filter(a=>ampel(a)==='rot').length;
+  const gelbCount = lager.filter(a=>ampel(a)==='gelb').length;
+
+  const rows = visible.length ? visible.map(a => {
+    const am = ampel(a);
+    const st = AMPEL_STYLE[am];
+    const ks = (KAT_STYLE[a.kategorie]||KAT_STYLE['Sonstiges']).split(';');
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:1.5px solid ${st.bc};background:${st.bg};margin-bottom:8px">
+      <div style="font-size:20px">${st.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px;color:#261816">${a.name}</div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:${st.clr}">${a.menge} ${a.einheit}</span>
+          <span style="font-size:11px;color:#9e9e9e">Min: ${a.mindest} ${a.einheit}</span>
+          <span style="font-size:11px;padding:1px 7px;border-radius:6px;background:${ks[0]};color:${ks[1]};font-weight:600">${a.kategorie}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="lagerAnpassen(${a.id},-1)" style="width:30px;height:30px;border-radius:8px;border:1.5px solid ${st.bc};background:#fff;color:${st.clr};font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+        <button onclick="lagerAnpassen(${a.id},1)" style="width:30px;height:30px;border-radius:8px;border:1.5px solid ${st.bc};background:#fff;color:${st.clr};font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+        <button onclick="lagerDelete(${a.id})" style="width:30px;height:30px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑️</button>
+      </div>
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Keine Artikel gefunden</div>`;
+
+  const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton','Beutel'];
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">📦 Lagerbestand</h2>
+      <p style="color:#5a403c;font-size:14px">
+        ${lager.length} Artikel — 🔴 ${rotCount} kritisch — 🟡 ${gelbCount} niedrig
+        ${rotCount ? ` — <button onclick="lagerAlleRotBestellen()" style="padding:2px 10px;border-radius:6px;border:1px solid #ef9a9a;background:#ffebee;color:#c62828;font-size:12px;font-weight:700;cursor:pointer">Alle kritischen bestellen →</button>` : ''}
+      </p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
+      <div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <select onchange="lagerFilter('kat',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+            <option value="">📦 Alle Kategorien</option>
+            ${KATS.map(k=>`<option value="${k}" ${filterKat===k?'selected':''}>${k}</option>`).join('')}
+          </select>
+          <select onchange="lagerFilter('ampel',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+            <option value="" ${filterAmpel===''?'selected':''}>🚦 Alle Status</option>
+            <option value="rot" ${filterAmpel==='rot'?'selected':''}>🔴 Kritisch</option>
+            <option value="gelb" ${filterAmpel==='gelb'?'selected':''}>🟡 Niedrig</option>
+            <option value="gruen" ${filterAmpel==='gruen'?'selected':''}>🟢 OK</option>
+          </select>
+        </div>
+        ${rows}
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
+        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Artikel hinzufügen</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input id="lag-name" placeholder="Artikelname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <select id="lag-kat" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            ${KATS.map(k=>`<option>${k}</option>`).join('')}
+          </select>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <input id="lag-menge" type="number" placeholder="Menge" min="0" value="0" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <select id="lag-einheit" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+              ${EINHEITEN.map(e=>`<option>${e}</option>`).join('')}
+            </select>
+          </div>
+          <input id="lag-mindest" type="number" placeholder="Mindestbestand (für Alarm)" min="0" value="5" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <button onclick="lagerHinzufuegen()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
+        </div>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0e4e1">
+          <div style="font-size:12px;font-weight:700;color:#5a403c;margin-bottom:8px">AMPEL-LEGENDE</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+            <span>🟢 <b>OK</b> — über 150% Mindestbestand</span>
+            <span>🟡 <b>Niedrig</b> — 100–150% Mindestbestand</span>
+            <span>🔴 <b>Kritisch</b> — unter Mindestbestand</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+function lagerHinzufuegen() {
+  const name = document.getElementById('lag-name')?.value.trim();
+  if (!name) { _showToast('Bitte Artikelname eingeben'); return; }
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  lager.push({ id:Date.now(), name, kategorie:document.getElementById('lag-kat')?.value||'Küche', menge:parseFloat(document.getElementById('lag-menge')?.value)||0, einheit:document.getElementById('lag-einheit')?.value||'Stück', mindest:parseFloat(document.getElementById('lag-mindest')?.value)||5 });
+  localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
+  _showToast('Artikel hinzugefügt ✓'); renderLagerTab();
+}
+function lagerAnpassen(id, delta) {
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  const a = lager.find(x=>x.id===id);
+  if (a) { a.menge = Math.max(0, a.menge + delta); localStorage.setItem('pizzeria_lager', JSON.stringify(lager)); lagerCheckAlarm(a); renderLagerTab(); }
+}
+function lagerDelete(id) {
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  localStorage.setItem('pizzeria_lager', JSON.stringify(lager.filter(x=>x.id!==id)));
+  _showToast('Artikel gelöscht'); renderLagerTab();
+}
+function lagerFilter(type, val) {
+  const p = document.getElementById('panel-lager');
+  if(type==='kat') p.dataset.filterKat=val; else p.dataset.filterAmpel=val;
+  renderLagerTab();
+}
+function lagerCheckAlarm(a) {
+  if (a.menge <= a.mindest) {
+    let best = []; try { best = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+    if (!best.find(x=>x.name===a.name&&!x.erledigt)) {
+      best.unshift({ id:Date.now(), name:a.name, menge:a.mindest*2, einheit:a.einheit, kategorie:a.kategorie||'Küche', dringlich:a.menge<=0, erledigt:false });
+      localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
+      _showToast('🔴 '+a.name+' → Bestellliste hinzugefügt!');
+    }
+  }
+}
+function lagerAlleRotBestellen() {
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  let best = []; try { best = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
+  let added = 0;
+  lager.filter(a=>a.menge<=a.mindest).forEach(a=>{
+    if (!best.find(x=>x.name===a.name&&!x.erledigt)) {
+      best.unshift({ id:Date.now()+added, name:a.name, menge:a.mindest*2, einheit:a.einheit, kategorie:a.kategorie||'Küche', dringlich:a.menge<=0, erledigt:false });
+      added++;
+    }
+  });
+  localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
+  _showToast(added+' Artikel zur Bestellliste hinzugefügt ✓');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3 — WARENEINSATZ
+// ═══════════════════════════════════════════════════════════════
+function renderWareneinsatzTab() {
+  const p = document.getElementById('panel-wareneinsatz');
+  let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
+
+  const marge = g => g.verkaufspreis > 0 ? Math.round((1 - g.kosten/g.verkaufspreis)*100) : 0;
+  const margeAmpel = m => m >= 60 ? {bg:'#e8f5e9',clr:'#1b5e20',bc:'#a5d6a7',icon:'🟢'} : m >= 40 ? {bg:'#fff8e1',clr:'#f57f17',bc:'#ffe082',icon:'🟡'} : {bg:'#ffebee',clr:'#c62828',bc:'#ef9a9a',icon:'🔴'};
+
+  const sorted = [...gerichte].sort((a,b)=>marge(b)-marge(a));
+
+  const rows = sorted.length ? sorted.map(g => {
+    const m = marge(g);
+    const st = margeAmpel(m);
+    const zutatenHtml = g.zutaten.map((z,i) =>
+      `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:12px;color:#5a403c;flex:1">${z.name}</span>
+        <span style="font-size:12px;color:#9e9e9e">${z.menge} ${z.einheit}</span>
+        <span style="font-size:12px;font-weight:600;color:#261816">${(z.menge*z.preis).toFixed(2)} €</span>
+        <button onclick="weZutatDelete(${g.id},${i})" style="padding:1px 5px;border-radius:4px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:11px;cursor:pointer">✕</button>
+      </div>`).join('');
+    return `<div style="background:#fff;border-radius:14px;border:1.5px solid ${st.bc};padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-weight:800;font-size:15px;color:#261816">${st.icon} ${g.name}</div>
+          <div style="font-size:12px;color:#5a403c;margin-top:2px">Wareneinsatz: <b>${g.kosten.toFixed(2)} €</b> | Verkauf: <b>${g.verkaufspreis.toFixed(2)} €</b></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:22px;font-weight:800;color:${st.clr}">${m}%</div>
+          <div style="font-size:11px;color:#9e9e9e">Marge</div>
+        </div>
+      </div>
+      <div style="height:6px;border-radius:4px;background:#f0e4e1;margin-bottom:12px">
+        <div style="height:100%;border-radius:4px;background:${st.clr};width:${Math.min(m,100)}%;transition:width .3s"></div>
+      </div>
+      <div style="margin-bottom:8px;padding:10px;background:#f8f8f8;border-radius:8px">
+        <div style="font-size:11px;font-weight:700;color:#9e9e9e;margin-bottom:6px">ZUTATEN</div>
+        ${zutatenHtml || '<div style="font-size:12px;color:#9e9e9e">Noch keine Zutaten</div>'}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <input id="wez-name-${g.id}" placeholder="Zutat" style="flex:2;min-width:80px;padding:6px 8px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff8f6">
+        <input id="wez-menge-${g.id}" type="number" placeholder="Menge" min="0" step="0.01" style="flex:1;min-width:50px;padding:6px 8px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff8f6">
+        <input id="wez-preis-${g.id}" type="number" placeholder="€/Einh." min="0" step="0.01" style="flex:1;min-width:60px;padding:6px 8px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff8f6">
+        <button onclick="weZutatAdd(${g.id})" style="padding:6px 10px;border-radius:8px;border:none;background:#8B0000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">+ Zutat</button>
+        <button onclick="weGericht(${g.id},'delete')" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
+      </div>
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Noch keine Gerichte — füge dein erstes Gericht hinzu</div>`;
+
+  const besteMarge = sorted.length ? marge(sorted[0]) : 0;
+  const avgMarge = gerichte.length ? Math.round(gerichte.reduce((s,g)=>s+marge(g),0)/gerichte.length) : 0;
+
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">💰 Wareneinsatz</h2>
+      <p style="color:#5a403c;font-size:14px">${gerichte.length} Gerichte — Ø Marge: <b>${avgMarge}%</b>${sorted.length?' — Beste: <b>'+sorted[0].name+' ('+besteMarge+'%)</b>':''}</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
+      <div>${rows}</div>
+      <div style="position:sticky;top:20px">
+        <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;margin-bottom:16px">
+          <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:14px">➕ Neues Gericht</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <input id="we-name" placeholder="Gerichtname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <input id="we-vk" type="number" placeholder="Verkaufspreis €" min="0" step="0.01" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <button onclick="weGerichtAdd()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Gericht anlegen</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:16px;padding:16px;border:1px solid #e3beb8">
+          <div style="font-size:12px;font-weight:700;color:#5a403c;margin-bottom:8px">MARGEN-AMPEL</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+            <span>🟢 <b>≥ 60%</b> — sehr profitabel</span>
+            <span>🟡 <b>40–59%</b> — akzeptabel</span>
+            <span>🔴 <b>&lt; 40%</b> — überprüfen!</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+function weGerichtAdd() {
+  const name = document.getElementById('we-name')?.value.trim();
+  if (!name) { _showToast('Bitte Gerichtname eingeben'); return; }
+  let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
+  gerichte.push({ id:Date.now(), name, verkaufspreis:parseFloat(document.getElementById('we-vk')?.value)||0, kosten:0, zutaten:[] });
+  localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte));
+  _showToast('Gericht angelegt ✓'); renderWareneinsatzTab();
+}
+function weZutatAdd(id) {
+  const n = document.getElementById('wez-name-'+id)?.value.trim();
+  if (!n) { _showToast('Bitte Zutatname eingeben'); return; }
+  let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
+  const g = gerichte.find(x=>x.id===id);
+  if (g) {
+    const menge = parseFloat(document.getElementById('wez-menge-'+id)?.value)||0;
+    const preis = parseFloat(document.getElementById('wez-preis-'+id)?.value)||0;
+    g.zutaten.push({ name:n, menge, einheit:'Stück', preis });
+    g.kosten = g.zutaten.reduce((s,z)=>s+z.menge*z.preis, 0);
+    localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte));
+    _showToast('Zutat hinzugefügt ✓'); renderWareneinsatzTab();
+  }
+}
+function weZutatDelete(gId, zIdx) {
+  let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
+  const g = gerichte.find(x=>x.id===gId);
+  if (g) { g.zutaten.splice(zIdx,1); g.kosten=g.zutaten.reduce((s,z)=>s+z.menge*z.preis,0); localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte)); renderWareneinsatzTab(); }
+}
+function weGericht(id, action) {
+  if (action==='delete') {
+    let gerichte = []; try { gerichte = JSON.parse(localStorage.getItem('pizzeria_wareneinsatz')||'[]'); } catch(e) {}
+    localStorage.setItem('pizzeria_wareneinsatz', JSON.stringify(gerichte.filter(x=>x.id!==id)));
+    _showToast('Gericht gelöscht'); renderWareneinsatzTab();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3 — PREISALARM
+// ═══════════════════════════════════════════════════════════════
+function renderPreisalarmTab() {
+  const p = document.getElementById('panel-preisalarm');
+  let eintraege = []; try { eintraege = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
+
+  const alarm = e => e.aktuell > e.ziel;
+  const alarmCount = eintraege.filter(e=>alarm(e)).length;
+
+  const rows = eintraege.length ? eintraege.map(e => {
+    const isAlarm = alarm(e);
+    const diff = ((e.aktuell - e.ziel) / e.ziel * 100).toFixed(1);
+    const histHtml = (e.historie||[]).slice(-5).reverse().map(h =>
+      `<div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;padding:2px 0"><span>${h.datum}</span><span style="font-weight:600;color:#261816">${h.preis.toFixed(2)} €</span></div>`
+    ).join('');
+    return `<div style="background:#fff;border-radius:14px;border:1.5px solid ${isAlarm?'#ef9a9a':'#e3beb8'};padding:16px;margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-weight:800;font-size:14px;color:#261816">${isAlarm?'🔔':''} ${e.produkt}</div>
+          <div style="font-size:12px;color:#5a403c;margin-top:2px">Lieferant: <b>${e.lieferant}</b></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:800;color:${isAlarm?'#c62828':'#1b5e20'}">${e.aktuell.toFixed(2)} €</div>
+          <div style="font-size:11px;color:#9e9e9e">Ziel: ${e.ziel.toFixed(2)} €${isAlarm?' <span style="color:#c62828;font-weight:700">(+'+diff+'%)</span>':' ✓'}</div>
+        </div>
+      </div>
+      ${isAlarm?`<div style="padding:8px 12px;border-radius:8px;background:#ffebee;border:1px solid #ef9a9a;font-size:12px;font-weight:700;color:#c62828;margin-bottom:10px">⚠️ ALARM: Preis um ${diff}% über Zielpreis!</div>`:''}
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <span style="font-size:12px;color:#5a403c;white-space:nowrap">Preis aktualisieren:</span>
+        <input id="pa-preis-${e.id}" type="number" step="0.01" value="${e.aktuell}" style="flex:1;max-width:100px;padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+        <button onclick="preisUpdate(${e.id})" style="padding:5px 12px;border-radius:8px;border:none;background:#8B0000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Speichern</button>
+        <button onclick="preisDelete(${e.id})" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
+      </div>
+      ${(e.historie||[]).length ? `<div style="padding:8px;background:#f8f8f8;border-radius:8px"><div style="font-size:10px;font-weight:700;color:#9e9e9e;margin-bottom:4px">PREISHISTORIE</div>${histHtml}</div>` : ''}
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Noch keine Preisalarme — füge Produkte hinzu</div>`;
+
+  p.innerHTML = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">🔔 Preisalarm</h2>
+      <p style="color:#5a403c;font-size:14px">${eintraege.length} Produkte überwacht${alarmCount?' — <span style="color:#c62828;font-weight:700">🔔 '+alarmCount+' Alarm(e) aktiv</span>':' — Alles im Rahmen ✓'}</p>
+    </div>
+    ${alarmCount ? `<div style="padding:14px 18px;border-radius:12px;background:#ffebee;border:1.5px solid #ef9a9a;margin-bottom:20px;font-size:14px;font-weight:700;color:#c62828">🔔 ${alarmCount} Produkt(e) über Zielpreis — bitte Lieferant kontaktieren!</div>` : ''}
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
+      <div>${rows}</div>
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
+        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:14px">➕ Produkt überwachen</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input id="pa-produkt" placeholder="Produktname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <input id="pa-lieferant" placeholder="Lieferant..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <input id="pa-aktuell" type="number" placeholder="Aktueller Preis €" min="0" step="0.01" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <input id="pa-ziel" type="number" placeholder="Zielpreis € (Alarm wenn darüber)" min="0" step="0.01" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <button onclick="preisAdd()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
+        </div>
+      </div>
+    </div>`;
+}
+function preisAdd() {
+  const produkt = document.getElementById('pa-produkt')?.value.trim();
+  const lieferant = document.getElementById('pa-lieferant')?.value.trim();
+  if (!produkt || !lieferant) { _showToast('Bitte Produkt und Lieferant eingeben'); return; }
+  let eintraege = []; try { eintraege = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
+  const aktuell = parseFloat(document.getElementById('pa-aktuell')?.value)||0;
+  eintraege.push({ id:Date.now(), produkt, lieferant, aktuell, ziel:parseFloat(document.getElementById('pa-ziel')?.value)||aktuell, historie:[{datum:new Date().toLocaleDateString('de-AT'),preis:aktuell}] });
+  localStorage.setItem('pizzeria_preisalarm', JSON.stringify(eintraege));
+  _showToast('Produkt hinzugefügt ✓'); renderPreisalarmTab();
+}
+function preisUpdate(id) {
+  let eintraege = []; try { eintraege = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
+  const e = eintraege.find(x=>x.id===id);
+  if (e) {
+    const neuerPreis = parseFloat(document.getElementById('pa-preis-'+id)?.value)||e.aktuell;
+    if (neuerPreis !== e.aktuell) {
+      e.aktuell = neuerPreis;
+      if (!e.historie) e.historie = [];
+      e.historie.push({ datum:new Date().toLocaleDateString('de-AT'), preis:neuerPreis });
+    }
+    localStorage.setItem('pizzeria_preisalarm', JSON.stringify(eintraege));
+    _showToast(neuerPreis>e.ziel?'🔔 ALARM: Preis über Zielwert!':'Preis aktualisiert ✓');
+    renderPreisalarmTab();
+  }
+}
+function preisDelete(id) {
+  let e = []; try { e = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(ex) {}
+  localStorage.setItem('pizzeria_preisalarm', JSON.stringify(e.filter(x=>x.id!==id)));
+  _showToast('Gelöscht'); renderPreisalarmTab();
 }
 
 function _showToast(msg) {
