@@ -9827,9 +9827,9 @@ function renderDashboardTab() {
     let aufgabenHeute = [], aufgabenOffen = [];
     try {
       const alle = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]');
-      aufgabenHeute = alle.filter(a => !a.erledigt && a.faellig === today);
+      aufgabenHeute = alle.filter(a => a.status !== 'erledigt' && !a.erledigt && a.faellig === today);
       const prio = {hoch:0, mittel:1, niedrig:2};
-      aufgabenOffen = alle.filter(a => !a.erledigt)
+      aufgabenOffen = alle.filter(a => a.status !== 'erledigt' && !a.erledigt)
         .sort((a,b) => (prio[a.prioritaet]||1) - (prio[b.prioritaet]||1))
         .slice(0, 5);
     } catch(_) {}
@@ -10040,7 +10040,7 @@ function dashboardAufgabeToggle(id) {
   let aufgaben = [];
   try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
   const a = aufgaben.find(x => x.id === id);
-  if (a) a.erledigt = !a.erledigt;
+  if (a) { a.erledigt = !a.erledigt; a.status = a.erledigt ? 'erledigt' : 'offen'; }
   localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
   renderDashboardTab();
 }
@@ -10811,109 +10811,265 @@ function dienstplanHeute() {
 // ═══════════════════════════════════════════════════════════════
 // PHASE 2 — AUFGABEN
 // ═══════════════════════════════════════════════════════════════
-function renderAufgabenTab() {
-  const p = document.getElementById('panel-aufgaben');
+const AUF_KEY = 'pizzeria_aufgaben';
+
+const AUF_STATUS = {
+  offen:     { label:'Offen',     icon:'🔵', bg:'#e3f2fd', color:'#0d47a1', border:'#90caf9' },
+  in_arbeit: { label:'In Arbeit', icon:'🟡', bg:'#fff3e0', color:'#e65100', border:'#ffcc80' },
+  erledigt:  { label:'Erledigt',  icon:'✅', bg:'#e8f5e9', color:'#2e7d32', border:'#a5d6a7' },
+};
+
+const AUF_PRIO = {
+  hoch:    { label:'Hoch',    color:'#c62828', bg:'#ffebee', border:'#ef9a9a' },
+  mittel:  { label:'Mittel',  color:'#e65100', bg:'#fff3e0', border:'#ffcc80' },
+  niedrig: { label:'Niedrig', color:'#2e7d32', bg:'#e8f5e9', border:'#a5d6a7' },
+};
+
+const AUF_KATEGORIEN = ['Küche','Service','Reinigung','Einkauf','Verwaltung','Sonstiges'];
+
+const AUF_MA_LABELS = {
+  alle:       'Alle Mitarbeiter',
+  admin:      'Admin',
+  manager:    'Manager',
+  kueche:     'Küche',
+  pizza:      'Pizza',
+  fahrer:     'Fahrer',
+  reinigung:  'Reinigung',
+  service:    'Service',
+};
+
+let aufgabenSelectedPrio = 'mittel';
+const aufgabenFilterState = { status:'offen', prioritaet:'', kategorie:'', mitarbeiter:'' };
+
+function aufgabenMigriere() {
   let aufgaben = [];
-  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+  try { aufgaben = JSON.parse(localStorage.getItem(AUF_KEY)||'[]'); } catch(e) {}
+  let changed = false;
+  aufgaben.forEach(a => {
+    if (typeof a.status === 'undefined')        { a.status = a.erledigt ? 'erledigt' : 'offen'; changed = true; }
+    if (typeof a.kategorie === 'undefined')     { a.kategorie = 'Sonstiges'; changed = true; }
+    if (typeof a.notiz === 'undefined')         { a.notiz = ''; changed = true; }
+    if (typeof a.zugewiesen_von === 'undefined'){ a.zugewiesen_von = ''; changed = true; }
+  });
+  if (changed) try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
+  return aufgaben;
+}
 
-  const MA_LABELS = { kueche:'👨‍🍳 Küche', pizza:'🍕 Pizza', fahrer:'🚗 Fahrer', reinigung:'🧹 Reinigung', service:'🍽️ Service', admin:'👑 Admin', manager:'🏢 Manager', alle:'👥 Alle' };
-  const PRIO = { hoch:{bg:'#ffebee',clr:'#c62828',bc:'#ef9a9a'}, mittel:{bg:'#fff8e1',clr:'#f57f17',bc:'#ffe082'}, niedrig:{bg:'#e8f5e9',clr:'#2e7d32',bc:'#a5d6a7'} };
+function _aufDashRefresh() {
+  const dp = document.getElementById('panel-dashboard');
+  if (dp && dp.style.display !== 'none') renderDashboardTab();
+}
 
-  const filterMA = p.dataset.filterMA||'';
-  const filterStatus = p.dataset.filterStatus||'';
+function renderAufgabenTab() {
+  const panel = document.getElementById('panel-aufgaben');
+  if (!panel) return;
 
-  const visible = aufgaben.filter(a => {
-    if (filterMA && a.mitarbeiter !== filterMA && a.mitarbeiter !== 'alle') return false;
-    if (filterStatus === 'offen' && a.erledigt) return false;
-    if (filterStatus === 'erledigt' && !a.erledigt) return false;
+  const aufgaben = aufgabenMigriere();
+  const isAdminOrManager = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
+  const today = new Date().toISOString().slice(0,10);
+
+  // Rollen-Filterung
+  let sichtbar = aufgaben;
+  if (!isAdminOrManager && currentUser) {
+    const me = currentUser.username || currentUser.name || '';
+    sichtbar = aufgaben.filter(a => a.mitarbeiter === 'alle' || a.mitarbeiter === me || a.zugewiesen_von === me);
+  }
+
+  // Filter anwenden
+  const fs = aufgabenFilterState;
+  let filtered = sichtbar.filter(a => {
+    if (fs.status     && a.status     !== fs.status)     return false;
+    if (fs.prioritaet && a.prioritaet !== fs.prioritaet) return false;
+    if (fs.kategorie  && a.kategorie  !== fs.kategorie)  return false;
+    if (fs.mitarbeiter && a.mitarbeiter !== fs.mitarbeiter) return false;
     return true;
   });
 
-  const offenCount = aufgaben.filter(a=>!a.erledigt).length;
+  // Sortierung: erledigt ans Ende, dann nach Priorität
+  const prioOrd = {hoch:0, mittel:1, niedrig:2};
+  filtered.sort((a,b) => {
+    const ae = a.status === 'erledigt' ? 1 : 0;
+    const be = b.status === 'erledigt' ? 1 : 0;
+    if (ae !== be) return ae - be;
+    return (prioOrd[a.prioritaet]||1) - (prioOrd[b.prioritaet]||1);
+  });
 
-  const rows = visible.length ? visible.map(a => {
-    const pr = PRIO[a.prioritaet]||PRIO.mittel;
-    const faellig = a.faellig ? new Date(a.faellig).toLocaleDateString('de-AT') : '—';
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:12px;border:1.5px solid ${a.erledigt?'#e0e0e0':pr.bc};background:${a.erledigt?'#fafafa':pr.bg};margin-bottom:10px;opacity:${a.erledigt?'.6':'1'}">
-      <input type="checkbox" ${a.erledigt?'checked':''} onchange="aufgabeToggle(${a.id})" style="width:18px;height:18px;cursor:pointer;margin-top:2px;accent-color:#8B0000">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">${a.titel}</div>
-        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-          <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:#fff0ee;color:#8B0000;font-weight:600">${MA_LABELS[a.mitarbeiter]||a.mitarbeiter}</span>
-          <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:${pr.bg};color:${pr.clr};font-weight:600;border:1px solid ${pr.bc}">${a.prioritaet.toUpperCase()}</span>
-          <span style="font-size:11px;color:#9e9e9e">📅 ${faellig}</span>
-        </div>
-      </div>
-      <button onclick="aufgabeDelete(${a.id})" style="padding:4px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
-    </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Keine Aufgaben gefunden</div>`;
+  const offenCount = sichtbar.filter(a => a.status !== 'erledigt').length;
 
-  const maOpts = Object.entries(MA_LABELS).map(([k,v])=>`<option value="${k}" ${filterMA===k?'selected':''}>${v}</option>`).join('');
+  // Status-Pill-Buttons
+  const statusPills = [
+    {val:'',         label:'Alle'},
+    {val:'offen',    label:'🔵 Offen'},
+    {val:'in_arbeit',label:'🟡 In Arbeit'},
+    {val:'erledigt', label:'✅ Erledigt'},
+  ].map(s => `<button onclick="aufgabenSetFilter('status','${s.val}')" style="padding:6px 14px;border-radius:20px;border:1.5px solid ${fs.status===s.val?'#8B0000':'#e3beb8'};background:${fs.status===s.val?'#8B0000':'#fff8f6'};color:${fs.status===s.val?'#fff':'#261816'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${s.label}</button>`).join('');
 
-  p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">✅ Aufgaben</h2>
-      <p style="color:#5a403c;font-size:14px">${offenCount} offen — ${aufgaben.length} gesamt</p>
+  // Karten HTML
+  const kartenHtml = filtered.length === 0
+    ? `<div style="text-align:center;padding:48px 20px;color:#9e9e9e">
+        <div style="font-size:40px;margin-bottom:12px">🎉</div>
+        <div style="font-size:16px;font-weight:700;color:#261816;margin-bottom:6px">Keine Aufgaben gefunden</div>
+        <div style="font-size:13px">${fs.status==='offen'?'Alles erledigt! Super gemacht.':'Kein Eintrag passt zu diesem Filter.'}</div>
+       </div>`
+    : filtered.map(a => {
+        const st    = AUF_STATUS[a.status] || AUF_STATUS.offen;
+        const pr    = AUF_PRIO[a.prioritaet] || AUF_PRIO.mittel;
+        const ueberfaellig = a.faellig && a.faellig < today && a.status !== 'erledigt';
+        const maLabel = AUF_MA_LABELS[a.mitarbeiter] || a.mitarbeiter || '—';
+
+        const statusBtns = a.status === 'offen'
+          ? `<button onclick="aufgabeStatusChange(${a.id},'in_arbeit')" style="padding:5px 12px;border-radius:8px;border:1.5px solid #ffcc80;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🟡 In Arbeit</button>`
+          : a.status === 'in_arbeit'
+          ? `<button onclick="aufgabeStatusChange(${a.id},'erledigt')" style="padding:5px 12px;border-radius:8px;border:1.5px solid #a5d6a7;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">✅ Erledigt</button>`
+          : `<button onclick="aufgabeStatusChange(${a.id},'offen')" style="padding:5px 12px;border-radius:8px;border:1.5px solid #90caf9;background:#e3f2fd;color:#0d47a1;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Wieder öffnen</button>`;
+
+        return `<div style="display:flex;border-left:4px solid ${ueberfaellig?'#c62828':pr.color};background:#fff;border-radius:0 12px 12px 0;margin-bottom:10px;box-shadow:0 1px 6px rgba(0,0,0,.06);${ueberfaellig?'outline:2px solid #ef9a9a;outline-offset:-1px':''}">
+          <div style="flex:1;padding:14px 14px 10px 16px;min-width:0">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center">
+              <span style="font-size:11px;font-weight:700;color:${pr.color};background:${pr.bg};border:1px solid ${pr.border};padding:2px 8px;border-radius:10px">${pr.label}</span>
+              <span style="font-size:11px;font-weight:700;color:${st.color};background:${st.bg};border:1px solid ${st.border};padding:2px 8px;border-radius:10px">${st.icon} ${st.label}</span>
+              ${ueberfaellig?'<span style="font-size:11px;font-weight:700;color:#c62828;background:#ffebee;border:1px solid #ef9a9a;padding:2px 8px;border-radius:10px">⚠️ Überfällig</span>':''}
+            </div>
+            <div style="font-size:16px;font-weight:800;color:#261816;margin-bottom:6px;${a.status==='erledigt'?'text-decoration:line-through;color:#9e9e9e':''}">${a.titel}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:#5a403c;margin-bottom:${a.notiz?'6px':'0'}">
+              <span>👤 ${maLabel}</span>
+              ${a.faellig?`<span style="color:${ueberfaellig?'#c62828':'#5a403c'}">📅 ${a.faellig}</span>`:''}
+              <span style="background:#f3ebe9;padding:1px 7px;border-radius:6px;font-weight:600">${a.kategorie||'Sonstiges'}</span>
+            </div>
+            ${a.notiz?`<div style="font-size:12px;color:#8d6562;font-style:italic;margin-top:4px">${a.notiz}</div>`:''}
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+              ${statusBtns}
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-start;padding:10px 10px 10px 0">
+            <button onclick="aufgabeDelete(${a.id})" title="Löschen" style="width:36px;height:36px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff8f6;color:#c62828;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑️</button>
+          </div>
+        </div>`;
+      }).join('');
+
+  // Prio-Button-Gruppe für Formular
+  const prioBtns = ['hoch','mittel','niedrig'].map(p => {
+    const pr = AUF_PRIO[p];
+    const active = aufgabenSelectedPrio === p;
+    return `<button type="button" onclick="aufgabenSetPrio('${p}')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid ${active?pr.color:pr.border};background:${active?pr.bg:'#fff'};color:${active?pr.color:'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">${pr.label}</button>`;
+  }).join('');
+
+  panel.innerHTML = `
+  <div style="margin-bottom:20px">
+    <h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px;display:flex;align-items:center;gap:8px">
+      <span class="material-symbols-outlined" style="color:#610000">task_alt</span>Aufgaben
+    </h2>
+    <p style="color:#5a403c;font-size:14px;margin:0">${offenCount} offen</p>
+  </div>
+
+  <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:20px">
+    <div style="font-size:14px;font-weight:800;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:18px;color:#610000">add_circle</span>Neue Aufgabe erstellen
     </div>
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px">
+      <div style="grid-column:1/-1">
+        <label style="display:block;font-size:11px;font-weight:700;color:#5a403c;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Titel *</label>
+        <input id="auf-titel" type="text" placeholder="Aufgabe beschreiben..." style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e3beb8'">
+      </div>
       <div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-          <select onchange="aufgabenFilter('ma',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
-            <option value="">👥 Alle Mitarbeiter</option>${maOpts}
-          </select>
-          <select onchange="aufgabenFilter('status',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
-            <option value="" ${filterStatus===''?'selected':''}>📋 Alle</option>
-            <option value="offen" ${filterStatus==='offen'?'selected':''}>🔴 Offen</option>
-            <option value="erledigt" ${filterStatus==='erledigt'?'selected':''}>✅ Erledigt</option>
-          </select>
-        </div>
-        ${rows}
+        <label style="display:block;font-size:11px;font-weight:700;color:#5a403c;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Kategorie</label>
+        <select id="auf-kat" style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;background:#fff;cursor:pointer;outline:none">
+          ${AUF_KATEGORIEN.map(k=>`<option value="${k}">${k}</option>`).join('')}
+        </select>
       </div>
-      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
-        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Neue Aufgabe</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <input id="auf-titel" placeholder="Aufgabe beschreiben..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-          <select id="auf-ma" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-            <option value="alle">👥 Alle</option>
-            ${Object.entries(MA_LABELS).filter(([k])=>k!=='alle').map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
-          </select>
-          <select id="auf-prio" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-            <option value="hoch">🔴 Hoch</option>
-            <option value="mittel" selected>🟡 Mittel</option>
-            <option value="niedrig">🟢 Niedrig</option>
-          </select>
-          <input id="auf-datum" type="date" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-          <button onclick="aufgabeHinzufuegen()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Aufgabe erstellen</button>
-        </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:#5a403c;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Zugewiesen an</label>
+        <select id="auf-ma" style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;background:#fff;cursor:pointer;outline:none">
+          ${Object.entries(AUF_MA_LABELS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}
+        </select>
       </div>
-    </div>`;
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:#5a403c;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Priorität *</label>
+        <div style="display:flex;gap:6px">${prioBtns}</div>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:#5a403c;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Fällig bis</label>
+        <input id="auf-datum" type="date" style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e3beb8'">
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="display:block;font-size:11px;font-weight:700;color:#5a403c;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Notiz (optional)</label>
+        <input id="auf-notiz" type="text" placeholder="Zusätzliche Informationen..." style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e3beb8'">
+      </div>
+    </div>
+    <button onclick="aufgabeAdd()" style="width:100%;min-height:48px;padding:12px;border-radius:12px;border:none;background:#8B0000;color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer">Aufgabe erstellen</button>
+  </div>
+
+  <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      ${statusPills}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <select onchange="aufgabenSetFilter('prioritaet',this.value)" style="padding:7px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;color:#261816">
+        <option value="">Alle Prioritäten</option>
+        ${Object.entries(AUF_PRIO).map(([v,p])=>`<option value="${v}" ${fs.prioritaet===v?'selected':''}>${p.label}</option>`).join('')}
+      </select>
+      <select onchange="aufgabenSetFilter('kategorie',this.value)" style="padding:7px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;color:#261816">
+        <option value="">Alle Kategorien</option>
+        ${AUF_KATEGORIEN.map(k=>`<option value="${k}" ${fs.kategorie===k?'selected':''}>${k}</option>`).join('')}
+      </select>
+      ${isAdminOrManager?`<select onchange="aufgabenSetFilter('mitarbeiter',this.value)" style="padding:7px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;color:#261816">
+        <option value="">Alle Mitarbeiter</option>
+        ${Object.entries(AUF_MA_LABELS).filter(([v])=>v!=='alle').map(([v,l])=>`<option value="${v}" ${fs.mitarbeiter===v?'selected':''}>${l}</option>`).join('')}
+      </select>`:''}
+    </div>
+    ${kartenHtml}
+  </div>`;
 }
-function aufgabeHinzufuegen() {
-  const titel = document.getElementById('auf-titel')?.value.trim();
+
+function aufgabeAdd() {
+  const titel = (document.getElementById('auf-titel')?.value||'').trim();
   if (!titel) { _showToast('Bitte Titel eingeben'); return; }
-  let aufgaben = [];
-  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
-  aufgaben.push({ id:Date.now(), titel, mitarbeiter:document.getElementById('auf-ma')?.value||'alle', prioritaet:document.getElementById('auf-prio')?.value||'mittel', faellig:document.getElementById('auf-datum')?.value||'', erledigt:false, erstellt:new Date().toISOString() });
-  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
+  const aufgaben = aufgabenMigriere();
+  aufgaben.push({
+    id: Date.now(),
+    titel,
+    kategorie: document.getElementById('auf-kat')?.value || 'Sonstiges',
+    mitarbeiter: document.getElementById('auf-ma')?.value || 'alle',
+    prioritaet: aufgabenSelectedPrio,
+    faellig: document.getElementById('auf-datum')?.value || '',
+    notiz: document.getElementById('auf-notiz')?.value || '',
+    status: 'offen',
+    erledigt: false,
+    erstellt: new Date().toISOString(),
+    zugewiesen_von: currentUser?.username || '',
+  });
+  try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
+  aufgabenSelectedPrio = 'mittel';
   _showToast('Aufgabe erstellt ✓');
   renderAufgabenTab();
+  _aufDashRefresh();
 }
-function aufgabeToggle(id) {
-  let aufgaben = [];
-  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
-  const a = aufgaben.find(x=>x.id===id); if(a) a.erledigt=!a.erledigt;
-  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
+
+function aufgabeStatusChange(id, neuerStatus) {
+  const aufgaben = aufgabenMigriere();
+  const a = aufgaben.find(x => x.id === id);
+  if (a) { a.status = neuerStatus; a.erledigt = (neuerStatus === 'erledigt'); }
+  try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
   renderAufgabenTab();
+  _aufDashRefresh();
 }
+
 function aufgabeDelete(id) {
   let aufgaben = [];
-  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
-  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben.filter(x=>x.id!==id)));
-  _showToast('Aufgabe gelöscht'); renderAufgabenTab();
+  try { aufgaben = JSON.parse(localStorage.getItem(AUF_KEY)||'[]'); } catch(e) {}
+  try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben.filter(x => x.id !== id))); } catch(e) {}
+  _showToast('Aufgabe gelöscht');
+  renderAufgabenTab();
+  _aufDashRefresh();
 }
-function aufgabenFilter(type, val) {
-  const p = document.getElementById('panel-aufgaben');
-  if(type==='ma') p.dataset.filterMA=val; else p.dataset.filterStatus=val;
+
+function aufgabenSetFilter(type, val) {
+  aufgabenFilterState[type] = val;
+  renderAufgabenTab();
+}
+
+function aufgabenSetPrio(p) {
+  aufgabenSelectedPrio = p;
   renderAufgabenTab();
 }
 
