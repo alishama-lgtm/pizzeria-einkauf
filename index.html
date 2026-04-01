@@ -1178,6 +1178,9 @@
 </div>
 
 <script>
+function _esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 // ═══════════════════════════════════════════════════════════════
 // js/config.js
 // ═══════════════════════════════════════════════════════════════
@@ -7201,7 +7204,7 @@ function importUMTradeRechnung93722() {
   for (const it of items) {
     addHistoryEntry({ datum:'2026-03-25', produktName:it.n, menge:it.m, einheit:it.e, preis:it.p, shopName:'UM Trade', shopId:'umtrade', quelle:'rechnung' });
   }
-  HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  try { HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]'); } catch(e) { HISTORY = []; }
   renderVerlaufTab();
 }
 
@@ -8814,7 +8817,7 @@ function _buildNeuView() {
 
 function angebotMerken(id, name, preis, shopName, shopId, einheit, menge) {
   addHistoryEntry({ produktName: name, preis, shopName, shopId, einheit, menge, quelle: 'angebot' });
-  HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]');
+  try { HISTORY = JSON.parse(localStorage.getItem('pizzeria_history') || '[]'); } catch(e) { HISTORY = []; }
   // Auch zur Einkaufsliste hinzufügen
   if (typeof elAddItem === 'function') {
     const shopObj = SHOPS.find(s => s.id === shopId);
@@ -10999,13 +11002,13 @@ function renderAufgabenTab() {
               <span style="font-size:11px;font-weight:700;color:${st.color};background:${st.bg};border:1px solid ${st.border};padding:2px 8px;border-radius:10px">${st.icon} ${st.label}</span>
               ${ueberfaellig?'<span style="font-size:11px;font-weight:700;color:#c62828;background:#ffebee;border:1px solid #ef9a9a;padding:2px 8px;border-radius:10px">⚠️ Überfällig</span>':''}
             </div>
-            <div style="font-size:16px;font-weight:800;color:#261816;margin-bottom:6px;${a.status==='erledigt'?'text-decoration:line-through;color:#9e9e9e':''}">${a.titel}</div>
+            <div style="font-size:16px;font-weight:800;color:#261816;margin-bottom:6px;${a.status==='erledigt'?'text-decoration:line-through;color:#9e9e9e':''}">${_esc(a.titel)}</div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:#5a403c;margin-bottom:${a.notiz?'6px':'0'}">
               <span>👤 ${maLabel}</span>
               ${a.faellig?`<span style="color:${ueberfaellig?'#c62828':'#5a403c'}">📅 ${a.faellig}</span>`:''}
-              <span style="background:#f3ebe9;padding:1px 7px;border-radius:6px;font-weight:600">${a.kategorie||'Sonstiges'}</span>
+              <span style="background:#f3ebe9;padding:1px 7px;border-radius:6px;font-weight:600">${_esc(a.kategorie||'Sonstiges')}</span>
             </div>
-            ${a.notiz?`<div style="font-size:12px;color:#8d6562;font-style:italic;margin-top:4px">${a.notiz}</div>`:''}
+            ${a.notiz?`<div style="font-size:12px;color:#8d6562;font-style:italic;margin-top:4px">${_esc(a.notiz)}</div>`:''}
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
               ${statusBtns}
             </div>
@@ -11236,9 +11239,9 @@ function renderBestellungTab() {
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid ${a.dringlich&&!a.erledigt?'#ef9a9a':a.erledigt?'#e0e0e0':'#e3beb8'};background:${a.dringlich&&!a.erledigt?'#ffebee':a.erledigt?'#fafafa':'#fff8f6'};margin-bottom:8px;opacity:${a.erledigt?'.6':'1'}">
       <input type="checkbox" ${a.erledigt?'checked':''} onchange="bestellungToggle(${a.id})" style="width:18px;height:18px;cursor:pointer;accent-color:#8B0000">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">${a.name}${a.dringlich&&!a.erledigt?' <span style="color:#c62828;font-size:11px;font-weight:700">🔴 DRINGEND</span>':''}</div>
+        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">${_esc(a.name)}${a.dringlich&&!a.erledigt?' <span style="color:#c62828;font-size:11px;font-weight:700">🔴 DRINGEND</span>':''}</div>
         <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:600;color:#5a403c">${a.menge} ${a.einheit}</span>
+          <span style="font-size:11px;font-weight:600;color:#5a403c">${a.menge} ${_esc(a.einheit)}</span>
           <span style="font-size:11px;padding:1px 7px;border-radius:6px;background:${ks[0]};color:${ks[1]};font-weight:600">${a.kategorie}</span>
         </div>
       </div>
@@ -11363,10 +11366,10 @@ function renderLagerTab() {
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:1.5px solid ${st.bc};background:${st.bg};margin-bottom:8px">
       <div style="font-size:20px">${st.icon}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;color:#261816">${a.name}</div>
+        <div style="font-weight:700;font-size:14px;color:#261816">${_esc(a.name)}</div>
         <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:12px;font-weight:700;color:${st.clr}">${a.menge} ${a.einheit}</span>
-          <span style="font-size:11px;color:#9e9e9e">Min: ${a.mindest} ${a.einheit}</span>
+          <span style="font-size:12px;font-weight:700;color:${st.clr}">${a.menge} ${_esc(a.einheit)}</span>
+          <span style="font-size:11px;color:#9e9e9e">Min: ${a.mindest} ${_esc(a.einheit)}</span>
           <span style="font-size:11px;padding:1px 7px;border-radius:6px;background:${ks[0]};color:${ks[1]};font-weight:600">${a.kategorie}</span>
         </div>
       </div>
@@ -11494,15 +11497,15 @@ function renderWareneinsatzTab() {
     const st = margeAmpel(m);
     const zutatenHtml = g.zutaten.map((z,i) =>
       `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <span style="font-size:12px;color:#5a403c;flex:1">${z.name}</span>
-        <span style="font-size:12px;color:#9e9e9e">${z.menge} ${z.einheit}</span>
+        <span style="font-size:12px;color:#5a403c;flex:1">${_esc(z.name)}</span>
+        <span style="font-size:12px;color:#9e9e9e">${z.menge} ${_esc(z.einheit)}</span>
         <span style="font-size:12px;font-weight:600;color:#261816">${(z.menge*z.preis).toFixed(2)} €</span>
         <button onclick="weZutatDelete(${g.id},${i})" style="padding:1px 5px;border-radius:4px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:11px;cursor:pointer">✕</button>
       </div>`).join('');
     return `<div style="background:#fff;border-radius:14px;border:1.5px solid ${st.bc};padding:16px;margin-bottom:12px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-weight:800;font-size:15px;color:#261816">${st.icon} ${g.name}</div>
+          <div style="font-weight:800;font-size:15px;color:#261816">${st.icon} ${_esc(g.name)}</div>
           <div style="font-size:12px;color:#5a403c;margin-top:2px">Wareneinsatz: <b>${g.kosten.toFixed(2)} €</b> | Verkauf: <b>${g.verkaufspreis.toFixed(2)} €</b></div>
         </div>
         <div style="text-align:right">
@@ -11533,7 +11536,7 @@ function renderWareneinsatzTab() {
   p.innerHTML = `
     <div style="margin-bottom:24px">
       <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">💰 Wareneinsatz</h2>
-      <p style="color:#5a403c;font-size:14px">${gerichte.length} Gerichte — Ø Marge: <b>${avgMarge}%</b>${sorted.length?' — Beste: <b>'+sorted[0].name+' ('+besteMarge+'%)</b>':''}</p>
+      <p style="color:#5a403c;font-size:14px">${gerichte.length} Gerichte — Ø Marge: <b>${avgMarge}%</b>${sorted.length?' — Beste: <b>'+_esc(sorted[0].name)+' ('+besteMarge+'%)</b>':''}</p>
     </div>
     <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
       <div>${rows}</div>
@@ -11611,8 +11614,8 @@ function renderPreisalarmTab() {
     return `<div style="background:#fff;border-radius:14px;border:1.5px solid ${isAlarm?'#ef9a9a':'#e3beb8'};padding:16px;margin-bottom:10px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-weight:800;font-size:14px;color:#261816">${isAlarm?'🔔':''} ${e.produkt}</div>
-          <div style="font-size:12px;color:#5a403c;margin-top:2px">Lieferant: <b>${e.lieferant}</b></div>
+          <div style="font-weight:800;font-size:14px;color:#261816">${isAlarm?'🔔':''} ${_esc(e.produkt)}</div>
+          <div style="font-size:12px;color:#5a403c;margin-top:2px">Lieferant: <b>${_esc(e.lieferant)}</b></div>
         </div>
         <div style="text-align:right">
           <div style="font-size:18px;font-weight:800;color:${isAlarm?'#c62828':'#1b5e20'}">${e.aktuell.toFixed(2)} €</div>
@@ -11743,7 +11746,7 @@ function renderStatistikTab() {
   var topGerichteHtml = topGerichte.length === 0 ? '<p style="color:#5a403c;font-size:14px;">Keine Daten</p>' :
     topGerichte.map(function(g) {
       var pct = Math.round(g.anzahl / maxAnzahl * 100);
-      return '<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:13px;color:#261816;margin-bottom:3px;"><span>' + g.name + '</span><span>' + g.anzahl + ' Stk.</span></div><div style="background:#f3e5e0;border-radius:6px;height:14px;"><div style="background:#8B0000;width:' + pct + '%;height:14px;border-radius:6px;transition:width 0.4s;"></div></div></div>';
+      return '<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:13px;color:#261816;margin-bottom:3px;"><span>' + _esc(g.name) + '</span><span>' + g.anzahl + ' Stk.</span></div><div style="background:#f3e5e0;border-radius:6px;height:14px;"><div style="background:#8B0000;width:' + pct + '%;height:14px;border-radius:6px;transition:width 0.4s;"></div></div></div>';
     }).join('');
 
   var tageHtml = '';
@@ -11757,7 +11760,7 @@ function renderStatistikTab() {
   var letzteEintraege = data.slice().reverse().slice(0, 50);
   var eintraegeRows = letzteEintraege.length === 0 ? '<tr><td colspan="5" style="padding:12px;text-align:center;color:#5a403c;">Keine Eintr&auml;ge</td></tr>' :
     letzteEintraege.map(function(e) {
-      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.gericht + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">' + e.anzahl + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">€' + parseFloat(e.preis).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="statistikDelete(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
+      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + _esc(e.gericht) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">' + e.anzahl + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">€' + parseFloat(e.preis).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="statistikDelete(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
     }).join('');
 
   var wochenVergleichHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">' +
@@ -11868,7 +11871,7 @@ function renderTagesangeboteTab() {
 
   var bannerHtml = '';
   if (aktive.length > 0) {
-    var gerichtNamen = aktive.map(function(a) { return a.gericht; }).join(', ');
+    var gerichtNamen = aktive.map(function(a) { return _esc(a.gericht); }).join(', ');
     bannerHtml = '<div style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:12px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:12px;">' +
       '<span style="font-size:22px;">&#x1F7E2;</span>' +
       '<div><div style="font-weight:700;color:#1b5e20;font-size:15px;">' + aktive.length + ' aktives Angebot' + (aktive.length > 1 ? 'e' : '') + '</div>' +
@@ -11888,7 +11891,7 @@ function renderTagesangeboteTab() {
       return '<div style="background:#fff;border-radius:14px;border:1.5px solid #a5d6a7;padding:16px 20px;margin-bottom:12px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
         '<div>' +
-        '<div style="font-size:16px;font-weight:700;color:#261816;">' + a.gericht + '</div>' +
+        '<div style="font-size:16px;font-weight:700;color:#261816;">' + _esc(a.gericht) + '</div>' +
         '<div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
         '<span style="text-decoration:line-through;color:#5a403c;font-size:14px;">&euro;' + parseFloat(a.original).toFixed(2) + '</span>' +
         '<span style="font-size:20px;font-weight:700;color:#8B0000;">&euro;' + parseFloat(a.preis).toFixed(2) + '</span>' +
@@ -11908,7 +11911,7 @@ function renderTagesangeboteTab() {
       '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">K&uuml;nftige Angebote</h3>' +
       zukuenftige.map(function(a) {
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f3e5e0;">' +
-          '<span style="color:#261816;font-weight:600;">' + a.gericht + '</span>' +
+          '<span style="color:#261816;font-weight:600;">' + _esc(a.gericht) + '</span>' +
           '<span style="color:#5a403c;font-size:13px;">ab ' + a.von + '</span>' +
           '<button onclick="angebotDelete(\'' + a.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button>' +
           '</div>';
@@ -11922,7 +11925,7 @@ function renderTagesangeboteTab() {
       '<h3 style="margin:0 0 12px 0;color:#5a403c;font-size:16px;">Abgelaufene Angebote (letzte 10)</h3>' +
       abgelaufene.map(function(a) {
         return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f3e5e0;">' +
-          '<span style="color:#5a403c;">' + a.gericht + '</span>' +
+          '<span style="color:#5a403c;">' + _esc(a.gericht) + '</span>' +
           '<span style="color:#5a403c;font-size:13px;">&euro;' + parseFloat(a.preis).toFixed(2) + ' &nbsp;|&nbsp; bis ' + a.bis + '</span>' +
           '<button onclick="angebotDelete(\'' + a.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button>' +
           '</div>';
