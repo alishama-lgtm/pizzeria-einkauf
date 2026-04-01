@@ -1060,6 +1060,9 @@
   <div id="panel-lager"        style="display:none"></div>
   <div id="panel-wareneinsatz" style="display:none"></div>
   <div id="panel-preisalarm"   style="display:none"></div>
+  <div id="panel-statistik"    style="display:none"></div>
+  <div id="panel-tagesangebote" style="display:none"></div>
+  <div id="panel-umsatz"       style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -6157,7 +6160,7 @@ const NAV_GROUPS = [
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm'],                mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
-  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte'], mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz'], mobile:false },
 ];
 
 function _syncNavActiveStates(tab) {
@@ -6215,7 +6218,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -6268,6 +6271,9 @@ function switchTab(tab) {
   if (tab === 'lager')         renderLagerTab();
   if (tab === 'wareneinsatz')  renderWareneinsatzTab();
   if (tab === 'preisalarm')    renderPreisalarmTab();
+  if (tab === 'statistik')     renderStatistikTab();
+  if (tab === 'tagesangebote') renderTagesangeboteTab();
+  if (tab === 'umsatz')        renderUmsatzTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -9649,9 +9655,9 @@ function _updateMobMehrActive() {
 const USERS = PIZZERIA_USERS;
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm'],
-  employee: ['dashboard','kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
+  employee: ['dashboard','kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','tagesangebote'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
 
@@ -11302,6 +11308,517 @@ function preisDelete(id) {
   let e = []; try { e = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(ex) {}
   localStorage.setItem('pizzeria_preisalarm', JSON.stringify(e.filter(x=>x.id!==id)));
   _showToast('Gelöscht'); renderPreisalarmTab();
+}
+
+// ===== PHASE 4: STATISTIK, TAGESANGEBOTE, UMSATZ =====
+
+function renderStatistikTab() {
+  var panel = document.getElementById('panel-statistik');
+  var viewMode = panel.dataset.view || 'woche';
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
+
+  var now = new Date();
+  var today = now.toISOString().slice(0, 10);
+  var dayOfWeek = now.getDay();
+  var diffToMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+  var monday = new Date(now);
+  monday.setDate(now.getDate() - diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  var firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  var filtered = data.filter(function(e) {
+    var d = new Date(e.datum);
+    if (viewMode === 'tag') return e.datum === today;
+    if (viewMode === 'woche') return d >= monday;
+    if (viewMode === 'monat') return d >= firstOfMonth;
+    return true;
+  });
+
+  var gesamtUmsatz = filtered.reduce(function(s, e) { return s + (parseFloat(e.preis) * parseInt(e.anzahl) || 0); }, 0);
+  var gesamtGerichte = filtered.reduce(function(s, e) { return s + (parseInt(e.anzahl) || 0); }, 0);
+
+  var lastMonday = new Date(monday);
+  lastMonday.setDate(monday.getDate() - 7);
+  var lastSunday = new Date(monday);
+  lastSunday.setDate(monday.getDate() - 1);
+  lastSunday.setHours(23, 59, 59, 999);
+  var dieseWocheUmsatz = data.filter(function(e) { var d = new Date(e.datum); return d >= monday; })
+    .reduce(function(s, e) { return s + (parseFloat(e.preis) * parseInt(e.anzahl) || 0); }, 0);
+  var letzteWocheUmsatz = data.filter(function(e) { var d = new Date(e.datum); return d >= lastMonday && d <= lastSunday; })
+    .reduce(function(s, e) { return s + (parseFloat(e.preis) * parseInt(e.anzahl) || 0); }, 0);
+  var wochenVergleich = letzteWocheUmsatz > 0 ? ((dieseWocheUmsatz - letzteWocheUmsatz) / letzteWocheUmsatz * 100).toFixed(1) : null;
+
+  var gerichtMap = {};
+  filtered.forEach(function(e) {
+    if (!gerichtMap[e.gericht]) gerichtMap[e.gericht] = 0;
+    gerichtMap[e.gericht] += parseInt(e.anzahl) || 0;
+  });
+  var topGerichte = Object.keys(gerichtMap).map(function(k) { return { name: k, anzahl: gerichtMap[k] }; })
+    .sort(function(a, b) { return b.anzahl - a.anzahl; }).slice(0, 10);
+  var maxAnzahl = topGerichte.length > 0 ? topGerichte[0].anzahl : 1;
+
+  var tageMap = {};
+  filtered.forEach(function(e) {
+    if (!tageMap[e.datum]) tageMap[e.datum] = 0;
+    tageMap[e.datum] += parseFloat(e.preis) * parseInt(e.anzahl) || 0;
+  });
+  var days = Object.keys(tageMap).sort();
+
+  var btnStyle = 'padding:7px 18px;border-radius:8px;border:1.5px solid #e3beb8;cursor:pointer;font-size:14px;font-weight:600;';
+  var activeStyle = btnStyle + 'background:#8B0000;color:#fff;';
+  var inactiveStyle = btnStyle + 'background:#fff;color:#8B0000;';
+
+  var topGerichteHtml = topGerichte.length === 0 ? '<p style="color:#5a403c;font-size:14px;">Keine Daten</p>' :
+    topGerichte.map(function(g) {
+      var pct = Math.round(g.anzahl / maxAnzahl * 100);
+      return '<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:13px;color:#261816;margin-bottom:3px;"><span>' + g.name + '</span><span>' + g.anzahl + ' Stk.</span></div><div style="background:#f3e5e0;border-radius:6px;height:14px;"><div style="background:#8B0000;width:' + pct + '%;height:14px;border-radius:6px;transition:width 0.4s;"></div></div></div>';
+    }).join('');
+
+  var tageHtml = '';
+  if (days.length > 0) {
+    var tageRows = days.map(function(d) {
+      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + d + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">€' + tageMap[d].toFixed(2) + '</td></tr>';
+    }).join('');
+    tageHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;"><h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Umsatz pro Tag</h3><table style="width:100%;border-collapse:collapse;"><thead><tr><th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th><th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Umsatz</th></tr></thead><tbody>' + tageRows + '</tbody></table></div>';
+  }
+
+  var letzteEintraege = data.slice().reverse().slice(0, 50);
+  var eintraegeRows = letzteEintraege.length === 0 ? '<tr><td colspan="5" style="padding:12px;text-align:center;color:#5a403c;">Keine Eintr&auml;ge</td></tr>' :
+    letzteEintraege.map(function(e) {
+      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.gericht + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">' + e.anzahl + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">€' + parseFloat(e.preis).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="statistikDelete(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
+    }).join('');
+
+  var wochenVergleichHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">' +
+    '<div style="background:#e8f5e9;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:12px;color:#1b5e20;font-weight:600;">DIESE WOCHE</div><div style="font-size:22px;font-weight:700;color:#1b5e20;">&euro;' + dieseWocheUmsatz.toFixed(2) + '</div></div>' +
+    '<div style="background:#fff3e0;border-radius:10px;padding:14px;text-align:center;"><div style="font-size:12px;color:#e65100;font-weight:600;">LETZTE WOCHE</div><div style="font-size:22px;font-weight:700;color:#e65100;">&euro;' + letzteWocheUmsatz.toFixed(2) + '</div></div>' +
+    '</div>';
+
+  var wochenKpiColor = wochenVergleich === null ? '#5a403c' : (parseFloat(wochenVergleich) >= 0 ? '#1b5e20' : '#c62828');
+  var wochenKpiText = wochenVergleich === null ? 'Keine Vorwoche' : (parseFloat(wochenVergleich) >= 0 ? '+' + wochenVergleich + '%' : wochenVergleich + '%');
+
+  panel.innerHTML =
+    '<div style="padding:16px;max-width:900px;margin:0 auto">' +
+    '<h2 style="color:#8B0000;margin:0 0 16px;font-size:20px">&#x1F4CA; Verkaufsstatistik</h2>' +
+    '<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">' +
+      '<button onclick="document.getElementById(\'panel-statistik\').dataset.view=\'tag\';renderStatistikTab();" style="' + (viewMode === 'tag' ? activeStyle : inactiveStyle) + '">Heute</button>' +
+      '<button onclick="document.getElementById(\'panel-statistik\').dataset.view=\'woche\';renderStatistikTab();" style="' + (viewMode === 'woche' ? activeStyle : inactiveStyle) + '">Diese Woche</button>' +
+      '<button onclick="document.getElementById(\'panel-statistik\').dataset.view=\'monat\';renderStatistikTab();" style="' + (viewMode === 'monat' ? activeStyle : inactiveStyle) + '">Dieser Monat</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">' +
+      '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:18px;text-align:center;">' +
+        '<div style="font-size:12px;color:#5a403c;font-weight:600;letter-spacing:1px;">GESAMTUMSATZ</div>' +
+        '<div style="font-size:26px;font-weight:700;color:#8B0000;margin-top:6px;">&euro;' + gesamtUmsatz.toFixed(2) + '</div>' +
+      '</div>' +
+      '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:18px;text-align:center;">' +
+        '<div style="font-size:12px;color:#5a403c;font-weight:600;letter-spacing:1px;">VERKAUFTE GERICHTE</div>' +
+        '<div style="font-size:26px;font-weight:700;color:#8B0000;margin-top:6px;">' + gesamtGerichte + '</div>' +
+      '</div>' +
+      '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:18px;text-align:center;">' +
+        '<div style="font-size:12px;color:#5a403c;font-weight:600;letter-spacing:1px;">WOCHENVERGLEICH</div>' +
+        '<div style="font-size:26px;font-weight:700;color:' + wochenKpiColor + ';margin-top:6px;">' + wochenKpiText + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Top 10 Gerichte</h3>' +
+      topGerichteHtml +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Wochenvergleich</h3>' +
+      wochenVergleichHtml +
+    '</div>' +
+    tageHtml +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Eintrag hinzuf&uuml;gen</h3>' +
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end;flex-wrap:wrap;">' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="stat-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Gericht</label><input type="text" id="stat-gericht" placeholder="Pizzaname..." style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Anzahl</label><input type="number" id="stat-anzahl" min="1" placeholder="1" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Preis (&euro;)</label><input type="number" id="stat-preis" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<button onclick="statistikAdd()" style="padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">+ Hinzuf&uuml;gen</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
+      '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Alle Eintr&auml;ge (letzte 50)</h3>' +
+      '<table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr>' +
+          '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
+          '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Gericht</th>' +
+          '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Anzahl</th>' +
+          '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Preis</th>' +
+          '<th style="padding:6px 10px;"></th>' +
+        '</tr></thead>' +
+        '<tbody>' + eintraegeRows + '</tbody>' +
+      '</table>' +
+    '</div>' +
+    '</div>';
+}
+
+function statistikAdd() {
+  var datum = document.getElementById('stat-datum').value;
+  var gericht = document.getElementById('stat-gericht').value.trim();
+  var anzahl = parseInt(document.getElementById('stat-anzahl').value);
+  var preis = parseFloat(document.getElementById('stat-preis').value);
+  if (!datum) { _showToast('Bitte Datum angeben'); return; }
+  if (!gericht) { _showToast('Bitte Gericht angeben'); return; }
+  if (!anzahl || anzahl < 1) { _showToast('Bitte g\u00fcltige Anzahl angeben'); return; }
+  if (isNaN(preis) || preis < 0) { _showToast('Bitte g\u00fcltigen Preis angeben'); return; }
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
+  data.push({ id: Date.now().toString(), datum: datum, gericht: gericht, anzahl: anzahl, preis: preis });
+  localStorage.setItem('pizzeria_statistik', JSON.stringify(data));
+  document.getElementById('stat-gericht').value = '';
+  document.getElementById('stat-anzahl').value = '';
+  document.getElementById('stat-preis').value = '';
+  _showToast('Eintrag gespeichert \u2713');
+  renderStatistikTab();
+}
+
+function statistikDelete(id) {
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
+  data = data.filter(function(e) { return e.id !== id; });
+  localStorage.setItem('pizzeria_statistik', JSON.stringify(data));
+  _showToast('Gel\u00f6scht');
+  renderStatistikTab();
+}
+
+function renderTagesangeboteTab() {
+  var panel = document.getElementById('panel-tagesangebote');
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_tagesangebote') || '[]'); } catch(ex) {}
+  var today = new Date().toISOString().slice(0, 10);
+
+  var aktive = data.filter(function(a) { return a.von <= today && a.bis >= today; });
+  var zukuenftige = data.filter(function(a) { return a.von > today; });
+  var abgelaufene = data.filter(function(a) { return a.bis < today; }).slice(-10).reverse();
+
+  var bannerHtml = '';
+  if (aktive.length > 0) {
+    var gerichtNamen = aktive.map(function(a) { return a.gericht; }).join(', ');
+    bannerHtml = '<div style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:12px;padding:14px 20px;margin-bottom:18px;display:flex;align-items:center;gap:12px;">' +
+      '<span style="font-size:22px;">&#x1F7E2;</span>' +
+      '<div><div style="font-weight:700;color:#1b5e20;font-size:15px;">' + aktive.length + ' aktives Angebot' + (aktive.length > 1 ? 'e' : '') + '</div>' +
+      '<div style="color:#2e7d32;font-size:13px;">' + gerichtNamen + '</div></div></div>';
+  }
+
+  var aktiveHtml = '';
+  if (aktive.length === 0) {
+    aktiveHtml = '<p style="color:#5a403c;font-size:14px;">Keine aktiven Angebote.</p>';
+  } else {
+    aktiveHtml = aktive.map(function(a) {
+      var rabatt = Math.round((1 - parseFloat(a.preis) / parseFloat(a.original)) * 100);
+      var diffMs = new Date(a.bis + 'T23:59:59') - new Date();
+      var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      var margeWarnung = rabatt > 40 ? '<div style="background:#ffebee;border-radius:7px;padding:6px 10px;margin-top:8px;color:#c62828;font-size:13px;font-weight:600;">&#x26A0;&#xFE0F; Rabatt &uuml;ber 40% &mdash; Marge pr&uuml;fen!</div>' : '';
+      var countdown = diffDays <= 0 ? 'L&auml;uft heute ab' : ('Noch ' + diffDays + ' Tag' + (diffDays > 1 ? 'e' : ''));
+      return '<div style="background:#fff;border-radius:14px;border:1.5px solid #a5d6a7;padding:16px 20px;margin-bottom:12px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div>' +
+        '<div style="font-size:16px;font-weight:700;color:#261816;">' + a.gericht + '</div>' +
+        '<div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+        '<span style="text-decoration:line-through;color:#5a403c;font-size:14px;">&euro;' + parseFloat(a.original).toFixed(2) + '</span>' +
+        '<span style="font-size:20px;font-weight:700;color:#8B0000;">&euro;' + parseFloat(a.preis).toFixed(2) + '</span>' +
+        '<span style="background:#e8f5e9;color:#1b5e20;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;">-' + rabatt + '%</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#5a403c;margin-top:6px;">' + countdown + ' &nbsp;|&nbsp; ' + a.von + ' &ndash; ' + a.bis + '</div>' +
+        margeWarnung +
+        '</div>' +
+        '<button onclick="angebotDelete(\'' + a.id + '\')" style="background:none;border:none;cursor:pointer;font-size:18px;">&#x1F5D1;&#xFE0F;</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  var zukuenftigeHtml = '';
+  if (zukuenftige.length > 0) {
+    zukuenftigeHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">K&uuml;nftige Angebote</h3>' +
+      zukuenftige.map(function(a) {
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f3e5e0;">' +
+          '<span style="color:#261816;font-weight:600;">' + a.gericht + '</span>' +
+          '<span style="color:#5a403c;font-size:13px;">ab ' + a.von + '</span>' +
+          '<button onclick="angebotDelete(\'' + a.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button>' +
+          '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  var abgelaufeneHtml = '';
+  if (abgelaufene.length > 0) {
+    abgelaufeneHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;opacity:0.7;">' +
+      '<h3 style="margin:0 0 12px 0;color:#5a403c;font-size:16px;">Abgelaufene Angebote (letzte 10)</h3>' +
+      abgelaufene.map(function(a) {
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f3e5e0;">' +
+          '<span style="color:#5a403c;">' + a.gericht + '</span>' +
+          '<span style="color:#5a403c;font-size:13px;">&euro;' + parseFloat(a.preis).toFixed(2) + ' &nbsp;|&nbsp; bis ' + a.bis + '</span>' +
+          '<button onclick="angebotDelete(\'' + a.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button>' +
+          '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  panel.innerHTML =
+    '<div style="padding:16px;max-width:900px;margin:0 auto">' +
+    '<h2 style="color:#8B0000;margin:0 0 16px;font-size:20px">&#x1F3F7;&#xFE0F; Tagesangebote</h2>' +
+    bannerHtml +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Neues Angebot</h3>' +
+      '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Gericht</label><input type="text" id="angebot-gericht" placeholder="Pizzaname..." style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Originalpreis &euro;</label><input type="number" id="angebot-original" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Angebotspreis &euro;</label><input type="number" id="angebot-preis" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Von</label><input type="date" id="angebot-von" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Bis</label><input type="date" id="angebot-bis" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+      '</div>' +
+      '<button onclick="angebotAdd()" style="padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Angebot speichern</button>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Aktive Angebote</h3>' +
+      aktiveHtml +
+    '</div>' +
+    zukuenftigeHtml +
+    abgelaufeneHtml +
+    '</div>';
+}
+
+function angebotAdd() {
+  var gericht = document.getElementById('angebot-gericht').value.trim();
+  var original = parseFloat(document.getElementById('angebot-original').value);
+  var preis = parseFloat(document.getElementById('angebot-preis').value);
+  var von = document.getElementById('angebot-von').value;
+  var bis = document.getElementById('angebot-bis').value;
+  if (!gericht) { _showToast('Bitte Gericht angeben'); return; }
+  if (isNaN(original) || original <= 0) { _showToast('Bitte g\u00fcltigen Originalpreis angeben'); return; }
+  if (isNaN(preis) || preis <= 0) { _showToast('Bitte g\u00fcltigen Angebotspreis angeben'); return; }
+  if (preis >= original) { _showToast('Angebotspreis muss kleiner als Originalpreis sein'); return; }
+  if (!von) { _showToast('Bitte Von-Datum angeben'); return; }
+  if (!bis) { _showToast('Bitte Bis-Datum angeben'); return; }
+  if (bis < von) { _showToast('Bis-Datum muss nach Von-Datum liegen'); return; }
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_tagesangebote') || '[]'); } catch(ex) {}
+  data.push({ id: Date.now().toString(), gericht: gericht, original: original, preis: preis, von: von, bis: bis });
+  localStorage.setItem('pizzeria_tagesangebote', JSON.stringify(data));
+  document.getElementById('angebot-gericht').value = '';
+  document.getElementById('angebot-original').value = '';
+  document.getElementById('angebot-preis').value = '';
+  document.getElementById('angebot-von').value = '';
+  document.getElementById('angebot-bis').value = '';
+  _showToast('Angebot gespeichert \u2713');
+  renderTagesangeboteTab();
+}
+
+function angebotDelete(id) {
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_tagesangebote') || '[]'); } catch(ex) {}
+  data = data.filter(function(a) { return a.id !== id; });
+  localStorage.setItem('pizzeria_tagesangebote', JSON.stringify(data));
+  _showToast('Angebot gel\u00f6scht');
+  renderTagesangeboteTab();
+}
+
+function renderUmsatzTab() {
+  var panel = document.getElementById('panel-umsatz');
+  var einnahmen = [];
+  var ausgaben = [];
+  var ziel = 0;
+  try { einnahmen = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen') || '[]'); } catch(ex) {}
+  try { ausgaben = JSON.parse(localStorage.getItem('pizzeria_umsatz_ausgaben') || '[]'); } catch(ex) {}
+  try { ziel = parseFloat(localStorage.getItem('pizzeria_umsatz_ziel') || '0') || 0; } catch(ex) {}
+
+  var now = new Date();
+  var firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  var monatEin = einnahmen.filter(function(e) { return new Date(e.datum) >= firstOfMonth; });
+  var monatAus = ausgaben.filter(function(e) { return new Date(e.datum) >= firstOfMonth; });
+  var monatGesamtEin = monatEin.reduce(function(s, e) { return s + (parseFloat(e.kasse) || 0) + (parseFloat(e.lieferdienst) || 0); }, 0);
+  var monatGesamtAus = monatAus.reduce(function(s, e) { return s + (parseFloat(e.betrag) || 0); }, 0);
+  var monatGewinn = monatGesamtEin - monatGesamtAus;
+
+  var zielPct = ziel > 0 ? Math.min(Math.round(monatGesamtEin / ziel * 100), 100) : 0;
+  var zielBarColor = zielPct >= 100 ? '#1b5e20' : (zielPct >= 70 ? '#f57f17' : '#c62828');
+  var zielBarBg = zielPct >= 100 ? '#e8f5e9' : (zielPct >= 70 ? '#fffde7' : '#ffebee');
+
+  var zielHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+    '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#x1F3AF; Monatsziel</h3>' +
+    '<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">' +
+    '<input type="number" id="umsatz-ziel" value="' + (ziel > 0 ? ziel : '') + '" placeholder="Ziel in &euro;" min="0" step="0.01" style="padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;width:180px;">' +
+    '<button onclick="umsatzSetZiel()" style="padding:8px 18px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">Setzen</button>' +
+    '</div>' +
+    (ziel > 0 ?
+      '<div style="background:#f3e5e0;border-radius:8px;height:18px;margin-bottom:8px;"><div style="background:' + zielBarColor + ';width:' + zielPct + '%;height:18px;border-radius:8px;transition:width 0.4s;"></div></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:' + zielBarColor + ';font-weight:600;">&euro;' + monatGesamtEin.toFixed(2) + ' von &euro;' + ziel.toFixed(2) + '</span><span style="background:' + zielBarBg + ';color:' + zielBarColor + ';border-radius:12px;padding:2px 10px;font-weight:700;">' + zielPct + '%</span></div>'
+      : '<div style="color:#5a403c;font-size:13px;">Kein Ziel gesetzt.</div>') +
+    '</div>';
+
+  var gewinnColor = monatGewinn >= 0 ? '#1b5e20' : '#c62828';
+  var gewinnBg = monatGewinn >= 0 ? '#e8f5e9' : '#ffebee';
+
+  var kpiHtml = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">' +
+    '<div style="background:#e8f5e9;border-radius:14px;border:1.5px solid #a5d6a7;padding:18px;text-align:center;">' +
+      '<div style="font-size:12px;color:#1b5e20;font-weight:600;letter-spacing:1px;">EINNAHMEN</div>' +
+      '<div style="font-size:26px;font-weight:700;color:#1b5e20;margin-top:6px;">&euro;' + monatGesamtEin.toFixed(2) + '</div>' +
+    '</div>' +
+    '<div style="background:#ffebee;border-radius:14px;border:1.5px solid #ef9a9a;padding:18px;text-align:center;">' +
+      '<div style="font-size:12px;color:#c62828;font-weight:600;letter-spacing:1px;">AUSGABEN</div>' +
+      '<div style="font-size:26px;font-weight:700;color:#c62828;margin-top:6px;">&euro;' + monatGesamtAus.toFixed(2) + '</div>' +
+    '</div>' +
+    '<div style="background:' + gewinnBg + ';border-radius:14px;border:1.5px solid #e3beb8;padding:18px;text-align:center;">' +
+      '<div style="font-size:12px;color:' + gewinnColor + ';font-weight:600;letter-spacing:1px;">GEWINN / VERLUST</div>' +
+      '<div style="font-size:26px;font-weight:700;color:' + gewinnColor + ';margin-top:6px;">' + (monatGewinn >= 0 ? '+' : '') + '&euro;' + monatGewinn.toFixed(2) + '</div>' +
+    '</div>' +
+  '</div>';
+
+  var formHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;">' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
+      '<h3 style="margin:0 0 14px 0;color:#1b5e20;font-size:15px;">Einnahme eintragen</h3>' +
+      '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="ein-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Kasse &euro;</label><input type="number" id="ein-kasse" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Lieferdienst &euro;</label><input type="number" id="ein-lieferdienst" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<button onclick="umsatzAddEinnahme()" style="padding:9px;background:#1b5e20;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Einnahme speichern</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
+      '<h3 style="margin:0 0 14px 0;color:#c62828;font-size:15px;">Ausgabe eintragen</h3>' +
+      '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="aus-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Kategorie</label><select id="aus-kategorie" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"><option value="Einkauf">Einkauf</option><option value="Personal">Personal</option><option value="Miete">Miete</option><option value="Sonstiges">Sonstiges</option></select></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Betrag &euro;</label><input type="number" id="aus-betrag" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<button onclick="umsatzAddAusgabe()" style="padding:9px;background:#c62828;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Ausgabe speichern</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  var wocheRows = '';
+  var wi;
+  for (wi = 6; wi >= 0; wi--) {
+    var wd = new Date(now);
+    wd.setDate(now.getDate() - wi);
+    var wds = wd.toISOString().slice(0, 10);
+    var tagEin = einnahmen.filter(function(e) { return e.datum === wds; }).reduce(function(s, e) { return s + (parseFloat(e.kasse) || 0) + (parseFloat(e.lieferdienst) || 0); }, 0);
+    var tagAus = ausgaben.filter(function(e) { return e.datum === wds; }).reduce(function(s, e) { return s + (parseFloat(e.betrag) || 0); }, 0);
+    var tagGewinn = tagEin - tagAus;
+    var gColor = tagGewinn >= 0 ? '#1b5e20' : '#c62828';
+    wocheRows += '<tr>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + wds + '</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:#1b5e20;">&euro;' + tagEin.toFixed(2) + '</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:#c62828;">&euro;' + tagAus.toFixed(2) + '</td>' +
+      '<td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:' + gColor + ';font-weight:600;">' + (tagGewinn >= 0 ? '+' : '') + '&euro;' + tagGewinn.toFixed(2) + '</td>' +
+    '</tr>';
+  }
+  var wocheHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+    '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Woche&uuml;bersicht (letzte 7 Tage)</h3>' +
+    '<table style="width:100%;border-collapse:collapse;">' +
+      '<thead><tr>' +
+        '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
+        '<th style="text-align:right;padding:6px 10px;color:#1b5e20;font-size:13px;">Einnahmen</th>' +
+        '<th style="text-align:right;padding:6px 10px;color:#c62828;font-size:13px;">Ausgaben</th>' +
+        '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Gewinn/Verlust</th>' +
+      '</tr></thead>' +
+      '<tbody>' + wocheRows + '</tbody>' +
+    '</table></div>';
+
+  var einnahmenTabelleHtml = '';
+  if (einnahmen.length > 0) {
+    var letzteEin = einnahmen.slice().reverse().slice(0, 20);
+    einnahmenTabelleHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Letzte 20 Einnahmen</h3>' +
+      '<table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr>' +
+          '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
+          '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Kasse</th>' +
+          '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Lieferdienst</th>' +
+          '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Gesamt</th>' +
+          '<th style="padding:6px 10px;"></th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+        letzteEin.map(function(e) {
+          var ges = (parseFloat(e.kasse) || 0) + (parseFloat(e.lieferdienst) || 0);
+          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">&euro;' + (parseFloat(e.kasse) || 0).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">&euro;' + (parseFloat(e.lieferdienst) || 0).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;font-weight:600;color:#1b5e20;">&euro;' + ges.toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="umsatzDeleteEinnahme(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
+        }).join('') +
+        '</tbody></table></div>';
+  }
+
+  var ausgabenTabelleHtml = '';
+  if (ausgaben.length > 0) {
+    var letzteAus = ausgaben.slice().reverse().slice(0, 20);
+    ausgabenTabelleHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Letzte 20 Ausgaben</h3>' +
+      '<table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr>' +
+          '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
+          '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Kategorie</th>' +
+          '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Betrag</th>' +
+          '<th style="padding:6px 10px;"></th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+        letzteAus.map(function(e) {
+          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.kategorie + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:#c62828;font-weight:600;">&euro;' + parseFloat(e.betrag).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="umsatzDeleteAusgabe(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
+        }).join('') +
+        '</tbody></table></div>';
+  }
+
+  panel.innerHTML = '<div style="padding:16px;max-width:900px;margin:0 auto">' +
+    '<h2 style="color:#8B0000;margin:0 0 16px;font-size:20px">&#x1F4B0; Umsatz-Dashboard</h2>' +
+    zielHtml + kpiHtml + formHtml + wocheHtml + einnahmenTabelleHtml + ausgabenTabelleHtml +
+    '</div>';
+}
+
+function umsatzAddEinnahme() {
+  var datum = document.getElementById('ein-datum').value;
+  var kasse = parseFloat(document.getElementById('ein-kasse').value) || 0;
+  var lieferdienst = parseFloat(document.getElementById('ein-lieferdienst').value) || 0;
+  if (!datum) { _showToast('Bitte Datum angeben'); return; }
+  if (kasse <= 0 && lieferdienst <= 0) { _showToast('Bitte mindestens einen Betrag angeben'); return; }
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen') || '[]'); } catch(ex) {}
+  data.push({ id: Date.now().toString(), datum: datum, kasse: kasse, lieferdienst: lieferdienst });
+  localStorage.setItem('pizzeria_umsatz_einnahmen', JSON.stringify(data));
+  document.getElementById('ein-kasse').value = '';
+  document.getElementById('ein-lieferdienst').value = '';
+  _showToast('Einnahme gespeichert \u2713');
+  renderUmsatzTab();
+}
+
+function umsatzAddAusgabe() {
+  var datum = document.getElementById('aus-datum').value;
+  var kategorie = document.getElementById('aus-kategorie').value;
+  var betrag = parseFloat(document.getElementById('aus-betrag').value);
+  if (!datum) { _showToast('Bitte Datum angeben'); return; }
+  if (isNaN(betrag) || betrag <= 0) { _showToast('Bitte g\u00fcltigen Betrag angeben'); return; }
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_ausgaben') || '[]'); } catch(ex) {}
+  data.push({ id: Date.now().toString(), datum: datum, kategorie: kategorie, betrag: betrag });
+  localStorage.setItem('pizzeria_umsatz_ausgaben', JSON.stringify(data));
+  document.getElementById('aus-betrag').value = '';
+  _showToast('Ausgabe gespeichert \u2713');
+  renderUmsatzTab();
+}
+
+function umsatzDeleteEinnahme(id) {
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen') || '[]'); } catch(ex) {}
+  data = data.filter(function(e) { return e.id !== id; });
+  localStorage.setItem('pizzeria_umsatz_einnahmen', JSON.stringify(data));
+  _showToast('Gel\u00f6scht');
+  renderUmsatzTab();
+}
+
+function umsatzDeleteAusgabe(id) {
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_ausgaben') || '[]'); } catch(ex) {}
+  data = data.filter(function(e) { return e.id !== id; });
+  localStorage.setItem('pizzeria_umsatz_ausgaben', JSON.stringify(data));
+  _showToast('Gel\u00f6scht');
+  renderUmsatzTab();
+}
+
+function umsatzSetZiel() {
+  var val = parseFloat(document.getElementById('umsatz-ziel').value);
+  if (isNaN(val) || val <= 0) { _showToast('Bitte g\u00fcltiges Ziel angeben'); return; }
+  localStorage.setItem('pizzeria_umsatz_ziel', val.toString());
+  _showToast('Monatsziel gesetzt \u2713');
+  renderUmsatzTab();
 }
 
 function _showToast(msg) {
