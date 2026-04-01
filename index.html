@@ -410,6 +410,9 @@
     @media (max-width: 640px) {
       .bento-grid { grid-template-columns: 1fr; }
     }
+    @media (max-width: 640px) {
+      .dashboard-grid { grid-template-columns: 1fr !important; }
+    }
     .bento-hero {
       background: #fff;
       border-radius: 16px;
@@ -9767,8 +9770,9 @@ function showApp() {
     _updateMobMehrActive();
   };
 
-  // Ersten erlaubten Tab oeffnen
-  switchTab(allowed[0] || 'kombis');
+  // Ersten erlaubten Tab oeffnen — Dashboard als Standard fuer Admin/Manager
+  const startTab = allowed.includes('dashboard') ? 'dashboard' : (allowed[0] || 'kombis');
+  switchTab(startTab);
 
   renderStatsDashboard();
 }
@@ -9779,124 +9783,266 @@ function showApp() {
 function renderDashboardTab() {
   const panel = document.getElementById('panel-dashboard');
   if (!panel) return;
+
+  // Live-Uhr: alten Interval aufräumen
+  if (window._dashboardClockInterval) {
+    clearInterval(window._dashboardClockInterval);
+    window._dashboardClockInterval = null;
+  }
+
   try {
-    const today = new Date().toISOString().slice(0,10);
-    const kassa = typeof bizGetKassa === 'function' ? bizGetKassa() : [];
-    const todayEntry = kassa.find(e => e.date === today);
-    const todayRev = todayEntry ? (todayEntry.gesamt || 0) : 0;
-    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); weekStart.setHours(0,0,0,0);
-    const weekRev = kassa.filter(e => new Date(e.date) >= weekStart).reduce((s,e) => s + (e.gesamt||0), 0);
-    const low = getLowStockProducts();
-    const fmOpen = (typeof FM_DATA !== 'undefined') ? FM_DATA.filter(e => e.status === 'offen').length : 0;
-    const recentHist = [...HISTORY].reverse().slice(0,5);
-    const activeDeals = DEALS.filter(d => d.week === 'current');
+    const now = new Date();
+    const today = now.toISOString().slice(0,10);
+    const hour = now.getHours();
+    const isAdminOrManager = currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager');
 
-    const kpiStyle = 'background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:18px 20px;flex:1;min-width:130px';
-    const kpiLabel = 'font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px';
-    const kpiVal   = 'font-size:26px;font-weight:900;color:#261816;line-height:1';
+    // Begrüßung
+    const userName = currentUser ? (currentUser.name || currentUser.username || 'Ali') : 'Ali';
+    const greeting = hour < 12 ? 'Guten Morgen' : hour < 18 ? 'Guten Tag' : 'Guten Abend';
+    const weekday = now.toLocaleDateString('de-AT', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    const timeStr = now.toLocaleTimeString('de-AT', {hour:'2-digit', minute:'2-digit'});
 
+    // Fehlmaterial
+    let fmOpen = 0;
+    try {
+      const fm = (typeof FM_DATA !== 'undefined') ? FM_DATA : JSON.parse(localStorage.getItem('pizzeria_fehlmaterial')||'[]');
+      fmOpen = fm.filter(e => e.status === 'offen').length;
+    } catch(_) {}
+
+    // Lager kritisch
+    let lagerKritisch = 0;
+    try {
+      const lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]');
+      lagerKritisch = lager.filter(a => a.menge <= a.mindest).length;
+    } catch(_) {}
+
+    // Preisalarm
+    let preisAlarm = 0;
+    try {
+      const pa = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]');
+      preisAlarm = pa.filter(e => e.aktuell > e.ziel).length;
+    } catch(_) {}
+
+    // Aufgaben
+    let aufgabenHeute = [], aufgabenOffen = [];
+    try {
+      const alle = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]');
+      aufgabenHeute = alle.filter(a => !a.erledigt && a.faellig === today);
+      const prio = {hoch:0, mittel:1, niedrig:2};
+      aufgabenOffen = alle.filter(a => !a.erledigt)
+        .sort((a,b) => (prio[a.prioritaet]||1) - (prio[b.prioritaet]||1))
+        .slice(0, 5);
+    } catch(_) {}
+
+    // Schicht-Check Öffnung
+    const OEFFNUNG = ['Kasse öffnen & Kassenstand prüfen','Kühlschrank & Temperaturen kontrollieren','Mise en place vorbereiten','Küche reinigen & desinfizieren','Tagesbestellung prüfen','Mitarbeiter einweisen','Musik & Beleuchtung einstellen','Hygiene-Check durchführen'];
+    let checks = {};
+    try {
+      checks = JSON.parse(localStorage.getItem('pizzeria_schichtcheck')||'{}');
+      if (checks.datum !== today) checks = {datum:today, oeffnung:{}, schliessung:{}};
+    } catch(_) {}
+    const oeffnungChecks = checks.oeffnung || {};
+    const oCount = Object.keys(oeffnungChecks).filter(k => !k.endsWith('_z')).length;
+
+    // Umsatz (nur Admin/Manager)
+    let umsatzHeute = 0, umsatzMonat = 0, umsatzZiel = 0;
+    if (isAdminOrManager) {
+      try {
+        const einnahmen = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen')||'[]');
+        const monatPfx = today.slice(0,7);
+        einnahmen.forEach(e => {
+          const sum = (e.kasse||0) + (e.lieferdienst||0);
+          if (e.datum === today) umsatzHeute += sum;
+          if (e.datum && e.datum.startsWith(monatPfx)) umsatzMonat += sum;
+        });
+        umsatzZiel = parseFloat(localStorage.getItem('pizzeria_umsatz_ziel')||'0') || 0;
+      } catch(_) {}
+    }
+
+    // Helper
+    const fmt2 = n => n.toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const bar = (pct, color) => `<div style="height:8px;border-radius:4px;background:#f0e4e1;overflow:hidden"><div class="progress-fill" style="height:100%;border-radius:4px;background:${color};width:${Math.min(100,pct)}%"></div></div>`;
+    const barColor = pct => pct >= 80 ? '#2e7d32' : pct >= 50 ? '#f9a825' : '#c62828';
+
+    // ── BEREICH 1: Header ──
     let html = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">dashboard</span>
-      </div>
-      <div>
-        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Dashboard</h2>
-        <p style="font-size:13px;color:#5a403c;margin:0">${new Date().toLocaleDateString('de-AT',{weekday:'long',day:'numeric',month:'long'})}</p>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
-      <div style="${kpiStyle}">
-        <div style="${kpiLabel}">Heute</div>
-        <div style="${kpiVal}">${eur(todayRev)}</div>
-        <div style="font-size:11px;color:#5a403c;margin-top:4px">Umsatz</div>
-      </div>
-      <div style="${kpiStyle}">
-        <div style="${kpiLabel}">Diese Woche</div>
-        <div style="${kpiVal}">${eur(weekRev)}</div>
-        <div style="font-size:11px;color:#5a403c;margin-top:4px">Umsatz</div>
-      </div>
-      <div style="${kpiStyle};${low.length>0?'border-color:#ffb4a8;background:#fff8f6':''}">
-        <div style="${kpiLabel}">Lager</div>
-        <div style="${kpiVal};color:${low.length>0?'#b52619':'#2e7d32'}">${low.length}</div>
-        <div style="font-size:11px;color:#5a403c;margin-top:4px">Knapp/kritisch</div>
-      </div>
-      <div style="${kpiStyle};${fmOpen>0?'border-color:#ffcc80;background:#fffbf5':''}">
-        <div style="${kpiLabel}">Fehlmaterial</div>
-        <div style="${kpiVal};color:${fmOpen>0?'#e65100':'#2e7d32'}">${fmOpen}</div>
-        <div style="font-size:11px;color:#5a403c;margin-top:4px">Offen</div>
+    <div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:16px;padding:20px 24px;margin-bottom:20px;color:#fff">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <h2 style="font-size:22px;font-weight:800;color:#fff;margin:0 0 4px">${greeting}, ${userName}! 👋</h2>
+          <p style="font-size:14px;color:rgba(255,255,255,.8);margin:0">${weekday}</p>
+        </div>
+        <div id="dashboard-clock" style="font-size:28px;font-weight:900;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-1px">${timeStr}</div>
       </div>
     </div>`;
 
-    // Lagerbestand
-    html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:20px;margin-bottom:20px">
-      <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
-        <span class="material-symbols-outlined" style="font-size:18px;color:#610000">inventory_2</span>Lagerbestand
-      </h3>
-      <div style="display:flex;flex-direction:column;gap:8px">`;
-    for (const p of PRODUCTS) {
-      const cur = stockLevels[p.id] ?? p.currentStock;
-      const pct = Math.min(100, Math.round((cur / p.minStock) * 100));
-      const color = cur >= p.minStock ? '#2e7d32' : cur >= p.minStock * 0.5 ? '#e65100' : '#b52619';
-      const bg    = cur >= p.minStock ? '#e8f5e9' : cur >= p.minStock * 0.5 ? '#fff3e0' : '#ffdad6';
-      html += `<div style="display:flex;align-items:center;gap:12px">
-        <div style="width:130px;font-size:13px;font-weight:600;color:#261816;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
-        <div style="flex:1;background:#f3ebe9;border-radius:6px;height:8px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:${color};border-radius:6px"></div>
-        </div>
-        <div style="font-size:12px;font-weight:700;color:${color};background:${bg};padding:2px 8px;border-radius:8px;min-width:58px;text-align:right">${cur} ${p.unit}</div>
+    // ── BEREICH 2: Alerts (nur wenn vorhanden) ──
+    const alerts = [];
+    if (fmOpen > 0)            alerts.push({icon:'🔴', text:`Fehlmaterial offen: <strong>${fmOpen} Artikel</strong>`,                      tab:'fehlmaterial'});
+    if (lagerKritisch > 0)     alerts.push({icon:'🔴', text:`Lagerbestand kritisch: <strong>${lagerKritisch} Artikel</strong> unter Mindest`, tab:'lager'});
+    if (preisAlarm > 0)        alerts.push({icon:'🔴', text:`Preisalarm: <strong>${preisAlarm} Produkte</strong> über Zielpreis`,             tab:'preisalarm'});
+    if (aufgabenHeute.length)  alerts.push({icon:'🟡', text:`Aufgaben fällig heute: <strong>${aufgabenHeute.length} Aufgaben</strong>`,       tab:'aufgaben'});
+
+    if (alerts.length > 0) {
+      html += `<div style="background:#ffebee;border:1.5px solid #ef9a9a;border-radius:16px;padding:16px 20px;margin-bottom:20px">
+        <div style="font-size:13px;font-weight:800;color:#c62828;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">⚠️ Kritische Meldungen</div>
+        <div style="display:flex;flex-direction:column;gap:8px">`;
+      for (const a of alerts) {
+        html += `<div onclick="switchTab('${a.tab}')" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;border-radius:10px;background:#fff;border:1px solid #ef9a9a">
+          <span style="font-size:15px">${a.icon}</span>
+          <span style="font-size:13px;color:#c62828;flex:1">${a.text}</span>
+          <span class="material-symbols-outlined" style="font-size:16px;color:#c62828">arrow_forward</span>
+        </div>`;
+      }
+      html += `</div></div>`;
+    }
+
+    // ── BEREICHE 3 & 4: 2-Spalten-Grid ──
+    html += `<div class="dashboard-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">`;
+
+    // BEREICH 3: Öffnungs-Checkliste
+    const pctO = Math.round(oCount / OEFFNUNG.length * 100);
+    const oColor = barColor(pctO);
+    html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:6px">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">checklist</span>Morgen-Check
+        </h3>
+        <span style="font-size:12px;font-weight:700;color:${oColor}">${oCount}/${OEFFNUNG.length}</span>
+      </div>
+      ${bar(pctO, oColor)}
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">`;
+    for (let i = 0; i < OEFFNUNG.length; i++) {
+      const done = !!oeffnungChecks[i];
+      html += `<div onclick="dashboardSchichtToggle('oeffnung',${i})" style="display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:${done?'#e8f5e9':'#fff8f6'};border:1px solid ${done?'#a5d6a7':'#e3beb8'};cursor:pointer">
+        <div style="width:17px;height:17px;border-radius:5px;border:2px solid ${done?'#2e7d32':'#ccc'};background:${done?'#2e7d32':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0">${done?'<span style="color:#fff;font-size:10px;font-weight:700">✓</span>':''}</div>
+        <span style="font-size:12px;font-weight:600;color:${done?'#1b5e20':'#261816'};text-decoration:${done?'line-through':'none'};flex:1;line-height:1.3">${OEFFNUNG[i]}</span>
       </div>`;
+    }
+    html += `</div>
+      <button onclick="switchTab('schichtcheck')" style="margin-top:12px;width:100%;padding:8px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:12px;font-weight:700;color:#610000;cursor:pointer">Alle anzeigen →</button>
+    </div>`;
+
+    // BEREICH 4: Offene Aufgaben
+    const prioColor = {hoch:'#c62828', mittel:'#e65100', niedrig:'#2e7d32'};
+    const prioLabel = {hoch:'HOCH', mittel:'MITTEL', niedrig:'NIEDRIG'};
+    const prioBg    = {hoch:'#ffebee', mittel:'#fff3e0', niedrig:'#e8f5e9'};
+    html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:6px">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">task_alt</span>Offene Aufgaben
+        </h3>
+        <span style="font-size:12px;font-weight:700;color:#8d6562">${aufgabenOffen.length} offen</span>
+      </div>`;
+    if (aufgabenOffen.length === 0) {
+      html += `<div style="text-align:center;padding:24px 16px;color:#9e9e9e;font-size:13px">✅ Alle Aufgaben erledigt!</div>`;
+    } else {
+      html += `<div style="display:flex;flex-direction:column;gap:6px">`;
+      for (const a of aufgabenOffen) {
+        const pc = prioColor[a.prioritaet]||'#610000';
+        const pb = prioBg[a.prioritaet]||'#fff0ee';
+        const pl = prioLabel[a.prioritaet]||'?';
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#fff8f6;border:1px solid #e3beb8">
+          <input type="checkbox" onchange="dashboardAufgabeToggle(${a.id})" style="width:16px;height:16px;cursor:pointer;accent-color:#8B0000;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700;color:#261816;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.titel}</div>
+            ${a.faellig?`<div style="font-size:10px;color:#8d6562;margin-top:1px">${a.faellig}</div>`:''}
+          </div>
+          <span style="font-size:10px;font-weight:700;color:${pc};background:${pb};padding:2px 6px;border-radius:6px;white-space:nowrap">${pl}</span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `<button onclick="switchTab('aufgaben')" style="margin-top:12px;width:100%;padding:8px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:12px;font-weight:700;color:#610000;cursor:pointer">Alle Aufgaben →</button>
+    </div>`;
+
+    html += `</div>`; // Ende 2-Spalten-Grid
+
+    // ── BEREICH 5: Umsatz heute (nur Admin/Manager) ──
+    if (isAdminOrManager) {
+      const pctM = umsatzZiel > 0 ? Math.round(umsatzMonat / umsatzZiel * 100) : 0;
+      const mColor = barColor(pctM);
+      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:6px">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#610000">euro</span>Umsatz heute
+          </h3>
+          <button onclick="switchTab('umsatz')" style="padding:6px 12px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:12px;font-weight:700;color:#610000;cursor:pointer">Eintragen</button>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:110px;background:#fff8f6;border-radius:12px;padding:12px;border:1px solid #e3beb8;text-align:center">
+            <div style="font-size:10px;font-weight:700;color:#8d6562;margin-bottom:4px;text-transform:uppercase">Heute gesamt</div>
+            <div style="font-size:22px;font-weight:900;color:#261816">${fmt2(umsatzHeute)} €</div>
+          </div>
+          <div style="flex:1;min-width:110px;background:#fff8f6;border-radius:12px;padding:12px;border:1px solid #e3beb8;text-align:center">
+            <div style="font-size:10px;font-weight:700;color:#8d6562;margin-bottom:4px;text-transform:uppercase">Monat</div>
+            <div style="font-size:22px;font-weight:900;color:#261816">${fmt2(umsatzMonat)} €</div>
+          </div>
+        </div>
+        ${umsatzZiel > 0 ? `<div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#8d6562;margin-bottom:6px">
+            <span>Monatsziel: ${fmt2(umsatzZiel)} €</span>
+            <span style="color:${mColor}">${pctM}%</span>
+          </div>
+          ${bar(pctM, mColor)}
+        </div>` : '<div style="font-size:12px;color:#9e9e9e;text-align:center;padding:4px 0">Kein Monatsziel gesetzt</div>'}
+      </div>`;
+    }
+
+    // ── BEREICH 6: Schnellzugriff ──
+    const quickLinks = [
+      {icon:'🛒', label:'Einkauf',    tab:'einkaufsliste'},
+      {icon:'📦', label:'Lager',      tab:'lager'},
+      {icon:'👥', label:'Dienstplan', tab:'dienstplan'},
+      {icon:'✅', label:'Aufgaben',   tab:'aufgaben'},
+      {icon:'📋', label:'Checkliste', tab:'schichtcheck'},
+      {icon:'💰', label:'Umsatz',     tab:'umsatz'},
+    ];
+    html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px">
+      <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 14px;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:18px;color:#610000">grid_view</span>Schnellzugriff
+      </h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">`;
+    for (const q of quickLinks) {
+      html += `<button onclick="switchTab('${q.tab}')" style="padding:14px 8px;border-radius:12px;border:1.5px solid #e3beb8;background:#fff8f6;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <span style="font-size:22px">${q.icon}</span>
+        <span style="font-size:11px;font-weight:700;color:#261816">${q.label}</span>
+      </button>`;
     }
     html += `</div></div>`;
 
-    // Aktuelle Deals
-    if (activeDeals.length > 0) {
-      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:20px;margin-bottom:20px">
-        <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
-          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">local_offer</span>Aktuelle Aktionen
-        </h3>
-        <div style="display:flex;flex-direction:column;gap:8px">`;
-      for (const d of activeDeals) {
-        const prod = PRODUCTS.find(p => p.id === d.productId);
-        const shop = SHOPS.find(s => s.id === d.shopId);
-        if (!prod || !shop) continue;
-        const saving = d.normalPrice - d.pricePerUnit;
-        html += `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff8f6;border-radius:12px;border:1px solid #e3beb8">
-          <div style="width:8px;height:8px;border-radius:50%;background:${shop.color};flex-shrink:0"></div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:700;color:#261816">${prod.name}</div>
-          <div style="font-size:11px;color:#8d6562">${shop.name} · bis ${d.validTo}</div></div>
-          <div style="text-align:right"><div style="font-size:15px;font-weight:900;color:#2e7d32">${eur(d.pricePerUnit)}</div>
-          <div style="font-size:11px;color:#8d6562;text-decoration:line-through">${eur(d.normalPrice)}</div></div>
-          <div style="background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:800">-${eur(saving)}</div>
-        </div>`;
-      }
-      html += `</div></div>`;
-    }
-
-    // Letzte Einkäufe
-    if (recentHist.length > 0) {
-      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;padding:20px">
-        <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
-          <span class="material-symbols-outlined" style="font-size:18px;color:#610000">history</span>Letzte Einkäufe
-        </h3>
-        <div style="display:flex;flex-direction:column;gap:4px">`;
-      for (const h of recentHist) {
-        const shop = SHOPS.find(s => s.id === h.shopId);
-        html += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f3ebe9">
-          <div style="width:8px;height:8px;border-radius:50%;background:${shop?.color||'#8d6562'};flex-shrink:0"></div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#261816">${shop?.name||h.shopId}</div>
-          <div style="font-size:11px;color:#8d6562">${fmtDate(h.date)}</div></div>
-          <div style="font-size:14px;font-weight:800;color:#610000">${eur(h.total||0)}</div>
-        </div>`;
-      }
-      html += `</div></div>`;
-    }
-
     panel.innerHTML = html;
+
+    // Live-Uhr starten
+    window._dashboardClockInterval = setInterval(() => {
+      const el = document.getElementById('dashboard-clock');
+      if (el) el.textContent = new Date().toLocaleTimeString('de-AT', {hour:'2-digit', minute:'2-digit'});
+    }, 30000);
+
   } catch(err) {
     console.error('Dashboard Fehler:', err);
     panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
   }
+}
+
+function dashboardSchichtToggle(typ, index) {
+  const today = new Date().toISOString().slice(0,10);
+  let checks = {};
+  try { checks = JSON.parse(localStorage.getItem('pizzeria_schichtcheck')||'{}'); } catch(e) {}
+  if (!checks[typ]) checks[typ] = {};
+  if (checks[typ][index]) { delete checks[typ][index]; delete checks[typ][index+'_z']; }
+  else { checks[typ][index]=true; checks[typ][index+'_z']=new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}); }
+  localStorage.setItem('pizzeria_schichtcheck', JSON.stringify(checks));
+  renderDashboardTab();
+}
+
+function dashboardAufgabeToggle(id) {
+  let aufgaben = [];
+  try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+  const a = aufgaben.find(x => x.id === id);
+  if (a) a.erledigt = !a.erledigt;
+  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
+  renderDashboardTab();
 }
 
 // ═══════════════════════════════════════════════════════════════
