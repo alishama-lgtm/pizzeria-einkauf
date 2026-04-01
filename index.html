@@ -730,7 +730,7 @@
     /* ── Desktop grouped nav ── */
     .nav-group { position:relative; align-self:stretch; display:flex; align-items:flex-end }
     .nav-grp-dd {
-      display:none; position:absolute; top:calc(100% + 4px); left:0;
+      display:none; position:absolute; top:100%; left:0;
       background:#fff; border:1.5px solid #e3beb8; border-radius:14px;
       box-shadow:0 8px 32px rgba(0,0,0,.13); z-index:200;
       min-width:190px; padding:6px;
@@ -814,6 +814,17 @@
     .bs-btn:hover,.bs-btn.mob-active { background:#fff0ee; border-color:#e3beb8; color:#8B0000 }
     .bs-btn .bs-icon { font-size:18px; line-height:1 }
     .bs-dot { position:absolute; top:5px; right:5px; width:8px; height:8px; background:#e53935; border-radius:50%; display:none }
+    #lag-einheit, #lag-kat {
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%235a403c' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 12px;
+      padding-right: 28px !important;
+      width: 100% !important;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
@@ -1090,7 +1101,7 @@
     <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Aufgaben</span>
     <span id="aufg-mob-badge" style="display:none;position:absolute;top:6px;right:calc(50% - 16px);background:#8B0000;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:16px;text-align:center"></span>
   </button>
-  <button data-bottom-nav="schichtcheck" onclick="switchTab('schichtcheck')"
+  <button data-bottom-nav="checkliste" onclick="switchTab('checkliste')"
     style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
     <span style="font-size:20px">📋</span>
     <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Checkliste</span>
@@ -5711,12 +5722,14 @@ function renderShopsTab() {
       if (v === null) return `<td style="padding:8px 14px;text-align:right;font-size:13px;color:#c9b8b4">—</td>`;
       const isMin = v === min;
       const isMax = !allSame && v === max;
+      const diff = v - min;
       const style = isMin
-        ? 'padding:8px 14px;text-align:right;font-size:13px;font-weight:700;color:#16a34a;'
+        ? 'padding:8px 14px;text-align:right;font-size:13px;font-weight:700;color:#16a34a;background:#f0fdf4;'
         : isMax
           ? 'padding:8px 14px;text-align:right;font-size:13px;color:#a89490;text-decoration:line-through;'
           : 'padding:8px 14px;text-align:right;font-size:13px;color:#261816;';
-      return `<td style="${style}">${eur(v)}${isMin ? ' <span style="font-size:10px">✓</span>' : ''}</td>`;
+      const diffBadge = !isMin && diff > 0 ? `<br><span style="font-size:10px;color:#c62828;font-weight:600">+${eur(diff)}</span>` : '';
+      return `<td style="${style}">${eur(v)}${isMin ? ' <span style="font-size:10px;background:#16a34a;color:#fff;border-radius:3px;padding:1px 4px">✓</span>' : ''}${diffBadge}</td>`;
     }).join('');
 
     const rowBg = lowIds.has(p.id) ? 'background:#fff5f5;' : '';
@@ -9682,7 +9695,7 @@ const USERS = PIZZERIA_USERS;
 const ROLE_TABS = {
   admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
   manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
-  employee: ['dashboard','kombis','angebote','einkaufsliste','suche','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','tagesangebote'],
+  employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
 
@@ -9768,6 +9781,13 @@ function showApp() {
     b.style.display = allowed.includes(b.dataset.drawerNav) ? '' : 'none';
   });
 
+  // Leere Nav-Gruppen ausblenden
+  document.querySelectorAll('.nav-group').forEach(grp => {
+    const items = grp.querySelectorAll('[data-nav-tab]');
+    const anyVisible = Array.from(items).some(b => b.style.display !== 'none');
+    grp.style.display = anyVisible ? '' : 'none';
+  });
+
   // Business-Button nur fuer Admin
   const bizBtn = document.getElementById('biz-header-btn');
   if (bizBtn) bizBtn.style.display = currentUser.role === 'admin' ? '' : 'none';
@@ -9834,9 +9854,11 @@ function renderDashboardTab() {
 
     // Lager kritisch
     let lagerKritisch = 0;
+    let lagerKritischArtikel = [];
     try {
       const lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]');
-      lagerKritisch = lager.filter(a => a.menge <= a.mindest).length;
+      lagerKritischArtikel = lager.filter(a => a.menge <= a.mindest);
+      lagerKritisch = lagerKritischArtikel.length;
     } catch(_) {}
 
     // Preisalarm
@@ -9902,20 +9924,43 @@ function renderDashboardTab() {
     // ── BEREICH 2: Alerts (nur wenn vorhanden) ──
     const alerts = [];
     if (fmOpen > 0)            alerts.push({icon:'🔴', text:`Fehlmaterial offen: <strong>${fmOpen} Artikel</strong>`,                      tab:'fehlmaterial'});
-    if (lagerKritisch > 0)     alerts.push({icon:'🔴', text:`Lagerbestand kritisch: <strong>${lagerKritisch} Artikel</strong> unter Mindest`, tab:'lager'});
+    if (lagerKritisch > 0)     alerts.push({icon:'🔴', text:`${lagerKritisch} Artikel brauchen Nachbestellung`, tab:'lager', expandable:true, artikelListe:lagerKritischArtikel});
     if (preisAlarm > 0)        alerts.push({icon:'🔴', text:`Preisalarm: <strong>${preisAlarm} Produkte</strong> über Zielpreis`,             tab:'preisalarm'});
-    if (aufgabenHeute.length)  alerts.push({icon:'🟡', text:`Aufgaben fällig heute: <strong>${aufgabenHeute.length} Aufgaben</strong>`,       tab:'aufgaben'});
+    if (aufgabenHeute.length)  alerts.push({icon:'🟡', text:`Aufgaben fällig heute: <strong>${aufgabenHeute.length} Aufgaben</strong>`,       tab:'aufgaben', expandable:true, artikelListe:aufgabenHeute, nameField:'titel'});
 
     if (alerts.length > 0) {
       html += `<div style="background:#ffebee;border:1.5px solid #ef9a9a;border-radius:16px;padding:16px 20px;margin-bottom:20px">
         <div style="font-size:13px;font-weight:800;color:#c62828;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">⚠️ Kritische Meldungen</div>
         <div style="display:flex;flex-direction:column;gap:8px">`;
       for (const a of alerts) {
-        html += `<div onclick="switchTab('${a.tab}')" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;border-radius:10px;background:#fff;border:1px solid #ef9a9a">
-          <span style="font-size:15px">${a.icon}</span>
-          <span style="font-size:13px;color:#c62828;flex:1">${a.text}</span>
-          <span class="material-symbols-outlined" style="font-size:16px;color:#c62828">arrow_forward</span>
-        </div>`;
+        if (a.expandable) {
+          const vis = a.artikelListe.slice(0, 8);
+          const rest = a.artikelListe.length - 8;
+          const liItems = vis.map(x => {
+            const label = x[a.nameField||'name'] || x.name || x.titel || '—';
+            const detail = a.nameField === 'titel'
+              ? (x.prioritaet ? ` — ${x.prioritaet}` : '')
+              : ` — ${x.menge||''} ${x.einheit||''}`;
+            return `<li style="padding:3px 0;font-size:12px;color:#5a403c"><strong>${label.replace(/</g,'&lt;')}</strong>${detail}</li>`;
+          }).join('');
+          const moreLink = rest > 0 ? `<li style="padding:3px 0"><span onclick="switchTab('${a.tab}')" style="color:#c62828;cursor:pointer;font-size:12px;font-weight:700">... und ${rest} weitere → Zum Tab</span></li>` : '';
+          const detId = `dash-det-${a.tab}`;
+          html += `<div style="padding:8px 12px;border-radius:10px;background:#fff;border:1px solid #ef9a9a">
+            <div onclick="var d=document.getElementById('${detId}');d.style.display=d.style.display==='none'?'block':'none'" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+              <span style="font-size:15px">${a.icon}</span>
+              <span style="font-size:13px;color:#c62828;flex:1"><strong>${a.text.replace(/<[^>]*>/g,'')}</strong> ▼</span>
+            </div>
+            <div id="${detId}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid #fecdd3">
+              <ul style="margin:0;padding:0 0 0 16px;list-style:disc">${liItems}${moreLink}</ul>
+            </div>
+          </div>`;
+        } else {
+          html += `<div onclick="switchTab('${a.tab}')" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 12px;border-radius:10px;background:#fff;border:1px solid #ef9a9a">
+            <span style="font-size:15px">${a.icon}</span>
+            <span style="font-size:13px;color:#c62828;flex:1">${a.text}</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:#c62828">arrow_forward</span>
+          </div>`;
+        }
       }
       html += `</div></div>`;
     }
@@ -11362,12 +11407,12 @@ function renderLagerTab() {
         <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Artikel hinzufügen</div>
         <div style="display:flex;flex-direction:column;gap:10px">
           <input id="lag-name" placeholder="Artikelname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-          <select id="lag-kat" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+          <select id="lag-kat" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6;appearance:none;-webkit-appearance:none;">
             ${KATS.map(k=>`<option>${k}</option>`).join('')}
           </select>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <input id="lag-menge" type="number" placeholder="Menge" min="0" value="0" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-            <select id="lag-einheit" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+            <select id="lag-einheit" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6;appearance:none;-webkit-appearance:none;">
               ${EINHEITEN.map(e=>`<option>${e}</option>`).join('')}
             </select>
           </div>
