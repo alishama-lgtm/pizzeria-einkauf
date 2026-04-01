@@ -11801,16 +11801,17 @@ function renderStatistikTab() {
     tageHtml +
     '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Eintrag hinzuf&uuml;gen</h3>' +
-      '<div style="display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end;flex-wrap:wrap;">' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="stat-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Gericht</label><input type="text" id="stat-gericht" placeholder="Pizzaname..." style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Anzahl</label><input type="number" id="stat-anzahl" min="1" placeholder="1" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Preis (&euro;)</label><input type="number" id="stat-preis" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<button onclick="statistikAdd()" style="padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">+ Hinzuf&uuml;gen</button>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">' +
+        '<div style="flex:1;min-width:120px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="stat-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:120px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Gericht</label><input type="text" id="stat-gericht" placeholder="Pizzaname..." style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:120px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Anzahl</label><input type="number" id="stat-anzahl" min="1" placeholder="1" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:120px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Preis (&euro;)</label><input type="number" id="stat-preis" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<button onclick="statistikAdd()" style="flex:0 0 auto;padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">+ Hinzuf&uuml;gen</button>' +
       '</div>' +
     '</div>' +
     '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
       '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Alle Eintr&auml;ge (letzte 50)</h3>' +
+      '<div style="overflow-x:auto">' +
       '<table style="width:100%;border-collapse:collapse;">' +
         '<thead><tr>' +
           '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
@@ -11821,6 +11822,7 @@ function renderStatistikTab() {
         '</tr></thead>' +
         '<tbody>' + eintraegeRows + '</tbody>' +
       '</table>' +
+      '</div>' +
     '</div>' +
     '</div>';
 }
@@ -11934,14 +11936,14 @@ function renderTagesangeboteTab() {
     bannerHtml +
     '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Neues Angebot</h3>' +
-      '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Gericht</label><input type="text" id="angebot-gericht" placeholder="Pizzaname..." style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Originalpreis &euro;</label><input type="number" id="angebot-original" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Angebotspreis &euro;</label><input type="number" id="angebot-preis" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Von</label><input type="date" id="angebot-von" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Bis</label><input type="date" id="angebot-bis" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:10px;">' +
+        '<div style="flex:1;min-width:130px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Gericht</label><input type="text" id="angebot-gericht" placeholder="Pizzaname..." style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:130px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Originalpreis &euro;</label><input type="number" id="angebot-original" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:130px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Angebotspreis &euro;</label><input type="number" id="angebot-preis" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:130px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Von</label><input type="date" id="angebot-von" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div style="flex:1;min-width:130px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Bis</label><input type="date" id="angebot-bis" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<button onclick="angebotAdd()" style="flex:0 0 auto;padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Angebot speichern</button>' +
       '</div>' +
-      '<button onclick="angebotAdd()" style="padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Angebot speichern</button>' +
     '</div>' +
     '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Aktive Angebote</h3>' +
@@ -12079,6 +12081,7 @@ function renderUmsatzTab() {
   }
   var wocheHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
     '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Woche&uuml;bersicht (letzte 7 Tage)</h3>' +
+    '<div style="overflow-x:auto">' +
     '<table style="width:100%;border-collapse:collapse;">' +
       '<thead><tr>' +
         '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
@@ -12087,13 +12090,15 @@ function renderUmsatzTab() {
         '<th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Gewinn/Verlust</th>' +
       '</tr></thead>' +
       '<tbody>' + wocheRows + '</tbody>' +
-    '</table></div>';
+    '</table>' +
+    '</div></div>';
 
   var einnahmenTabelleHtml = '';
   if (einnahmen.length > 0) {
     var letzteEin = einnahmen.slice().reverse().slice(0, 20);
     einnahmenTabelleHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Letzte 20 Einnahmen</h3>' +
+      '<div style="overflow-x:auto">' +
       '<table style="width:100%;border-collapse:collapse;">' +
         '<thead><tr>' +
           '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
@@ -12107,7 +12112,10 @@ function renderUmsatzTab() {
           var ges = (parseFloat(e.kasse) || 0) + (parseFloat(e.lieferdienst) || 0);
           return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">&euro;' + (parseFloat(e.kasse) || 0).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">&euro;' + (parseFloat(e.lieferdienst) || 0).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;font-weight:600;color:#1b5e20;">&euro;' + ges.toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="umsatzDeleteEinnahme(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
         }).join('') +
-        '</tbody></table></div>';
+        '</tbody></table>' +
+        '</div></div>';
+  } else {
+    einnahmenTabelleHtml = '<p style="color:#9b8b87;font-style:italic;padding:8px 0;">Noch keine Einnahmen eingetragen.</p>';
   }
 
   var ausgabenTabelleHtml = '';
@@ -12115,6 +12123,7 @@ function renderUmsatzTab() {
     var letzteAus = ausgaben.slice().reverse().slice(0, 20);
     ausgabenTabelleHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Letzte 20 Ausgaben</h3>' +
+      '<div style="overflow-x:auto">' +
       '<table style="width:100%;border-collapse:collapse;">' +
         '<thead><tr>' +
           '<th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th>' +
@@ -12126,7 +12135,10 @@ function renderUmsatzTab() {
         letzteAus.map(function(e) {
           return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.kategorie + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:#c62828;font-weight:600;">&euro;' + parseFloat(e.betrag).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="umsatzDeleteAusgabe(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
         }).join('') +
-        '</tbody></table></div>';
+        '</tbody></table>' +
+        '</div></div>';
+  } else {
+    ausgabenTabelleHtml = '<p style="color:#9b8b87;font-style:italic;padding:8px 0;">Noch keine Ausgaben eingetragen.</p>';
   }
 
   panel.innerHTML = '<div style="padding:16px;max-width:900px;margin:0 auto">' +
