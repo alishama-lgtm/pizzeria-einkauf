@@ -700,6 +700,117 @@
       margin-left: 2px;
       flex-shrink: 0;
     }
+
+    /* ═══════════════════════════════════════════════════════
+       RESPONSIVE NAV — 3 LAYOUTS
+       Mobile <768px | Tablet 768-1199px | Desktop ≥1200px
+    ═══════════════════════════════════════════════════════ */
+
+    /* Override Tailwind — control all nav visibility here */
+    #staff-tab-bar         { display:none !important }
+    #tablet-sidebar        { display:none }
+    @media (min-width:1200px) {
+      #staff-tab-bar       { display:block !important }
+      #mobile-bottom-nav   { display:none !important }
+      #mehr-drawer         { display:none !important }
+      #mehr-drawer-overlay { display:none !important }
+    }
+    @media (min-width:768px) and (max-width:1199px) {
+      #tablet-sidebar      { display:flex }
+      #mobile-bottom-nav   { display:none !important }
+      #mehr-drawer         { display:none !important }
+      #mehr-drawer-overlay { display:none !important }
+      #app-main            { padding-left:80px }
+      #app-footer          { padding-left:80px }
+    }
+
+    /* ── Desktop grouped nav ── */
+    .nav-group { position:relative; align-self:stretch; display:flex; align-items:flex-end }
+    .nav-grp-dd {
+      display:none; position:absolute; top:calc(100% + 4px); left:0;
+      background:#fff; border:1.5px solid #e3beb8; border-radius:14px;
+      box-shadow:0 8px 32px rgba(0,0,0,.13); z-index:200;
+      min-width:190px; padding:6px;
+    }
+    .nav-group:hover .nav-grp-dd { display:block }
+    .nav-group:hover > .tab-btn  { color:#8B0000; background:#fff5f5; border-radius:8px 8px 0 0 }
+    .nav-group.grp-active > .tab-btn { color:#8B0000; font-weight:700; border-bottom:3px solid #8B0000; background:#fff0ee; border-radius:8px 8px 0 0 }
+    .nav-grp-dd .dd-item { display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; border:none; background:none; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; color:#5a403c; font-family:inherit; text-align:left; transition:background .12s,color .12s; white-space:nowrap }
+    .nav-grp-dd .dd-item:hover,.nav-grp-dd .dd-item.tab-active { background:#fff0ee; color:#8B0000 }
+    .nav-grp-dd-sep { height:1px; background:#f0e4e1; margin:4px 6px }
+
+    /* ── Tablet sidebar ── */
+    #tablet-sidebar {
+      position:fixed; left:0; top:70px; bottom:0; z-index:45;
+      width:64px; flex-direction:column; overflow:hidden; overflow-y:auto;
+      background:#fff; border-right:1px solid #e8e8ed;
+      box-shadow:2px 0 12px rgba(0,0,0,.06);
+      transition:width .25s cubic-bezier(.4,0,.2,1);
+    }
+    #tablet-sidebar:hover,#tablet-sidebar.ts-expanded { width:220px }
+    .ts-logo { display:flex; align-items:center; justify-content:center; padding:14px 0 10px; border-bottom:1px solid #f0e4e1; font-size:22px; flex-shrink:0; min-height:52px }
+    .ts-direct-btn,.ts-grp-btn {
+      display:flex; align-items:center; gap:12px; width:100%;
+      padding:11px 20px; border:none; background:none; cursor:pointer;
+      font-size:13px; font-weight:600; color:#6b7280; font-family:inherit;
+      text-align:left; white-space:nowrap; min-height:46px; flex-shrink:0;
+      border-left:3px solid transparent; transition:all .15s;
+    }
+    .ts-direct-btn:hover,.ts-grp-btn:hover { color:#8B0000; background:#fff5f5 }
+    .ts-direct-btn.tab-active { color:#8B0000; background:#fff0ee; border-color:#8B0000; font-weight:700 }
+    .ts-grp-btn.grp-active    { color:#8B0000; background:#fff0ee; border-color:#8B0000; font-weight:700 }
+    .ts-icon { font-size:18px; flex-shrink:0; width:24px; text-align:center }
+    .ts-label { opacity:0; transition:opacity .15s .1s; white-space:nowrap; font-size:13px }
+    #tablet-sidebar:hover .ts-label,#tablet-sidebar.ts-expanded .ts-label { opacity:1 }
+    .ts-sub { overflow:hidden; max-height:0; transition:max-height .22s ease }
+    .ts-group.ts-open .ts-sub { max-height:500px }
+    .ts-sub-item {
+      display:flex; align-items:center; gap:9px;
+      padding:8px 12px 8px 30px; border:none; background:none;
+      cursor:pointer; font-size:12px; font-weight:600; color:#9ca3af;
+      font-family:inherit; text-align:left; width:100%; white-space:nowrap;
+      transition:all .15s; flex-shrink:0;
+    }
+    .ts-sub-item:hover { color:#8B0000; background:#fff5f5 }
+    .ts-sub-item.tab-active { color:#8B0000; background:#fff0ee; font-weight:700 }
+    .ts-sub-icon { font-size:14px; flex-shrink:0; width:18px; text-align:center }
+    .ts-biz-btn {
+      margin-top:auto; display:flex; align-items:center; gap:12px;
+      padding:13px 20px; border:none; background:#1a1a2e; color:#D4AF37;
+      cursor:pointer; font-size:13px; font-weight:700; font-family:inherit;
+      text-align:left; white-space:nowrap; flex-shrink:0; width:100%;
+    }
+
+    /* ── Mobile bottom nav — 5 buttons ── */
+    #mobile-bottom-nav {
+      position:fixed; bottom:0; left:0; right:0; z-index:50;
+      background:rgba(255,255,255,.97); backdrop-filter:blur(20px);
+      border-top:1px solid rgba(232,232,237,.8);
+      box-shadow:0 -4px 24px rgba(0,0,0,.08);
+      padding:6px 4px 20px; align-items:center; justify-content:space-around;
+    }
+
+    /* ── Bottom Sheet ── */
+    #mehr-drawer {
+      position:fixed; bottom:76px; left:0; right:0;
+      background:#fff; border-radius:24px 24px 0 0;
+      box-shadow:0 -8px 40px rgba(0,0,0,.18); z-index:49;
+      padding:6px 16px 32px; max-height:78vh; overflow-y:auto;
+      transform:translateY(110%); transition:transform .28s cubic-bezier(.4,0,.2,1);
+    }
+    #mehr-drawer.drawer-open { transform:translateY(0) }
+    .bs-section { margin-bottom:14px }
+    .bs-title { font-size:10px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; padding:0 2px }
+    .bs-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px }
+    .bs-btn {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:10px 4px; border:1.5px solid #e8e8ed; border-radius:12px;
+      background:#fff; cursor:pointer; font-size:10px; font-weight:600;
+      color:#6b7280; font-family:inherit; transition:all .15s; position:relative;
+    }
+    .bs-btn:hover,.bs-btn.mob-active { background:#fff0ee; border-color:#e3beb8; color:#8B0000 }
+    .bs-btn .bs-icon { font-size:18px; line-height:1 }
+    .bs-dot { position:absolute; top:5px; right:5px; width:8px; height:8px; background:#e53935; border-radius:50%; display:none }
   </style>
 </head>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
@@ -797,98 +908,126 @@
   </div>
 </header>
 
-<!-- ═══ DESKTOP NAV ═══ -->
-<nav id="staff-tab-bar" class="hidden md:block">
+<!-- ═══ DESKTOP NAV ≥1200px ═══ -->
+<nav id="staff-tab-bar">
   <div class="tabs-inner hide-scrollbar">
 
-    <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn tab-active">
+    <button data-nav-tab="kombis" onclick="switchTab('kombis')" class="tab-btn">
       <span style="font-size:16px">🧮</span>Kombis
-      <span id="kombis-tab-badge" style="display:none;background:#8B0000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
     </button>
 
-    <button data-nav-tab="angebote" onclick="switchTab('angebote')" class="tab-btn">
-      <span style="font-size:16px">🏪</span>Angebote
-    </button>
-
-    <button data-nav-tab="einkaufsliste" onclick="switchTab('einkaufsliste')" class="tab-btn">
-      <span style="font-size:16px">🛒</span>Einkaufsliste
-      <span id="el-tab-badge" style="display:none;background:#610000;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:2px"></span>
-    </button>
-
-    <button data-nav-tab="suche" onclick="switchTab('suche')" class="tab-btn">
-      <span style="font-size:16px">🔍</span>Suche
-    </button>
-
-    <!-- Mehr-Dropdown -->
-    <div style="position:relative;align-self:stretch;display:flex;align-items:flex-end" id="mehr-dd-wrapper">
-      <button id="mehr-dd-btn" onclick="toggleMehrDD(event)" class="tab-btn" style="gap:6px">
-        Mehr
-        <span class="material-symbols-outlined" id="mehr-dd-chevron" style="font-size:18px;transition:transform .2s">expand_more</span>
-      </button>
-      <div id="mehr-dd-menu">
-        <button data-nav-tab="upload" onclick="switchTab('upload');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">photo_camera</span>📸 Upload
-        </button>
-        <button data-nav-tab="verlauf" onclick="switchTab('verlauf');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">bar_chart</span>📈 Verlauf
-        </button>
-        <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">badge</span>👥 Mitarbeiter
-        </button>
-        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
-        <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">assignment_late</span>📋 Fehlmaterial
-          <span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto"></span>
-        </button>
-        <button data-nav-tab="checkliste" onclick="switchTab('checkliste');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">checklist</span>✅ Checkliste
-          <span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto">✓</span>
-        </button>
-        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
-        <button data-nav-tab="produkte" onclick="switchTab('produkte');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">inventory_2</span>Produkte
-        </button>
-        <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">store</span>Geschäfte
-        </button>
-        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
-        <button data-nav-tab="dashboard" onclick="switchTab('dashboard');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">dashboard</span>📊 Dashboard
-        </button>
-        <button data-nav-tab="speisekarte" onclick="switchTab('speisekarte');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">menu_book</span>🍕 Speisekarte
-        </button>
-        <button data-nav-tab="lieferanten" onclick="switchTab('lieferanten');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">local_shipping</span>🏭 Lieferanten
-        </button>
-        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
-        <button data-nav-tab="dienstplan" onclick="switchTab('dienstplan');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">calendar_month</span>📅 Dienstplan
-        </button>
-        <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">task_alt</span>✅ Aufgaben
-        </button>
-        <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">fact_check</span>📋 Schicht-Check
-        </button>
-        <button data-nav-tab="bestellung" onclick="switchTab('bestellung');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">shopping_cart</span>🛍️ Bestellliste
-        </button>
-        <div style="height:1px;background:#f0e4e1;margin:4px 6px"></div>
-        <button data-nav-tab="lager" onclick="switchTab('lager');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">inventory</span>📦 Lagerbestand
-        </button>
-        <button data-nav-tab="wareneinsatz" onclick="switchTab('wareneinsatz');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">calculate</span>💰 Wareneinsatz
-        </button>
-        <button data-nav-tab="preisalarm" onclick="switchTab('preisalarm');closeMehrDD()" class="dd-item">
-          <span class="material-symbols-outlined">notifications</span>🔔 Preisalarm
-        </button>
+    <div class="nav-group" data-grp="einkauf">
+      <button class="tab-btn" style="gap:6px"><span style="font-size:16px">🛒</span>Einkauf<span class="material-symbols-outlined" style="font-size:15px;margin-left:1px">expand_more</span></button>
+      <div class="nav-grp-dd">
+        <button data-nav-tab="angebote" onclick="switchTab('angebote')" class="dd-item"><span style="font-size:14px">🏪</span>Angebote</button>
+        <button data-nav-tab="einkaufsliste" onclick="switchTab('einkaufsliste')" class="dd-item"><span style="font-size:14px">🛒</span>Einkaufsliste<span id="el-tab-badge" style="display:none;background:#610000;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0"></span></button>
+        <button data-nav-tab="bestellung" onclick="switchTab('bestellung')" class="dd-item"><span style="font-size:14px">🛍️</span>Bestellliste</button>
+        <button data-nav-tab="preisalarm" onclick="switchTab('preisalarm')" class="dd-item"><span style="font-size:14px">🔔</span>Preisalarm</button>
       </div>
     </div>
 
+    <div class="nav-group" data-grp="lager">
+      <button class="tab-btn" style="gap:6px"><span style="font-size:16px">📦</span>Lager &amp; Waren<span class="material-symbols-outlined" style="font-size:15px;margin-left:1px">expand_more</span></button>
+      <div class="nav-grp-dd">
+        <button data-nav-tab="lager" onclick="switchTab('lager')" class="dd-item"><span style="font-size:14px">📦</span>Lagerbestand</button>
+        <button data-nav-tab="wareneinsatz" onclick="switchTab('wareneinsatz')" class="dd-item"><span style="font-size:14px">💰</span>Wareneinsatz</button>
+        <div class="nav-grp-dd-sep"></div>
+        <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')" class="dd-item"><span style="font-size:14px">📋</span>Fehlmaterial<span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0"></span></button>
+        <button data-nav-tab="upload" onclick="switchTab('upload')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">photo_camera</span>Upload</button>
+        <div class="nav-grp-dd-sep"></div>
+        <button data-nav-tab="lieferanten" onclick="switchTab('lieferanten')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">local_shipping</span>Lieferanten</button>
+        <button data-nav-tab="produkte" onclick="switchTab('produkte')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">inventory_2</span>Produkte</button>
+        <button data-nav-tab="geschaefte" onclick="switchTab('geschaefte')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">store</span>Geschäfte</button>
+      </div>
+    </div>
+
+    <div class="nav-group" data-grp="betrieb">
+      <button class="tab-btn" style="gap:6px"><span style="font-size:16px">✅</span>Betrieb<span class="material-symbols-outlined" style="font-size:15px;margin-left:1px">expand_more</span></button>
+      <div class="nav-grp-dd">
+        <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="dd-item"><span style="font-size:14px">✅</span>Checkliste<span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0">✓</span></button>
+        <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')" class="dd-item"><span style="font-size:14px">📋</span>Schicht-Check</button>
+        <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben')" class="dd-item"><span style="font-size:14px">✅</span>Aufgaben</button>
+        <button data-nav-tab="dienstplan" onclick="switchTab('dienstplan')" class="dd-item"><span style="font-size:14px">📅</span>Dienstplan</button>
+      </div>
+    </div>
+
+    <div class="nav-group" data-grp="team">
+      <button class="tab-btn" style="gap:6px"><span style="font-size:16px">👥</span>Team<span class="material-symbols-outlined" style="font-size:15px;margin-left:1px">expand_more</span></button>
+      <div class="nav-grp-dd">
+        <button data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">badge</span>Mitarbeiter</button>
+        <button data-nav-tab="speisekarte" onclick="switchTab('speisekarte')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">menu_book</span>Speisekarte</button>
+      </div>
+    </div>
+
+    <div class="nav-group" data-grp="analyse">
+      <button class="tab-btn" style="gap:6px"><span style="font-size:16px">📊</span>Analyse<span class="material-symbols-outlined" style="font-size:15px;margin-left:1px">expand_more</span></button>
+      <div class="nav-grp-dd">
+        <button data-nav-tab="dashboard" onclick="switchTab('dashboard')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">dashboard</span>Dashboard</button>
+        <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">bar_chart</span>Verlauf</button>
+        <button data-nav-tab="suche" onclick="switchTab('suche')" class="dd-item"><span style="font-size:14px">🔍</span>Suche</button>
+      </div>
+    </div>
+
+
   </div>
 </nav>
+
+<!-- ═══ TABLET SIDEBAR 768-1199px ═══ -->
+<aside id="tablet-sidebar">
+  <div class="ts-logo">🍕</div>
+  <button class="ts-direct-btn" data-nav-tab="kombis" onclick="switchTab('kombis')">
+    <span class="ts-icon">🧮</span><span class="ts-label">Kombis</span>
+  </button>
+  <div class="ts-group" id="tsg-einkauf">
+    <button class="ts-grp-btn" onclick="tsSidebarToggle('einkauf')"><span class="ts-icon">🛒</span><span class="ts-label">Einkauf</span></button>
+    <div class="ts-sub">
+      <button class="ts-sub-item" data-nav-tab="angebote" onclick="switchTab('angebote')"><span class="ts-sub-icon">🏪</span>Angebote</button>
+      <button class="ts-sub-item" data-nav-tab="einkaufsliste" onclick="switchTab('einkaufsliste')"><span class="ts-sub-icon">🛒</span>Einkaufsliste</button>
+      <button class="ts-sub-item" data-nav-tab="bestellung" onclick="switchTab('bestellung')"><span class="ts-sub-icon">🛍️</span>Bestellliste</button>
+      <button class="ts-sub-item" data-nav-tab="preisalarm" onclick="switchTab('preisalarm')"><span class="ts-sub-icon">🔔</span>Preisalarm</button>
+    </div>
+  </div>
+  <div class="ts-group" id="tsg-lager">
+    <button class="ts-grp-btn" onclick="tsSidebarToggle('lager')"><span class="ts-icon">📦</span><span class="ts-label">Lager &amp; Waren</span></button>
+    <div class="ts-sub">
+      <button class="ts-sub-item" data-nav-tab="lager" onclick="switchTab('lager')"><span class="ts-sub-icon">📦</span>Lagerbestand</button>
+      <button class="ts-sub-item" data-nav-tab="wareneinsatz" onclick="switchTab('wareneinsatz')"><span class="ts-sub-icon">💰</span>Wareneinsatz</button>
+      <button class="ts-sub-item" data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')"><span class="ts-sub-icon">📋</span>Fehlmaterial</button>
+      <button class="ts-sub-item" data-nav-tab="upload" onclick="switchTab('upload')"><span class="ts-sub-icon">📸</span>Upload</button>
+      <button class="ts-sub-item" data-nav-tab="lieferanten" onclick="switchTab('lieferanten')"><span class="ts-sub-icon">🏭</span>Lieferanten</button>
+      <button class="ts-sub-item" data-nav-tab="produkte" onclick="switchTab('produkte')"><span class="ts-sub-icon">📦</span>Produkte</button>
+      <button class="ts-sub-item" data-nav-tab="geschaefte" onclick="switchTab('geschaefte')"><span class="ts-sub-icon">🏪</span>Geschäfte</button>
+    </div>
+  </div>
+  <div class="ts-group" id="tsg-betrieb">
+    <button class="ts-grp-btn" onclick="tsSidebarToggle('betrieb')"><span class="ts-icon">✅</span><span class="ts-label">Betrieb</span></button>
+    <div class="ts-sub">
+      <button class="ts-sub-item" data-nav-tab="checkliste" onclick="switchTab('checkliste')"><span class="ts-sub-icon">✅</span>Checkliste</button>
+      <button class="ts-sub-item" data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')"><span class="ts-sub-icon">📋</span>Schicht-Check</button>
+      <button class="ts-sub-item" data-nav-tab="aufgaben" onclick="switchTab('aufgaben')"><span class="ts-sub-icon">✅</span>Aufgaben</button>
+      <button class="ts-sub-item" data-nav-tab="dienstplan" onclick="switchTab('dienstplan')"><span class="ts-sub-icon">📅</span>Dienstplan</button>
+    </div>
+  </div>
+  <div class="ts-group" id="tsg-team">
+    <button class="ts-grp-btn" onclick="tsSidebarToggle('team')"><span class="ts-icon">👥</span><span class="ts-label">Team</span></button>
+    <div class="ts-sub">
+      <button class="ts-sub-item" data-nav-tab="mitarbeiter" onclick="switchTab('mitarbeiter')"><span class="ts-sub-icon">👥</span>Mitarbeiter</button>
+      <button class="ts-sub-item" data-nav-tab="speisekarte" onclick="switchTab('speisekarte')"><span class="ts-sub-icon">🍕</span>Speisekarte</button>
+    </div>
+  </div>
+  <div class="ts-group" id="tsg-analyse">
+    <button class="ts-grp-btn" onclick="tsSidebarToggle('analyse')"><span class="ts-icon">📊</span><span class="ts-label">Analyse</span></button>
+    <div class="ts-sub">
+      <button class="ts-sub-item" data-nav-tab="dashboard" onclick="switchTab('dashboard')"><span class="ts-sub-icon">📊</span>Dashboard</button>
+      <button class="ts-sub-item" data-nav-tab="verlauf" onclick="switchTab('verlauf')"><span class="ts-sub-icon">📈</span>Verlauf</button>
+      <button class="ts-sub-item" data-nav-tab="suche" onclick="switchTab('suche')"><span class="ts-sub-icon">🔍</span>Suche</button>
+    </div>
+  </div>
+  <button class="ts-biz-btn" onclick="switchTab('business')">
+    <span class="ts-icon material-symbols-outlined" id="ts-biz-lock" style="font-size:18px;color:#D4AF37">lock</span>
+    <span class="ts-label">Business</span>
+  </button>
+</aside>
 
 <!-- ═══ STATS DASHBOARD ═══ -->
 <div id="stats-dashboard">
@@ -932,28 +1071,29 @@
   </div>
 </footer>
 
-<!-- ═══ MOBILE BOTTOM NAV ═══ -->
-<nav id="mobile-bottom-nav" class="md:hidden">
+<!-- ═══ MOBILE BOTTOM NAV <768px — 5 Buttons ═══ -->
+<nav id="mobile-bottom-nav">
   <button data-bottom-nav="kombis" onclick="switchTab('kombis')" class="mob-nav-btn mob-active">
     <span style="font-size:20px;line-height:1">🧮</span>
     <span>Kombis</span>
   </button>
-
   <button data-bottom-nav="einkaufsliste" onclick="switchTab('einkaufsliste')" class="mob-nav-btn" style="position:relative">
     <span class="material-symbols-outlined">shopping_cart</span>
     <span>Einkauf</span>
-    <span id="el-mob-badge" style="display:none;position:absolute;top:4px;right:8px;background:#610000;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+    <span id="el-mob-badge" style="display:none;position:absolute;top:4px;right:6px;background:#610000;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
-
-  <button data-bottom-nav="fehlmaterial" onclick="switchTab('fehlmaterial')" class="mob-nav-btn" style="position:relative">
-    <span class="material-symbols-outlined">assignment_late</span>
-    <span>Fehlm.</span>
-    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:8px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
+  <button data-bottom-nav="checkliste" onclick="switchTab('checkliste')" class="mob-nav-btn">
+    <span class="material-symbols-outlined">checklist</span>
+    <span>Betrieb</span>
   </button>
-
-  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn">
+  <button data-bottom-nav="lager" onclick="switchTab('lager')" class="mob-nav-btn">
+    <span style="font-size:20px;line-height:1">📦</span>
+    <span>Lager</span>
+  </button>
+  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn" style="position:relative">
     <span class="material-symbols-outlined">more_horiz</span>
     <span>Mehr</span>
+    <span id="fehl-mob-badge" style="display:none;position:absolute;top:4px;right:6px;background:#e53935;color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;line-height:1.4"></span>
   </button>
 </nav>
 
@@ -969,56 +1109,51 @@
   </button>
 </div>
 
-<!-- ═══ MEHR DRAWER (Mobile) ═══ -->
+<!-- ═══ BOTTOM SHEET (Mobile Mehr) ═══ -->
 <div id="mehr-drawer-overlay" onclick="closeMehrDrawer()"></div>
-<div id="mehr-drawer" class="md:hidden">
+<div id="mehr-drawer">
   <div class="drawer-handle"></div>
-  <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding:0 2px">Weitere Bereiche</div>
-  <div class="drawer-grid">
-    <button data-drawer-nav="angebote" onclick="switchTab('angebote');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">🏪</span>Angebote
-    </button>
-    <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">🔍</span>Suche
-    </button>
-    <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">photo_camera</span>Upload
-    </button>
-    <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">bar_chart</span>Verlauf
-    </button>
-    <button data-drawer-nav="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDrawer()" class="drawer-item">
-      <span class="material-symbols-outlined">badge</span>Mitarbeiter
-    </button>
-    <button data-drawer-nav="checkliste" onclick="switchTab('checkliste');closeMehrDrawer()" class="drawer-item" style="position:relative">
-      <span class="material-symbols-outlined">checklist</span>Checkliste
-      <span id="cl-drawer-badge" style="display:none;position:absolute;top:8px;right:8px;width:10px;height:10px;background:#2e7d32;border-radius:50%"></span>
-    </button>
-    <button data-drawer-nav="dienstplan" onclick="switchTab('dienstplan');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">📅</span>Dienstplan
-    </button>
-    <button data-drawer-nav="aufgaben" onclick="switchTab('aufgaben');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">✅</span>Aufgaben
-    </button>
-    <button data-drawer-nav="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">📋</span>Schicht-Check
-    </button>
-    <button data-drawer-nav="bestellung" onclick="switchTab('bestellung');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">🛍️</span>Bestellliste
-    </button>
-    <button data-drawer-nav="lager" onclick="switchTab('lager');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">📦</span>Lager
-    </button>
-    <button data-drawer-nav="wareneinsatz" onclick="switchTab('wareneinsatz');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">💰</span>Wareneinsatz
-    </button>
-    <button data-drawer-nav="preisalarm" onclick="switchTab('preisalarm');closeMehrDrawer()" class="drawer-item">
-      <span style="font-size:20px">🔔</span>Preisalarm
-    </button>
-    <button id="mob-biz-btn" onclick="switchTab('business');closeMehrDrawer()" class="drawer-item" style="background:#1a1a2e;border-color:#2d2d4a;color:#D4AF37">
-      <span class="material-symbols-outlined" id="mob-biz-lock" style="color:#D4AF37">lock</span>
-      Business
-    </button>
+  <div class="bs-section">
+    <div class="bs-title">Einkauf</div>
+    <div class="bs-grid">
+      <button data-drawer-nav="angebote" onclick="switchTab('angebote');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🏪</span>Angebote</button>
+      <button data-drawer-nav="bestellung" onclick="switchTab('bestellung');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🛍️</span>Bestellliste</button>
+      <button data-drawer-nav="preisalarm" onclick="switchTab('preisalarm');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🔔</span>Preisalarm</button>
+      <button data-drawer-nav="fehlmaterial" onclick="switchTab('fehlmaterial');closeMehrDrawer()" class="bs-btn" style="position:relative"><span class="bs-icon">📋</span>Fehlm.<span id="cl-drawer-badge" class="bs-dot"></span></button>
+    </div>
+  </div>
+  <div class="bs-section">
+    <div class="bs-title">Lager &amp; Waren</div>
+    <div class="bs-grid">
+      <button data-drawer-nav="wareneinsatz" onclick="switchTab('wareneinsatz');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">💰</span>Wareneinsatz</button>
+      <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">photo_camera</span>Upload</button>
+      <button data-drawer-nav="lieferanten" onclick="switchTab('lieferanten');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🏭</span>Lieferanten</button>
+      <button data-drawer-nav="produkte" onclick="switchTab('produkte');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">inventory_2</span>Produkte</button>
+    </div>
+  </div>
+  <div class="bs-section">
+    <div class="bs-title">Betrieb</div>
+    <div class="bs-grid">
+      <button data-drawer-nav="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📋</span>Schicht-Check</button>
+      <button data-drawer-nav="aufgaben" onclick="switchTab('aufgaben');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">✅</span>Aufgaben</button>
+      <button data-drawer-nav="dienstplan" onclick="switchTab('dienstplan');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>Dienstplan</button>
+      <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🔍</span>Suche</button>
+    </div>
+  </div>
+  <div class="bs-section">
+    <div class="bs-title">Team &amp; Analyse</div>
+    <div class="bs-grid">
+      <button data-drawer-nav="mitarbeiter" onclick="switchTab('mitarbeiter');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">badge</span>Mitarbeiter</button>
+      <button data-drawer-nav="speisekarte" onclick="switchTab('speisekarte');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🍕</span>Speisekarte</button>
+      <button data-drawer-nav="dashboard" onclick="switchTab('dashboard');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">dashboard</span>Dashboard</button>
+      <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">bar_chart</span>Verlauf</button>
+    </div>
+  </div>
+  <div class="bs-section">
+    <div class="bs-grid">
+      <button data-drawer-nav="geschaefte" onclick="switchTab('geschaefte');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">store</span>Geschäfte</button>
+      <button id="mob-biz-btn" onclick="switchTab('business');closeMehrDrawer()" class="bs-btn" style="background:#1a1a2e;border-color:#2d2d4a;color:#D4AF37"><span class="bs-icon material-symbols-outlined" id="mob-biz-lock" style="color:#D4AF37;font-size:18px">lock</span>Business</button>
+    </div>
   </div>
 </div>
 
@@ -6013,6 +6148,68 @@ function renderSingleCombo(combo, rank) {
 // ═══════════════════════════════════════════════════════════════
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════
+// ── Responsive Nav: Datenquelle & Sync ──────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+const NAV_GROUPS = [
+  { id:'kombis',   icon:'shopping_cart',   label:'Kombis',    tabs:['kombis'],                                          mobile:true  },
+  { id:'einkauf',  icon:'receipt_long',    label:'Einkauf',   tabs:['angebote','einkaufsliste','suche','upload','verlauf'], mobile:true  },
+  { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm'],                mobile:true  },
+  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
+  { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte'], mobile:false },
+];
+
+function _syncNavActiveStates(tab) {
+  // Desktop: highlight group that contains tab
+  NAV_GROUPS.forEach(grp => {
+    const isActive = grp.tabs.includes(tab) || grp.id === tab;
+    const btn = document.querySelector(`#staff-tab-bar [data-nav-grp="${grp.id}"]`);
+    if (btn) btn.classList.toggle('tab-active', isActive);
+    // direct kombis button
+    if (grp.id === 'kombis') {
+      const direct = document.querySelector('#staff-tab-bar [data-nav-tab="kombis"]');
+      if (direct) direct.classList.toggle('tab-active', tab === 'kombis');
+    }
+  });
+  // Tablet sidebar: highlight group
+  NAV_GROUPS.forEach(grp => {
+    const isActive = grp.tabs.includes(tab) || grp.id === tab;
+    const tsBtn = document.querySelector(`#tablet-sidebar [data-ts-grp="${grp.id}"]`);
+    if (tsBtn) tsBtn.classList.toggle('ts-active', isActive);
+  });
+  // Tablet sidebar: business lock icon
+  const tsBizBtn = document.getElementById('ts-biz-btn');
+  if (tsBizBtn) tsBizBtn.classList.toggle('ts-active', tab === 'business');
+  // Mobile bottom nav: highlight matching button
+  document.querySelectorAll('[data-mob-nav]').forEach(el => {
+    const grp = NAV_GROUPS.find(g => g.id === el.dataset.mobNav);
+    const isActive = grp ? (grp.tabs.includes(tab) || grp.id === tab) : el.dataset.mobNav === tab;
+    el.classList.toggle('mob-active', isActive);
+  });
+  // Mobile Mehr button: active if tab lives outside the 3 visible mobile groups
+  const mobileDirectIds = NAV_GROUPS.filter(g => g.mobile).map(g => g.id);
+  const mobileDirectTabs = NAV_GROUPS.filter(g => g.mobile).flatMap(g => g.tabs).concat(NAV_GROUPS.filter(g => g.mobile).map(g => g.id));
+  const mehrBtn = document.getElementById('mob-mehr-btn');
+  if (mehrBtn) mehrBtn.classList.toggle('mob-active', !mobileDirectTabs.includes(tab) && tab !== 'business');
+  // Bottom sheet items
+  document.querySelectorAll('[data-bs-tab]').forEach(el => {
+    el.classList.toggle('bs-active', el.dataset.bsTab === tab);
+  });
+}
+
+function tsSidebarToggle(grpId) {
+  // Toggle sub-items visibility in tablet sidebar
+  const sidebar = document.getElementById('tablet-sidebar');
+  if (!sidebar) return;
+  const allSubs = sidebar.querySelectorAll('[data-ts-sub]');
+  const thisSubs = sidebar.querySelectorAll(`[data-ts-sub="${grpId}"]`);
+  const isOpen = thisSubs.length > 0 && thisSubs[0].classList.contains('ts-open');
+  allSubs.forEach(el => el.classList.remove('ts-open'));
+  if (!isOpen) thisSubs.forEach(el => el.classList.add('ts-open'));
+}
+
+// ═══════════════════════════════════════════════════════════════
 
 function switchTab(tab) {
   const isBiz = tab === 'business';
@@ -6023,26 +6220,9 @@ function switchTab(tab) {
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
 
-  // ── desktop staff tabs ──
-  document.querySelectorAll('#staff-tab-bar [data-nav-tab]').forEach(el => {
-    el.classList.toggle('tab-active', el.dataset.navTab === tab);
-  });
-
-  // ── close mehr drawer ──
+  // ── sync all nav active states ──
   if (typeof closeMehrDrawer === 'function') closeMehrDrawer();
-
-  // ── mobile staff buttons ──
-  document.querySelectorAll('[data-bottom-nav]').forEach(el => {
-    el.classList.toggle('mob-active', el.dataset.bottomNav === tab);
-  });
-
-  // ── drawer nav items ──
-  const drawerTabs = ['geschaefte','upload','verlauf','mitarbeiter','checkliste','business'];
-  document.querySelectorAll('[data-drawer-nav]').forEach(el => {
-    el.classList.toggle('mob-active', el.dataset.drawerNav === tab);
-  });
-  const mehrBtn = document.getElementById('mob-mehr-btn');
-  if (mehrBtn) mehrBtn.classList.toggle('mob-active', drawerTabs.includes(tab) && tab !== 'business');
+  _syncNavActiveStates(tab);
 
   // ── business button states ──
   const bizBtn    = document.getElementById('biz-header-btn');
