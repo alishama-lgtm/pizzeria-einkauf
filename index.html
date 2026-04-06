@@ -1179,7 +1179,16 @@
 
 <script>
 function _esc(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function _safeLocalGet(key, defaultVal) {
+  try { const r = localStorage.getItem(key); return r === null ? defaultVal : JSON.parse(r); } catch(_) { return defaultVal; }
+}
+function _safeLocalSet(key, val) {
+  try { localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(_) {}
 }
 // ═══════════════════════════════════════════════════════════════
 // js/config.js
@@ -1454,12 +1463,13 @@ function fmtDate(iso) {
 }
 
 function escHtml(str) {
-  if (!str) return '';
+  if (str == null) return '';
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ════ STATS DASHBOARD ════
@@ -1961,12 +1971,12 @@ function renderFmEingabe() {
           '</div>' +
 
           '<div style="font-size:16px;font-weight:800;color:#1e1e2e;margin-bottom:4px;'+
-          (e.status==='erledigt'?'text-decoration:line-through;':'')+'">' + e.produktName + '</div>' +
-          (e.bemerkung ? '<div style="font-size:12px;color:#9ca3af;margin-bottom:4px">'+e.bemerkung+'</div>' : '') +
+          (e.status==='erledigt'?'text-decoration:line-through;':'')+'">'+_esc(e.produktName)+'</div>' +
+          (e.bemerkung ? '<div style="font-size:12px;color:#9ca3af;margin-bottom:4px">'+_esc(e.bemerkung)+'</div>' : '') +
 
           '<div style="font-size:11px;color:#9ca3af;margin-bottom:10px">' +
-          (e.eingetragenVon||'—') + ' · ' + e.datum + ' ' + e.uhrzeit +
-          ' · <span style="background:#f0f0f5;color:#6b7280;border-radius:5px;padding:1px 6px">'+e.kategorie+'</span>' +
+          _esc(e.eingetragenVon||'—') + ' · ' + _esc(e.datum) + ' ' + _esc(e.uhrzeit) +
+          ' · <span style="background:#f0f0f5;color:#6b7280;border-radius:5px;padding:1px 6px">'+_esc(e.kategorie)+'</span>' +
           '</div>' +
 
           '<div style="display:flex;gap:6px">' +
@@ -2110,7 +2120,7 @@ function fmSubmitForm() {
 
   const matchProd = PRODUCTS.find(p => p.name.toLowerCase() === produktName.toLowerCase());
   fmAdd({ produktName, produktId: matchProd?.id||null, menge, einheit, kategorie, prioritaet, bemerkung, eingetragenVon });
-  localStorage.setItem('fm_last_person', eingetragenVon);
+  _safeLocalSet('fm_last_person', eingetragenVon);
   _showToast('Fehlmaterial gemeldet', 'success');
   document.getElementById('fm-produktname').value = '';
   document.getElementById('fm-menge').value        = '';
@@ -2447,7 +2457,7 @@ function abfallSpeichern(productId) {
   });
   if (ABFALL_DATA.length > 1000) ABFALL_DATA = ABFALL_DATA.slice(0,1000);
   abfallSave();
-  if (person) localStorage.setItem('fm_last_person', person);
+  if (person) _safeLocalSet('fm_last_person', person);
   document.getElementById('abfall-modal-overlay')?.remove();
   _showToast('Abfall gespeichert — ' + (p?p.name:productId) + ' ' + menge + ' ' + (p?p.unit:''), 'success');
 }
@@ -2786,7 +2796,7 @@ function clAbschliessen(typ) {
   if (CL_HISTORY.length > 500) CL_HISTORY = CL_HISTORY.slice(0,500);
   clSaveHistory();
   clCheckedItems = {};
-  if (person) localStorage.setItem('fm_last_person', person);
+  if (person) _safeLocalSet('fm_last_person', person);
   _showToast((typ==='morgen'?'Morgen':'Abend')+'-Checkliste abgeschlossen', 'success');
   renderChecklisteTab();
 }
@@ -5514,7 +5524,7 @@ function bizChangePw() {
   if (bizHash(cur) !== bizGetPwHash()) { show('Aktuelles Passwort falsch', false); return; }
   if (nw.length < 4) { show('Neues Passwort muss mind. 4 Zeichen haben', false); return; }
   if (nw !== cnf) { show('Passwörter stimmen nicht überein', false); return; }
-  localStorage.setItem(BIZ_PW_KEY, bizHash(nw));
+  _safeLocalSet(BIZ_PW_KEY, bizHash(nw));
   show('✅ Passwort erfolgreich geändert!', true);
   ['pw-current','pw-new','pw-confirm'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
 }
@@ -8237,7 +8247,7 @@ function renderAngeboteTab() {
     _renderAngeboteMain(panel);
   } catch(err) {
     console.error('Angebote Fehler:', err);
-    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
   }
 }
 
@@ -8890,7 +8900,7 @@ function angebotSpeichern() {
   let customs = [];
   try { customs = JSON.parse(localStorage.getItem('pizzeria_custom_deals') || '[]'); } catch(_) {}
   customs.unshift(deal);
-  localStorage.setItem('pizzeria_custom_deals', JSON.stringify(customs));
+  _safeLocalSet('pizzeria_custom_deals', customs);
   ANGEBOTE_STATE.view = 'prospekte';
   renderAngeboteTab();
 }
@@ -8899,7 +8909,7 @@ function angebotLoeschen(id) {
   let customs = [];
   try { customs = JSON.parse(localStorage.getItem('pizzeria_custom_deals') || '[]'); } catch(_) {}
   customs = customs.filter(d => d.id !== id);
-  localStorage.setItem('pizzeria_custom_deals', JSON.stringify(customs));
+  _safeLocalSet('pizzeria_custom_deals', customs);
   renderAngeboteTab();
 }
 
@@ -9350,7 +9360,7 @@ function renderEinkaufslisteTab() {
     panel.innerHTML = _buildEinkaufslisteHTML();
   } catch(err) {
     console.error('Einkaufsliste Fehler:', err);
-    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a">' + err.message + '</div>';
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a">' + _esc(err.message) + '</div>';
   }
 }
 
@@ -10123,7 +10133,7 @@ function renderDashboardTab() {
 
   } catch(err) {
     console.error('Dashboard Fehler:', err);
-    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
   }
 }
 
@@ -10134,7 +10144,7 @@ function dashboardSchichtToggle(typ, index) {
   if (!checks[typ]) checks[typ] = {};
   if (checks[typ][index]) { delete checks[typ][index]; delete checks[typ][index+'_z']; }
   else { checks[typ][index]=true; checks[typ][index+'_z']=new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}); }
-  localStorage.setItem('pizzeria_schichtcheck', JSON.stringify(checks));
+  _safeLocalSet('pizzeria_schichtcheck', checks);
   renderDashboardTab();
 }
 
@@ -10143,7 +10153,7 @@ function dashboardAufgabeToggle(id) {
   try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
   const a = aufgaben.find(x => x.id === id);
   if (a) { a.erledigt = !a.erledigt; a.status = a.erledigt ? 'erledigt' : 'offen'; }
-  localStorage.setItem('pizzeria_aufgaben', JSON.stringify(aufgaben));
+  _safeLocalSet('pizzeria_aufgaben', aufgaben);
   renderDashboardTab();
 }
 
@@ -10484,7 +10494,7 @@ function renderSpeisekarteTab() {
     panel.innerHTML = html;
   } catch(err) {
     console.error('Speisekarte Fehler:', err);
-    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
   }
 }
 
@@ -10637,7 +10647,7 @@ function renderLieferantenTab() {
     panel.innerHTML = html;
   } catch(err) {
     console.error('Lieferanten Fehler:', err);
-    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + err.message + '</div>';
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
   }
 }
 
@@ -10793,7 +10803,7 @@ function saveApiKey() {
   const val = document.getElementById('settings-api-key')?.value.trim();
   if (!val || val.startsWith('•')) { _showToast('Bitte API Key eingeben.', 'error'); return; }
   if (!val.startsWith('sk-ant-')) { _showToast('Ungültiges Format. Key muss mit "sk-ant-" beginnen.', 'error'); return; }
-  localStorage.setItem('pizzeria_api_key', val);
+  _safeLocalSet('pizzeria_api_key', val);
   ANTHROPIC_API_KEY = val;
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
@@ -11237,7 +11247,7 @@ function schichtCheckToggle(typ, index) {
   if (!checks[typ]) checks[typ] = {};
   if (checks[typ][index]) { delete checks[typ][index]; delete checks[typ][index+'_z']; }
   else { checks[typ][index]=true; checks[typ][index+'_z']=new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}); }
-  localStorage.setItem('pizzeria_schichtcheck', JSON.stringify(checks));
+  _safeLocalSet('pizzeria_schichtcheck', checks);
   renderSchichtCheckTab();
 }
 
@@ -12169,7 +12179,7 @@ function renderUmsatzTab() {
         '</tr></thead>' +
         '<tbody>' +
         letzteAus.map(function(e) {
-          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.datum + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + e.kategorie + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:#c62828;font-weight:600;">&euro;' + parseFloat(e.betrag).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="umsatzDeleteAusgabe(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
+          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + _esc(e.datum) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + _esc(e.kategorie) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;color:#c62828;font-weight:600;">&euro;' + parseFloat(e.betrag).toFixed(2) + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:center;"><button onclick="umsatzDeleteAusgabe(\'' + e.id + '\')" style="background:none;border:none;cursor:pointer;font-size:16px;">&#x1F5D1;&#xFE0F;</button></td></tr>';
         }).join('') +
         '</tbody></table>' +
         '</div></div>';
@@ -12235,7 +12245,7 @@ function umsatzDeleteAusgabe(id) {
 function umsatzSetZiel() {
   var val = parseFloat(document.getElementById('umsatz-ziel').value);
   if (isNaN(val) || val <= 0) { _markField('umsatz-ziel', true); _showToast('Bitte g\u00fcltiges Ziel angeben', 'error'); return; }
-  localStorage.setItem('pizzeria_umsatz_ziel', val.toString());
+  _safeLocalSet('pizzeria_umsatz_ziel', val.toString());
   _showToast('Monatsziel gesetzt \u2713', 'success');
   renderUmsatzTab();
 }
@@ -12275,7 +12285,7 @@ function _showToast(msg, type) {
   const t = document.createElement('div');
   t.className = '_toast-popup';
   t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:'+c.bg+';color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;opacity:0;transition:opacity .2s;display:flex;align-items:center;gap:8px;white-space:nowrap;max-width:90vw';
-  t.innerHTML = '<span style="font-size:15px;flex-shrink:0">'+c.icon+'</span><span>'+msg+'</span>';
+  t.innerHTML = '<span style="font-size:15px;flex-shrink:0">'+c.icon+'</span><span>'+_esc(String(msg))+'</span>';
   document.body.appendChild(t);
   requestAnimationFrame(() => { t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2500); });
 }
