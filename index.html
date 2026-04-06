@@ -3,6 +3,15 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#8B0000"/>
+  <meta name="description" content="Einkauf &amp; Warenverwaltung — Pizzeria San Carino Wien"/>
+  <meta name="application-name" content="San Carino"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="San Carino"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" type="image/png" href="icons/favicon.png"/>
   <title>Pizzeria San Carino</title>
   <script src="users.js"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -12288,6 +12297,24 @@ function _showToast(msg, type) {
   t.innerHTML = '<span style="font-size:15px;flex-shrink:0">'+c.icon+'</span><span>'+_esc(String(msg))+'</span>';
   document.body.appendChild(t);
   requestAnimationFrame(() => { t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2500); });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              _showToast('App-Update verfügbar — Seite neu laden', 'info');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[SW] Registrierung fehlgeschlagen:', err));
+  });
 }
 </script>
 </body>
