@@ -12,6 +12,7 @@ backups/
 # Claude Code intern
 .claude/*
 !.claude/commands/
+!.claude/launch.json
 
 # Betriebssystem
 .DS_Store
