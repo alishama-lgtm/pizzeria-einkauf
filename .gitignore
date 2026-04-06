@@ -3,8 +3,15 @@ node_modules/
 dist/
 .env
 
+# Login-Daten (niemals committen!)
+users.js
+
+# Datenbank-Backups
+backups/
+
 # Claude Code intern
-.claude/
+.claude/*
+!.claude/commands/
 
 # Betriebssystem
 .DS_Store
