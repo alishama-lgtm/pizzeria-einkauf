@@ -1561,8 +1561,7 @@ function editStock(productId) {
       });
       fmSave();
       fmUpdateBadge();
-      if (typeof fmShowToast === 'function')
-        fmShowToast('⚠️ ' + product.name + ' automatisch in Fehlmaterial eingetragen');
+      _showToast(product.name + ' automatisch in Fehlmaterial eingetragen', 'warning');
     }
   }
 
@@ -1978,6 +1977,9 @@ function renderFmEingabe() {
             ? '<button onclick="fmSetStatus(\''+e.id+'\',\'erledigt\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex:1"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span>✅ Erledigt</button>'
             : '') +
           '<button onclick="if(confirm(\'Löschen?\'))fmDelete(\''+e.id+'\')" style="min-height:44px;width:44px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
+          (e.status!=='erledigt'
+            ? '<button onclick="fmSendToN8n(\''+e.id+'\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e3f2fd;color:#1565c0;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" title="An n8n senden"><span style="font-size:14px">📤</span> n8n</button>'
+            : '') +
           '</div></div>';
       }).join('');
 
@@ -2099,15 +2101,17 @@ function fmSubmitForm() {
   const eingetragenVon = (document.getElementById('fm-person')?.value    || '').trim();
   const bemerkung      = (document.getElementById('fm-bemerkung')?.value || '').trim();
 
-  if (!produktName) { fmShowToast('❌ Bitte Produktname eingeben!'); document.getElementById('fm-produktname')?.focus(); return; }
+  let hasError = false;
+  if (!produktName) { _markField('fm-produktname', true); hasError = true; }
   const menge = parseFloat(mengeRaw);
-  if (!mengeRaw || isNaN(menge) || menge <= 0) { fmShowToast('❌ Bitte gültige Menge eingeben!'); document.getElementById('fm-menge')?.focus(); return; }
-  if (!eingetragenVon) { fmShowToast('❌ Bitte Namen eingeben!'); document.getElementById('fm-person')?.focus(); return; }
+  if (!mengeRaw || isNaN(menge) || menge <= 0) { _markField('fm-menge', true); hasError = true; }
+  if (!eingetragenVon) { _markField('fm-person', true); hasError = true; }
+  if (hasError) { _showToast('Bitte alle Pflichtfelder ausfüllen', 'error'); return; }
 
   const matchProd = PRODUCTS.find(p => p.name.toLowerCase() === produktName.toLowerCase());
   fmAdd({ produktName, produktId: matchProd?.id||null, menge, einheit, kategorie, prioritaet, bemerkung, eingetragenVon });
   localStorage.setItem('fm_last_person', eingetragenVon);
-  fmShowToast('✅ Fehlmaterial gemeldet!');
+  _showToast('Fehlmaterial gemeldet', 'success');
   document.getElementById('fm-produktname').value = '';
   document.getElementById('fm-menge').value        = '';
   document.getElementById('fm-bemerkung').value    = '';
@@ -2316,13 +2320,34 @@ function renderFmAuswertung() {
     '</div>';
 }
 
-// ════ FM TOAST ════
-function fmShowToast(msg) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:#fff;padding:12px 24px;border-radius:12px;font-size:15px;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2600);
+// ════ FM: AN N8N SENDEN ════
+async function fmSendToN8n(id) {
+  const entry = FM_DATA.find(e => e.id === id);
+  if (!entry) { _showToast('Eintrag nicht gefunden', 'error'); return; }
+  const payload = {
+    artikel: entry.produktName,
+    menge: entry.menge + ' ' + entry.einheit,
+    kategorie: entry.kategorie,
+    dringlichkeit: entry.prioritaet === 'dringend' ? 'hoch' : entry.prioritaet === 'wichtig' ? 'mittel' : 'niedrig',
+    datum: new Date().toISOString(),
+    eingetragen_von: entry.eingetragenVon || '',
+    bemerkung: entry.bemerkung || '',
+    gesendet_von: 'Pizzeria San Carino App'
+  };
+  try {
+    const resp = await fetch('http://localhost:5678/webhook/fehlmaterial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (resp.ok) {
+      _showToast('Erfolgreich an n8n gesendet', 'success');
+    } else {
+      _showToast('n8n Fehler: ' + resp.status, 'error');
+    }
+  } catch (err) {
+    _showToast('n8n nicht erreichbar — läuft der Server?', 'warning');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2409,7 +2434,7 @@ function abfallSpeichern(productId) {
   const grund  = document.getElementById('ab-grund')?.value    || 'Sonstiges';
   const person = (document.getElementById('ab-person')?.value  || '').trim();
   const bemerkung = (document.getElementById('ab-bemerkung')?.value || '').trim();
-  if (!menge || isNaN(menge) || menge <= 0) { fmShowToast('❌ Bitte gültige Menge eingeben'); return; }
+  if (!menge || isNaN(menge) || menge <= 0) { _showToast('Bitte gültige Menge eingeben', 'error'); return; }
   const now = new Date();
   ABFALL_DATA.unshift({
     id:          Date.now()+'_'+Math.random().toString(36).slice(2,7),
@@ -2424,7 +2449,7 @@ function abfallSpeichern(productId) {
   abfallSave();
   if (person) localStorage.setItem('fm_last_person', person);
   document.getElementById('abfall-modal-overlay')?.remove();
-  fmShowToast('✅ Abfall gespeichert — ' + (p?p.name:productId) + ' ' + menge + ' ' + (p?p.unit:''));
+  _showToast('Abfall gespeichert — ' + (p?p.name:productId) + ' ' + menge + ' ' + (p?p.unit:''), 'success');
 }
 
 function abfallGetMonthly(monthStr) {
@@ -2458,7 +2483,7 @@ function fifoSetEingang(productId) {
   const person = localStorage.getItem('fm_last_person') || '';
   FIFO_DATA[productId] = { eingang: today, person };
   fifoSave();
-  fmShowToast('📦 Eingang gesetzt: ' + today);
+  _showToast('Eingang gesetzt: ' + today, 'success');
   renderProductsTab();
 }
 
@@ -2745,7 +2770,7 @@ function clToggle(itemId) {
 
 function clAbschliessen(typ) {
   const person = (document.getElementById('cl-person-'+typ)?.value||'').trim();
-  if (!person) { fmShowToast('❌ Bitte Namen eingeben'); return; }
+  if (!person) { _showToast('Bitte Namen eingeben', 'error'); return; }
   const items = CL_CONFIG[typ].filter(i=>i.active).map(item => ({
     id: item.id, text: item.text, checked: !!clCheckedItems[item.id],
   }));
@@ -2762,7 +2787,7 @@ function clAbschliessen(typ) {
   clSaveHistory();
   clCheckedItems = {};
   if (person) localStorage.setItem('fm_last_person', person);
-  fmShowToast('✅ '+(typ==='morgen'?'Morgen':'Abend')+'-Checkliste abgeschlossen!');
+  _showToast((typ==='morgen'?'Morgen':'Abend')+'-Checkliste abgeschlossen', 'success');
   renderChecklisteTab();
 }
 
