@@ -4575,10 +4575,8 @@ function renderBusinessTab() {
       ['biz-report','summarize','Monatsbericht'],
       ['biz-settings','settings','Einstellungen'],
     ].map(([id,icon,label]) => `
-      <button id="btn-${id}" onclick="showBizSection('${id}')"
-        style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;transition:all .15s"
-        onmouseover="this.style.borderColor='#8B0000';this.style.color='#8B0000'"
-        onmouseout="if(!this.classList.contains('biz-active')){this.style.borderColor='#e3beb8';this.style.color='#5a403c'}">
+      <button id="btn-${id}" onclick="showBizSection('${id}')" class="ws-btn ws-btn-secondary ws-btn-sm"
+        style="display:flex;align-items:center;gap:6px;transition:all .15s">
         <span class="material-symbols-outlined" style="font-size:16px">${icon}</span>${label}
       </button>`).join('')}
   </div>
@@ -4608,14 +4606,13 @@ function showBizSection(id) {
   document.querySelectorAll('.biz-section').forEach(s => s.style.display = 'none');
   document.getElementById(id).style.display = 'block';
   document.querySelectorAll('[id^="btn-biz-"]').forEach(b => {
-    b.classList.remove('biz-active');
-    b.style.background = '#fff'; b.style.borderColor = '#e3beb8'; b.style.color = '#5a403c';
+    b.classList.remove('biz-active','ws-btn-primary');
+    b.classList.add('ws-btn-secondary');
   });
   const btn = document.getElementById('btn-' + id);
   if (btn) {
-    btn.classList.add('biz-active');
-    btn.style.background = '#8B0000'; btn.style.borderColor = '#8B0000'; btn.style.color = '#fff';
-    btn.onmouseover = null; btn.onmouseout = null;
+    btn.classList.add('biz-active','ws-btn-primary');
+    btn.classList.remove('ws-btn-secondary');
   }
 }
 
@@ -4633,8 +4630,7 @@ function renderBizLocked() {
         <input type="password" id="biz-pw-input" placeholder="Passwort eingeben"
           onkeydown="if(event.key==='Enter')bizLogin()"
           style="width:100%;padding:12px 16px;border-radius:10px;border:1.5px solid #e3beb8;font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;box-sizing:border-box;text-align:center;letter-spacing:0.1em">
-        <button onclick="bizLogin()"
-          style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+        <button onclick="bizLogin()" class="ws-btn ws-btn-primary" style="width:100%;justify-content:center;gap:8px">
           <span class="material-symbols-outlined" style="font-size:18px">lock_open</span>
           Einloggen
         </button>
@@ -4709,7 +4705,7 @@ function renderBizKassabuch() {
 </h2>
 
 <!-- Einnahmen erfassen -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px;margin-bottom:20px">
+<div class="ws-card" style="margin-bottom:20px">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px;display:flex;align-items:center;gap:6px">
     <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">edit_calendar</span>
     Heute erfassen — ${bizDayName(today)}, ${today.split('-').reverse().join('.')}
@@ -4753,14 +4749,13 @@ function renderBizKassabuch() {
       </div>
     </div>
   </div>
-  <button onclick="bizSaveKassaEntry()"
-    style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+  <button onclick="bizSaveKassaEntry()" class="ws-btn ws-btn-primary" style="width:100%;justify-content:center;gap:8px">
     <span class="material-symbols-outlined" style="font-size:18px">save</span>Eintrag speichern
   </button>
 </div>
 
 <!-- 7-Tage Chart -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px;margin-bottom:20px">
+<div class="ws-card" style="margin-bottom:20px">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:6px">
     <span style="display:flex;align-items:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">bar_chart</span>
@@ -4789,7 +4784,7 @@ function renderBizKassabuch() {
 </div>
 
 <!-- Verlauf-Tabelle -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;overflow:hidden">
+<div class="ws-card" style="padding:0;overflow:hidden">
   <div style="padding:16px 20px;border-bottom:1px solid #e3beb8;display:flex;align-items:center;justify-content:space-between">
     <span style="font-weight:700;font-size:14px;color:#261816">Alle Einträge</span>
     <span style="font-size:12px;color:#5a403c">${kassa.length} Einträge</span>
@@ -4881,7 +4876,7 @@ function renderBizKosten() {
 </h2>
 
 <!-- Fixkosten -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px;margin-bottom:20px">
+<div class="ws-card" style="margin-bottom:20px">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px;display:flex;align-items:center;gap:6px">
     <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">home</span>
     Fixkosten (monatlich)
@@ -4920,7 +4915,7 @@ function renderBizKosten() {
 </div>
 
 <!-- Personal -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px;margin-bottom:20px">
+<div class="ws-card" style="margin-bottom:20px">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:6px">
     <span style="display:flex;align-items:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">badge</span>
@@ -4948,7 +4943,7 @@ function renderBizKosten() {
 </div>
 
 <!-- Einkaufskosten -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px">
+<div class="ws-card">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px;display:flex;align-items:center;gap:6px">
     <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">shopping_cart</span>
     Einkaufskosten (aus Verlauf)
@@ -5099,7 +5094,7 @@ function renderBizCockpit() {
 </div>
 
 <!-- Break-Even heute -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px;margin-bottom:20px">
+<div class="ws-card" style="margin-bottom:20px">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:12px;display:flex;align-items:center;gap:6px">
     <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">flag</span>
     Break-Even heute
@@ -5117,7 +5112,7 @@ function renderBizCockpit() {
 </div>
 
 <!-- Pizza-Kalkulation -->
-<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;overflow:hidden;margin-bottom:8px">
+<div class="ws-card" style="padding:0;overflow:hidden;margin-bottom:8px">
   <div style="padding:16px 20px;border-bottom:1px solid #e3beb8;display:flex;align-items:center;justify-content:space-between">
     <span style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;color:#261816">
       <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">local_pizza</span>Gewinn pro Pizza
@@ -5441,7 +5436,7 @@ function renderBizSettings() {
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
 
   <!-- Firmen-Daten -->
-  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px">
+  <div class="ws-card">
     <div style="font-weight:700;font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">business</span>
       Firmendaten
@@ -5459,7 +5454,7 @@ function renderBizSettings() {
   </div>
 
   <!-- Passwort ändern -->
-  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px">
+  <div class="ws-card">
     <div style="font-weight:700;font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">lock</span>
       Passwort ändern
@@ -5481,7 +5476,7 @@ function renderBizSettings() {
   </div>
 
   <!-- Daten-Management -->
-  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px">
+  <div class="ws-card">
     <div style="font-weight:700;font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">storage</span>
       Daten
@@ -5647,6 +5642,12 @@ function renderProductsTab() {
       </div>
     </div>`;
 
+  if (PRODUCTS.length === 0) {
+    html += '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">inventory_2</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Keine Produkte vorhanden</div><div style="font-size:13px;color:#9ca3af">Produkte werden über die Preisdatenbank geladen.</div></div>';
+    document.getElementById('panel-produkte').innerHTML = html;
+    return;
+  }
+
   for (const cat of categories) {
     const catProducts = PRODUCTS.filter(p => p.category === cat);
     const bg = CATEGORY_BG[cat] || '#fff0ee';
@@ -5737,6 +5738,11 @@ function renderShopsTab() {
     if (vals.length) priceStats[p.id] = { min: Math.min(...vals), max: Math.max(...vals) };
   }
   const productsWithPrices = PRODUCTS.filter(p => priceStats[p.id]);
+
+  if (productsWithPrices.length === 0) {
+    document.getElementById('panel-geschaefte').innerHTML = '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">store</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Noch keine Preise vorhanden</div><div style="font-size:13px;color:#9ca3af">Lade Preise über den Preisserver oder trage sie manuell ein.</div></div>';
+    return;
+  }
 
   const thCols = SHOPS.map(s =>
     `<th style="padding:8px 14px;font-size:11px;font-weight:700;color:#5a403c;text-align:right;white-space:nowrap;border-bottom:2px solid #e3beb8;min-width:82px">${s.name}</th>`
@@ -11781,7 +11787,7 @@ function renderStatistikTab() {
     var tageRows = days.map(function(d) {
       return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;">' + d + '</td><td style="padding:6px 10px;border-bottom:1px solid #f3e5e0;text-align:right;">€' + tageMap[d].toFixed(2) + '</td></tr>';
     }).join('');
-    tageHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;"><h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Umsatz pro Tag</h3><table style="width:100%;border-collapse:collapse;"><thead><tr><th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th><th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Umsatz</th></tr></thead><tbody>' + tageRows + '</tbody></table></div>';
+    tageHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;"><h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Umsatz pro Tag</h3><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;"><thead><tr><th style="text-align:left;padding:6px 10px;color:#5a403c;font-size:13px;">Datum</th><th style="text-align:right;padding:6px 10px;color:#5a403c;font-size:13px;">Umsatz</th></tr></thead><tbody>' + tageRows + '</tbody></table></div></div>';
   }
 
   var letzteEintraege = data.slice().reverse().slice(0, 50);
