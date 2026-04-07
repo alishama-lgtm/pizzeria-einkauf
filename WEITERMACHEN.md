@@ -2,8 +2,8 @@
 
 ## Branch & Datei
 - **Branch:** `claude/youthful-elbakyan`
-- **Hauptdatei:** `index.html` (~13.100 Zeilen)
-- **Letzter Commit:** `a82ac11` — Phase 2 Buchhaltung Tab
+- **Hauptdatei:** `index.html` (~13.500 Zeilen)
+- **Letzter Commit:** `7de6f65` — Neuer Tab Standardmaterial
 
 ## Was heute erledigt wurde (2026-04-07)
 
@@ -28,6 +28,26 @@
 - Status-Workflow: offen → geprüft → gesendet
 - Download + Löschen pro Dokument
 
+### Phase 3: Speisekarten-Optimierer ✅ (Erweiterung Speisekarte-Tab)
+- Kalkulation pro Gericht: VK-Preis − Wareneinsatz − Personal − Verpackung = Marge
+- Ampel-System: 🟢 >65% | 🟡 45–65% | 🔴 <45%
+- Live-Vorschau beim Bearbeiten (Marge wird sofort berechnet)
+- Zutatenliste pro Gericht (Name, Menge, Kosten)
+- Optimierungs-Vorschlag: "Preis um €X erhöhen → 65% Marge"
+- Zusammenfassungs-Box: Ø-Marge, kalkulierte Gerichte, Ampel-Verteilung
+- Migration: bestehende Gerichte erhalten automatisch leeres `kalk`-Feld
+
+### Neuer Tab: Standardmaterial ✅ (unter Lager & Waren)
+- Stammliste aller fixen Materialien (Verpackung, Rohstoffe, Reinigung, Büro, Küche)
+- 5 Kategorien mit Farb-Coding und gruppierten Sektionen
+- Suche + Kategorie-Filter (Echtzeit)
+- CRUD: Neu / Bearbeiten / Löschen mit Bestätigungs-Dialog
+- Felder: Name, Kategorie, Einheit, Mindestbestand
+- JSON-Export (Download)
+- 15 Beispiel-Stammdaten beim ersten Start
+- LocalStorage: `sc_standardmaterial`
+- Alle 8 Nav-Stellen korrekt eingetragen (Desktop/Tablet/Mobile)
+
 ### Sonstige Fixes
 - Handliste akzeptiert jetzt auch PDFs
 - Gewinn-Tab in alle 3 Nav-Systeme (Desktop/Tablet/Mobile) eingetragen
@@ -36,12 +56,6 @@
 ---
 
 ## Was als Nächstes kommt
-
-### Phase 3: Speisekarten-Optimierer (Erweiterung Business Tab)
-- Kalkulation pro Gericht: VK-Preis - Wareneinsatz - Personal - Verpackung = Marge
-- Ampel: 🟢 >65% | 🟡 45-65% | 🔴 <45%
-- Speisekarten-Eingabe mit Zutatenliste + Mengen pro Portion
-- Optimierungs-Vorschläge ("Preis um X€ erhöhen für Y% Marge")
 
 ### Phase 4: Konkurrenz-Monitor (neuer Tab panel-konkurrenz)
 ### Phase 5: Bewertungs-Manager (Erweiterung Dashboard)
@@ -64,5 +78,5 @@ Bei jedem neuen Tab **alle 8 Stellen** ändern:
 ```bash
 cd "C:/Users/shama/Claude/Pizzaria/.claude/San Carino/worktrees/Pizzaria-vs-3"
 git pull
-# Dann /pizzeria eingeben und sagen: "Lies WEITERMACHEN.md und mach Phase 3"
+# Dann /pizzeria eingeben und sagen: "Lies WEITERMACHEN.md und mach Phase 4"
 ```
