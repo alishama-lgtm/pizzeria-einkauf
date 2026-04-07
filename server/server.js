@@ -4,9 +4,11 @@ const axios   = require('axios');
 const cors    = require('cors');
 const fs      = require('fs');
 const path    = require('path');
+const os      = require('os');
 
 const app  = express();
 const PORT = 3001;
+const ROOT = path.join(__dirname, '..');
 
 // Heisse-Preise Cache-Datei (täglich aktualisiert)
 const HP_CACHE_FILE = path.join(__dirname, 'hp-cache.json');
@@ -17,6 +19,9 @@ app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString().slice(11,19)}] ${req.method} ${req.url}`);
   next();
 });
+
+// Statische Dateien aus dem Projekt-Root ausliefern
+app.use(express.static(ROOT, { index: 'index.html' }));
 
 // ── HTTP Client ───────────────────────────────────────────────────
 const http = axios.create({
@@ -268,14 +273,28 @@ app.get('/api/status', (_req, res) => {
 // ════════════════════════════════════════════════════════════════════
 // Start — erst Daten laden, dann Port öffnen
 // ════════════════════════════════════════════════════════════════════
+// WLAN-IP ermitteln
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) return iface.address;
+    }
+  }
+  return '127.0.0.1';
+}
+
 console.log('\n  Lade Preisdaten …');
 loadHeissePreise().then(() => {
-  app.listen(PORT, () => {
-    console.log('\n╔══════════════════════════════════════════════════════╗');
-    console.log('║   🍕 Pizzeria Preisserver BEREIT                     ║');
-    console.log(`║   Port: ${PORT}  →  http://localhost:${PORT}/api/search?q=...  ║`);
-    console.log('╚══════════════════════════════════════════════════════╝\n');
-    console.log('  Alle Shops verfügbar: Spar, Billa, Hofer, Mpreis ✅');
-    console.log('  Dieses Fenster offen lassen!\n');
+  app.listen(PORT, '0.0.0.0', () => {
+    const ip = getLocalIP();
+    console.log('\n' + '='.repeat(56));
+    console.log('   Pizzeria San Carino — WLAN Server BEREIT');
+    console.log('='.repeat(56));
+    console.log(`   Dieses Geraet:  http://localhost:${PORT}`);
+    console.log(`   WLAN (Handy):   http://${ip}:${PORT}`);
+    console.log('='.repeat(56));
+    console.log('   Preissuche: Spar, Billa, Hofer, Mpreis');
+    console.log('   Dieses Fenster offen lassen!\n');
   });
 });

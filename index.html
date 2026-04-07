@@ -6753,7 +6753,7 @@ async function isLocalServerAvailable() {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 2000);
-    const r = await fetch('http://localhost:3001/api/health', { signal: ctrl.signal });
+    const r = await fetch('/api/health', { signal: ctrl.signal });
     clearTimeout(t);
     _serverCheck = { available: r.ok, at: Date.now() };
     return r.ok;
