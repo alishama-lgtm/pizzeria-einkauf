@@ -1305,6 +1305,7 @@
   <div id="panel-statistik"    style="display:none"></div>
   <div id="panel-tagesangebote" style="display:none"></div>
   <div id="panel-umsatz"       style="display:none"></div>
+  <div id="panel-gewinn"       style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -6531,7 +6532,7 @@ const NAV_GROUPS = [
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm'],                mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
-  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz'], mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn'], mobile:false },
 ];
 
 function _syncNavActiveStates(tab) {
@@ -6652,6 +6653,7 @@ function switchTab(tab) {
   if (tab === 'statistik')     renderStatistikTab();
   if (tab === 'tagesangebote') renderTagesangeboteTab();
   if (tab === 'umsatz')        renderUmsatzTab();
+  if (tab === 'gewinn')        renderGewinnTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -10137,8 +10139,8 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn'],
   employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
@@ -12598,6 +12600,216 @@ function umsatzSetZiel() {
   _safeLocalSet('pizzeria_umsatz_ziel', val.toString());
   _showToast('Monatsziel gesetzt \u2713', 'success');
   renderUmsatzTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GEWINN-DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderGewinnTab() {
+  var panel = document.getElementById('panel-gewinn');
+  if (!panel) return;
+
+  // ── Datenbasis ──
+  var kassa      = bizGetKassa();
+  var fixkosten  = bizGetFixkosten();
+  var personal   = bizGetPersonal();
+  var pizzaCalc  = bizGetPizzaCalc();
+  var today      = bizToday();
+
+  // Fixkosten pro Tag
+  var fixSum = (fixkosten.miete||0) + (fixkosten.strom||0) +
+               (fixkosten.versicherung||0) + (fixkosten.buchhaltung||0) +
+               (fixkosten.sonstige||0);
+  var fixPerDay = fixSum / 30;
+
+  // Personalkosten pro Tag (Monatsgehalt / 26 Arbeitstage)
+  var personalMonth = personal.reduce(function(s,p){ return s + (p.stunden||0)*(p.lohn||0); }, 0);
+  var personalPerDay = personalMonth / 26;
+
+  // Einkauf pro Tag (Monat / Tag des Monats)
+  var einkaufMonth = bizGetEinkaufThisMonth();
+  var dayOfMonth = new Date().getDate();
+  var einkaufPerDay = dayOfMonth > 0 ? einkaufMonth / dayOfMonth : 0;
+
+  // Gesamtkosten pro Tag
+  var kostenPerDay = fixPerDay + personalPerDay + einkaufPerDay;
+
+  // Tages-Kassabuch-Eintrag
+  var todayEntry = kassa.find(function(e){ return e.date === today; }) || { gesamt: 0, bar: 0, karte: 0 };
+  var todayRev = todayEntry.gesamt || 0;
+  var todayGewinn = todayRev - kostenPerDay;
+
+  // Vergleiche
+  var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  var yesterdayStr = yesterday.toISOString().slice(0,10);
+  var yEntry = kassa.find(function(e){ return e.date === yesterdayStr; });
+  var yGewinn = yEntry ? (yEntry.gesamt - kostenPerDay) : null;
+
+  var lastWeekDate = new Date(); lastWeekDate.setDate(lastWeekDate.getDate() - 7);
+  var lastWeekStr = lastWeekDate.toISOString().slice(0,10);
+  var lwEntry = kassa.find(function(e){ return e.date === lastWeekStr; });
+  var lwGewinn = lwEntry ? (lwEntry.gesamt - kostenPerDay) : null;
+
+  // Monatsdurchschnitt
+  var { y, m } = bizCurrentMonth();
+  var monthEntries = kassa.filter(function(e){
+    return e.date && e.date.startsWith(y + '-' + String(m).padStart(2,'0'));
+  });
+  var avgRev = monthEntries.length > 0
+    ? monthEntries.reduce(function(s,e){ return s + (e.gesamt||0); }, 0) / monthEntries.length
+    : 0;
+  var avgGewinn = avgRev - kostenPerDay;
+
+  // ── 7-Tage Daten ──
+  var last7 = [];
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var ds = d.toISOString().slice(0,10);
+    var e = kassa.find(function(x){ return x.date === ds; });
+    var dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    last7.push({
+      label: i === 0 ? 'Heute' : dayNames[d.getDay()],
+      rev:   e ? (e.gesamt||0) : 0,
+      cost:  kostenPerDay,
+      profit: e ? ((e.gesamt||0) - kostenPerDay) : null
+    });
+  }
+  var maxVal = last7.reduce(function(mx, d){ return Math.max(mx, d.rev, d.cost); }, 1);
+
+  // ── Break-Even ──
+  var breakEvenPct = kostenPerDay > 0 ? Math.min(100, Math.round(todayRev / kostenPerDay * 100)) : 0;
+  var breakEvenLeft = Math.max(0, kostenPerDay - todayRev);
+
+  // ── Top 5 Margen-Killer ──
+  var killers = pizzaCalc.slice()
+    .filter(function(p){ return p.preis > 0; })
+    .map(function(p){
+      var marge = ((p.preis - p.kosten) / p.preis * 100);
+      return { name: p.name, preis: p.preis, kosten: p.kosten, marge: marge };
+    })
+    .sort(function(a,b){ return a.marge - b.marge; })
+    .slice(0, 5);
+
+  // ── Helper ──
+  function eur(n) { return '€\u00A0' + (+n||0).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function cmpBadge(val, ref) {
+    if (ref === null) return '';
+    var diff = val - ref;
+    var cls  = diff >= 0 ? 'gewinn-compare-up' : 'gewinn-compare-down';
+    var arrow = diff >= 0 ? '▲' : '▼';
+    return '<span class="gewinn-compare-badge ' + cls + '">' + arrow + ' ' + eur(Math.abs(diff)) + '</span>';
+  }
+  function ampel(marge) {
+    if (marge >= 65) return '<span style="color:#4caf50;font-size:18px">🟢</span>';
+    if (marge >= 45) return '<span style="color:#ff9800;font-size:18px">🟡</span>';
+    return '<span style="color:#ef5350;font-size:18px">🔴</span>';
+  }
+
+  // ── HTML aufbauen ──
+  var isNeg = todayGewinn < 0;
+  var html = _pageHdr('trending_up', 'Gewinn-Dashboard', 'Tägliche P&L — Pizzeria San Carino',
+    '<button onclick="renderGewinnTab()" style="padding:7px 14px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">refresh</span>Aktualisieren</button>');
+
+  // Hero: Tagesgewinn
+  html += '<div class="gewinn-hero' + (isNeg ? ' negative' : '') + '">';
+  html += '<div style="font-size:13px;font-weight:600;opacity:.75;margin-bottom:6px;letter-spacing:.5px">TAGESGEWINN ' + today.split('-').reverse().join('.') + '</div>';
+  html += '<div class="gewinn-big-num">' + (isNeg ? '' : '+') + eur(todayGewinn) + '</div>';
+  html += '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">';
+  html += '<span style="font-size:12px;opacity:.7">vs. gestern: </span>' + cmpBadge(todayGewinn, yGewinn);
+  html += '<span style="font-size:12px;opacity:.7;margin-left:8px">vs. Vorwoche: </span>' + cmpBadge(todayGewinn, lwGewinn);
+  html += '<span style="font-size:12px;opacity:.7;margin-left:8px">Ø Monat: </span><span class="gewinn-compare-badge" style="background:rgba(255,255,255,.15);color:#fff">' + eur(avgGewinn) + '</span>';
+  html += '</div></div>';
+
+  // Grid: 3 Kacheln
+  html += '<div class="gewinn-grid">';
+
+  // Einnahmen heute
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866">';
+  html += '<div style="font-size:11px;font-weight:700;color:#8d6562;letter-spacing:.5px;margin-bottom:8px">EINNAHMEN HEUTE</div>';
+  html += '<div style="font-size:28px;font-weight:800;color:#1b5e20">' + eur(todayRev) + '</div>';
+  html += '<div style="margin-top:10px;display:flex;gap:12px">';
+  html += '<div style="font-size:12px;color:#5a403c">💵 Bar: <strong>' + eur(todayEntry.bar||0) + '</strong></div>';
+  html += '<div style="font-size:12px;color:#5a403c">💳 Karte: <strong>' + eur(todayEntry.karte||0) + '</strong></div>';
+  html += '</div></div>';
+
+  // Kosten heute
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866">';
+  html += '<div style="font-size:11px;font-weight:700;color:#8d6562;letter-spacing:.5px;margin-bottom:8px">KOSTEN HEUTE (ANTEILIG)</div>';
+  html += '<div style="font-size:28px;font-weight:800;color:#c62828">' + eur(kostenPerDay) + '</div>';
+  html += '<div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">';
+  html += '<div style="font-size:11px;color:#5a403c;display:flex;justify-content:space-between"><span>Fixkosten/Tag</span><strong>' + eur(fixPerDay) + '</strong></div>';
+  html += '<div style="font-size:11px;color:#5a403c;display:flex;justify-content:space-between"><span>Personal/Tag</span><strong>' + eur(personalPerDay) + '</strong></div>';
+  html += '<div style="font-size:11px;color:#5a403c;display:flex;justify-content:space-between"><span>Einkauf/Tag (Ø)</span><strong>' + eur(einkaufPerDay) + '</strong></div>';
+  html += '</div></div>';
+
+  // Break-Even
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866">';
+  html += '<div style="font-size:11px;font-weight:700;color:#8d6562;letter-spacing:.5px;margin-bottom:8px">BREAK-EVEN STATUS</div>';
+  if (breakEvenLeft > 0) {
+    html += '<div style="font-size:14px;font-weight:700;color:#e65100;margin-bottom:12px">Noch <strong>' + eur(breakEvenLeft) + '</strong> bis Kostendeckung</div>';
+  } else {
+    html += '<div style="font-size:14px;font-weight:700;color:#1b5e20;margin-bottom:12px">✅ Kosten gedeckt — Gewinnzone!</div>';
+  }
+  html += '<div class="gewinn-breakeven-bar"><div class="gewinn-breakeven-fill" style="width:' + breakEvenPct + '%;background:' + (breakEvenPct >= 100 ? 'linear-gradient(90deg,#4caf50,#2e7d32)' : breakEvenPct >= 60 ? 'linear-gradient(90deg,#ff9800,#f57c00)' : 'linear-gradient(90deg,#ef5350,#c62828)') + '"></div></div>';
+  html += '<div style="text-align:right;font-size:11px;font-weight:700;color:#5a403c;margin-top:5px">' + breakEvenPct + '%</div>';
+  html += '</div>';
+
+  html += '</div>'; // end grid
+
+  // Wochen-Trend
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:16px">📊 7-Tage Trend — Einnahmen vs. Kosten</div>';
+  html += '<div class="gewinn-bar-chart">';
+  last7.forEach(function(d) {
+    var hRev  = d.rev  > 0 ? Math.max(8,  Math.round(d.rev  / maxVal * 140)) : 4;
+    var hCost = Math.max(8, Math.round(d.cost / maxVal * 140));
+    html += '<div class="gewinn-bar-group">';
+    html += '<div style="display:flex;align-items:flex-end;gap:2px;height:140px">';
+    html += '<div class="gewinn-bar gewinn-bar-green" style="height:' + hRev  + 'px;flex:1" title="Einnahmen: ' + eur(d.rev) + '"></div>';
+    html += '<div class="gewinn-bar gewinn-bar-red"   style="height:' + hCost + 'px;flex:1" title="Kosten: '    + eur(d.cost) + '"></div>';
+    html += '</div>';
+    html += '<div class="gewinn-bar-label" style="margin-top:4px;text-align:center">' + d.label + '</div>';
+    if (d.profit !== null) {
+      var pColor = d.profit >= 0 ? '#1b5e20' : '#c62828';
+      html += '<div style="font-size:9px;font-weight:700;color:' + pColor + ';text-align:center">' + (d.profit >= 0 ? '+' : '') + Math.round(d.profit) + '€</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;gap:16px;margin-top:10px">';
+  html += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#5a403c"><div style="width:12px;height:12px;border-radius:3px;background:#4caf50"></div>Einnahmen</div>';
+  html += '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#5a403c"><div style="width:12px;height:12px;border-radius:3px;background:#ef5350"></div>Kosten (anteilig)</div>';
+  html += '</div></div>';
+
+  // Top 5 Margen-Killer
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866">';
+  html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:4px">🔪 Top 5 Margen-Killer</div>';
+  html += '<div style="font-size:11px;color:#8d6562;margin-bottom:14px">Gerichte mit der schlechtesten Marge — prüfe Preis oder Rezept</div>';
+
+  if (killers.length === 0) {
+    html += '<div style="color:#8d6562;font-size:13px;text-align:center;padding:20px">Keine Kalkulations-Daten — bitte erst im Business-Tab Pizza-Kalkulator befüllen.</div>';
+  } else {
+    killers.forEach(function(k, i) {
+      var margeRounded = Math.round(k.marge);
+      var suggestion = k.marge < 45
+        ? 'Preis um <strong>' + eur(k.kosten / 0.55 - k.preis) + '</strong> erhöhen für 45% Marge'
+        : 'Beobachten';
+      html += '<div class="gewinn-killer-row">';
+      html += '<div style="width:22px;height:22px;border-radius:50%;background:#f8dcd8;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#8B0000;flex-shrink:0">' + (i+1) + '</div>';
+      html += ampel(k.marge);
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-size:13px;font-weight:700;color:#261816;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(k.name) + '</div>';
+      html += '<div style="font-size:11px;color:#8d6562">' + suggestion + '</div>';
+      html += '</div>';
+      html += '<div style="text-align:right;flex-shrink:0">';
+      html += '<div style="font-size:14px;font-weight:800;color:' + (k.marge >= 65 ? '#1b5e20' : k.marge >= 45 ? '#e65100' : '#c62828') + '">' + margeRounded + '%</div>';
+      html += '<div style="font-size:10px;color:#8d6562">VK: ' + eur(k.preis) + '</div>';
+      html += '</div></div>';
+    });
+  }
+  html += '</div>';
+
+  panel.innerHTML = html;
 }
 
 var _confirmCallback = null;
