@@ -3758,9 +3758,9 @@ function handleHandlistSelect(input) {
 }
 
 function handleHandlistFile(file) {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
   if (!allowed.includes(file.type)) {
-    HANDLIST_STATE.error = 'Bitte ein Bild (JPG, PNG, WebP) hochladen.';
+    HANDLIST_STATE.error = 'Bitte ein Bild (JPG, PNG, WebP) oder PDF hochladen.';
     HANDLIST_STATE.fileDataUrl = null;
     renderUploadTab();
     return;
@@ -3984,7 +3984,7 @@ async function scanHandlistViaClaudeAPI() {
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
       messages: [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+        { type: mediaType === 'application/pdf' ? 'document' : 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
         { type: 'text', text: prompt },
       ]}],
     }),
@@ -4064,7 +4064,7 @@ function renderHandlistSection() {
       </div>`;
   }
 
-  html += `<input id="handlist-file-input" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" style="display:none" onchange="handleHandlistSelect(this)">`;
+  html += `<input id="handlist-file-input" type="file" accept="image/jpeg,image/png,image/webp,.pdf" capture="environment" style="display:none" onchange="handleHandlistSelect(this)">`;
 
   if (!HANDLIST_STATE.fileDataUrl) {
     // ─── Drop zone ───
@@ -4079,10 +4079,13 @@ function renderHandlistSection() {
           <span class="material-symbols-outlined" style="font-size:38px;color:#fff">edit_note</span>
         </div>
         <p style="font-size:17px;font-weight:700;color:#261816;margin-bottom:8px">Handliste fotografieren</p>
-        <p style="font-size:14px;color:#5a403c;margin-bottom:20px">Foto hierher ziehen — oder tippen um Kamera zu öffnen</p>
+        <p style="font-size:14px;color:#5a403c;margin-bottom:20px">Foto oder PDF hierher ziehen — oder tippen zum Auswählen</p>
         <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
           <span style="background:#fff;border:1px solid #fde047;border-radius:20px;padding:5px 14px;font-size:12px;color:#854d0e;display:flex;align-items:center;gap:5px">
             <span class="material-symbols-outlined" style="font-size:14px">image</span> JPG / PNG / WebP
+          </span>
+          <span style="background:#fff;border:1px solid #fde047;border-radius:20px;padding:5px 14px;font-size:12px;color:#854d0e;display:flex;align-items:center;gap:5px">
+            <span class="material-symbols-outlined" style="font-size:14px">picture_as_pdf</span> PDF
           </span>
         </div>
         <p style="font-size:12px;color:#8d6562;margin-top:16px">📱 Auf dem Handy öffnet direkt die Kamera</p>
@@ -4115,17 +4118,22 @@ function renderHandlistSection() {
       <div style="background:#fff;border:1px solid #fde04766;border-radius:18px;overflow:hidden;box-shadow:0 2px 8px rgba(133,77,14,.1)">
         <div style="padding:12px 16px;border-bottom:1px solid #fde04744;display:flex;align-items:center;justify-content:space-between;background:#fef9c3">
           <div style="display:flex;align-items:center;gap:10px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#854d0e">image</span>
-            <span style="font-size:13px;font-weight:600;color:#261816;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(HANDLIST_STATE.fileName || 'Foto')}</span>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#854d0e">${HANDLIST_STATE.mediaType === 'application/pdf' ? 'picture_as_pdf' : 'image'}</span>
+            <span style="font-size:13px;font-weight:600;color:#261816;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(HANDLIST_STATE.fileName || 'Datei')}</span>
           </div>
           <button onclick="resetHandlist()"
             style="padding:5px 12px;border-radius:10px;border:1px solid #fde047;background:#fff;font-size:12px;color:#854d0e;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit">
             <span class="material-symbols-outlined" style="font-size:14px">close</span> Entfernen
           </button>
         </div>
-        <div style="background:#1c1200;max-height:380px;overflow:hidden;display:flex;align-items:center;justify-content:center">
-          <img src="${HANDLIST_STATE.fileDataUrl}" style="max-width:100%;max-height:380px;object-fit:contain;display:block">
-        </div>
+        ${HANDLIST_STATE.mediaType === 'application/pdf'
+          ? `<div style="padding:40px;text-align:center;background:#fefce8">
+               <span class="material-symbols-outlined" style="font-size:56px;color:#854d0e">picture_as_pdf</span>
+               <p style="font-size:13px;color:#5a403c;margin-top:10px">PDF bereit zum Auslesen</p>
+             </div>`
+          : `<div style="background:#1c1200;max-height:380px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+               <img src="${HANDLIST_STATE.fileDataUrl}" style="max-width:100%;max-height:380px;object-fit:contain;display:block">
+             </div>`}
       </div>
       <button onclick="erkennungStart()"
         style="width:100%;margin-top:16px;padding:18px;border-radius:16px;border:none;font-size:16px;font-weight:700;font-family:inherit;color:#fff;background:linear-gradient(135deg,#854d0e,#a16207);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 16px rgba(133,77,14,.35)">
