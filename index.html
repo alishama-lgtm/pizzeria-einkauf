@@ -1173,6 +1173,7 @@
       <div class="nav-grp-dd">
         <button data-nav-tab="lager" onclick="switchTab('lager')" class="dd-item"><span style="font-size:14px">📦</span>Lagerbestand</button>
         <button data-nav-tab="wareneinsatz" onclick="switchTab('wareneinsatz')" class="dd-item"><span style="font-size:14px">💰</span>Wareneinsatz</button>
+        <button data-nav-tab="standardmaterial" onclick="switchTab('standardmaterial')" class="dd-item"><span style="font-size:14px">📋</span>Standardmaterial</button>
         <div class="nav-grp-dd-sep"></div>
         <button data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')" class="dd-item"><span style="font-size:14px">📋</span>Fehlmaterial<span id="fehl-tab-badge" style="display:none;background:#e53935;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0"></span></button>
         <button data-nav-tab="upload" onclick="switchTab('upload')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">photo_camera</span>Upload</button>
@@ -1236,6 +1237,7 @@
     <div class="ts-sub">
       <button class="ts-sub-item" data-nav-tab="lager" onclick="switchTab('lager')"><span class="ts-sub-icon">📦</span>Lagerbestand</button>
       <button class="ts-sub-item" data-nav-tab="wareneinsatz" onclick="switchTab('wareneinsatz')"><span class="ts-sub-icon">💰</span>Wareneinsatz</button>
+      <button class="ts-sub-item" data-nav-tab="standardmaterial" onclick="switchTab('standardmaterial')"><span class="ts-sub-icon">📋</span>Standardmaterial</button>
       <button class="ts-sub-item" data-nav-tab="fehlmaterial" onclick="switchTab('fehlmaterial')"><span class="ts-sub-icon">📋</span>Fehlmaterial</button>
       <button class="ts-sub-item" data-nav-tab="upload" onclick="switchTab('upload')"><span class="ts-sub-icon">📸</span>Upload</button>
       <button class="ts-sub-item" data-nav-tab="lieferanten" onclick="switchTab('lieferanten')"><span class="ts-sub-icon">🏭</span>Lieferanten</button>
@@ -1306,6 +1308,7 @@
   <div id="panel-lager"        style="display:none"></div>
   <div id="panel-wareneinsatz" style="display:none"></div>
   <div id="panel-preisalarm"   style="display:none"></div>
+  <div id="panel-standardmaterial" style="display:none"></div>
   <div id="panel-statistik"    style="display:none"></div>
   <div id="panel-tagesangebote" style="display:none"></div>
   <div id="panel-umsatz"       style="display:none"></div>
@@ -1382,6 +1385,7 @@
     <div class="bs-title">Lager &amp; Waren</div>
     <div class="bs-grid">
       <button data-drawer-nav="wareneinsatz" onclick="switchTab('wareneinsatz');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">💰</span>Wareneinsatz</button>
+      <button data-drawer-nav="standardmaterial" onclick="switchTab('standardmaterial');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📋</span>Standardm.</button>
       <button data-drawer-nav="upload" onclick="switchTab('upload');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">photo_camera</span>Upload</button>
       <button data-drawer-nav="lieferanten" onclick="switchTab('lieferanten');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🏭</span>Lieferanten</button>
       <button data-drawer-nav="produkte" onclick="switchTab('produkte');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">inventory_2</span>Produkte</button>
@@ -6544,7 +6548,7 @@ function renderSingleCombo(combo, rank) {
 const NAV_GROUPS = [
   { id:'kombis',   icon:'shopping_cart',   label:'Kombis',    tabs:['kombis'],                                          mobile:true  },
   { id:'einkauf',  icon:'receipt_long',    label:'Einkauf',   tabs:['angebote','einkaufsliste','suche','upload','verlauf'], mobile:true  },
-  { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm'],                mobile:true  },
+  { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
   { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung'], mobile:false },
@@ -6612,7 +6616,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn','buchhaltung'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -6665,6 +6669,7 @@ function switchTab(tab) {
   if (tab === 'lager')         renderLagerTab();
   if (tab === 'wareneinsatz')  renderWareneinsatzTab();
   if (tab === 'preisalarm')    renderPreisalarmTab();
+  if (tab === 'standardmaterial') renderStandardmaterialTab();
   if (tab === 'statistik')     renderStatistikTab();
   if (tab === 'tagesangebote') renderTagesangeboteTab();
   if (tab === 'umsatz')        renderUmsatzTab();
@@ -10155,8 +10160,8 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
   employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
@@ -11087,6 +11092,214 @@ function skLoeschen(id) {
     skSave(skLoad().filter(i => i.id !== id));
     renderSpeisekarteTab();
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STANDARDMATERIAL TAB
+// ═══════════════════════════════════════════════════════════════
+const SM_KEY = 'sc_standardmaterial';
+const SM_KATEGORIEN = ['Verpackung','Rohstoffe & Zutaten','Reinigung','Büro & Sonstiges','Pizza & Küche'];
+const SM_KAT_FARBEN = {
+  'Verpackung':         {farbe:'#c0392b', bg:'#fdecea'},
+  'Rohstoffe & Zutaten':{farbe:'#e65100', bg:'#fff3e0'},
+  'Reinigung':          {farbe:'#1565c0', bg:'#e3f2fd'},
+  'Büro & Sonstiges':   {farbe:'#6a1b9a', bg:'#f3e5f5'},
+  'Pizza & Küche':      {farbe:'#b52619', bg:'#ffdad6'}
+};
+let SM_FILTER = '';
+let SM_SEARCH = '';
+
+function smLoad() {
+  try { return JSON.parse(localStorage.getItem(SM_KEY)||'null')||_smDefault(); }
+  catch(_) { return _smDefault(); }
+}
+function smSave(d) { try { localStorage.setItem(SM_KEY, JSON.stringify(d)); } catch(_) {} }
+function smGenId() { return 'sm' + Date.now() + Math.random().toString(36).slice(2,6); }
+
+function _smDefault() {
+  var d = [
+    {id:smGenId(),name:'Pizzakarton 33cm',     kategorie:'Verpackung',         einheit:'Stück',   mindestbestand:200},
+    {id:smGenId(),name:'Pizzakarton 40cm',     kategorie:'Verpackung',         einheit:'Stück',   mindestbestand:100},
+    {id:smGenId(),name:'Alufolie',             kategorie:'Verpackung',         einheit:'Rolle',   mindestbestand:5},
+    {id:smGenId(),name:'Papiertüten groß',     kategorie:'Verpackung',         einheit:'Stück',   mindestbestand:100},
+    {id:smGenId(),name:'Pizzamehl',            kategorie:'Rohstoffe & Zutaten',einheit:'kg',      mindestbestand:25},
+    {id:smGenId(),name:'Tomatensauce',         kategorie:'Rohstoffe & Zutaten',einheit:'Dose',    mindestbestand:20},
+    {id:smGenId(),name:'Mozzarella',           kategorie:'Rohstoffe & Zutaten',einheit:'kg',      mindestbestand:10},
+    {id:smGenId(),name:'Olivenöl',             kategorie:'Rohstoffe & Zutaten',einheit:'Liter',   mindestbestand:5},
+    {id:smGenId(),name:'Handschuhe',           kategorie:'Reinigung',          einheit:'Karton',  mindestbestand:2},
+    {id:smGenId(),name:'Spülmittel',           kategorie:'Reinigung',          einheit:'Flasche', mindestbestand:3},
+    {id:smGenId(),name:'Müllsäcke',            kategorie:'Reinigung',          einheit:'Rolle',   mindestbestand:4},
+    {id:smGenId(),name:'Kassenrolle',          kategorie:'Büro & Sonstiges',   einheit:'Stück',   mindestbestand:10},
+    {id:smGenId(),name:'Kugelschreiber',       kategorie:'Büro & Sonstiges',   einheit:'Stück',   mindestbestand:5},
+    {id:smGenId(),name:'Backpapier',           kategorie:'Pizza & Küche',      einheit:'Rolle',   mindestbestand:3},
+    {id:smGenId(),name:'Teigschaber',          kategorie:'Pizza & Küche',      einheit:'Stück',   mindestbestand:2},
+  ];
+  smSave(d);
+  return d;
+}
+
+function renderStandardmaterialTab() {
+  var panel = document.getElementById('panel-standardmaterial');
+  if (!panel) return;
+  try {
+    var list = smLoad();
+    var q = (SM_SEARCH||'').toLowerCase();
+    var filtered = SM_FILTER ? list.filter(function(i){ return i.kategorie === SM_FILTER; }) : list;
+    if (q) filtered = filtered.filter(function(i){ return i.name.toLowerCase().includes(q); });
+
+    // Zähler pro Kategorie
+    var catCounts = {};
+    for (var i = 0; i < list.length; i++) catCounts[list[i].kategorie] = (catCounts[list[i].kategorie]||0) + 1;
+
+    var html = _pageHdr('checklist_rtl', 'Standardmaterial', list.length + ' Materialien in ' + SM_KATEGORIEN.filter(function(k){ return catCounts[k]; }).length + ' Kategorien',
+      '<button onclick="smExportJSON()" class="ws-btn ws-btn-sm" style="margin-right:8px" title="JSON Export"><span class="material-symbols-outlined">download</span>Export</button>'
+      + '<button onclick="smNeuesMaterial()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
+
+    // Formular-Bereich
+    html += '<div id="sm-form-area"></div>';
+
+    // Suchfeld
+    html += '<div style="margin-bottom:14px">'
+      + '<input type="text" placeholder="Material suchen…" oninput="SM_SEARCH=this.value;renderStandardmaterialTab()"'
+      + ' value="' + escHtml(SM_SEARCH) + '"'
+      + ' style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:12px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>'
+      + '</div>';
+
+    // Kategorie-Filter
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px">';
+    html += '<button onclick="SM_FILTER=\'\';renderStandardmaterialTab()" style="padding:6px 13px;border-radius:20px;border:1.5px solid ' + (SM_FILTER===''?'#610000':'#e3beb8') + ';background:' + (SM_FILTER===''?'#610000':'#fff') + ';color:' + (SM_FILTER===''?'#fff':'#5a403c') + ';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Alle (' + list.length + ')</button>';
+    for (var ki = 0; ki < SM_KATEGORIEN.length; ki++) {
+      var kat = SM_KATEGORIEN[ki];
+      if (!catCounts[kat]) continue;
+      var aktiv = SM_FILTER === kat;
+      var kf = SM_KAT_FARBEN[kat] || {farbe:'#610000',bg:'#fff0ee'};
+      html += '<button onclick="SM_FILTER=\'' + kat.replace(/'/g,"\\'") + '\';renderStandardmaterialTab()" style="padding:6px 13px;border-radius:20px;border:1.5px solid ' + (aktiv?kf.farbe:'#e3beb8') + ';background:' + (aktiv?kf.farbe:'#fff') + ';color:' + (aktiv?'#fff':'#5a403c') + ';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">' + kat + ' (' + catCounts[kat] + ')</button>';
+    }
+    html += '</div>';
+
+    // Materialien nach Kategorie
+    if (filtered.length === 0) {
+      html += '<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Keine Materialien gefunden.</div>';
+    } else {
+      for (var ci = 0; ci < SM_KATEGORIEN.length; ci++) {
+        var cat = SM_KATEGORIEN[ci];
+        var items = filtered.filter(function(m){ return m.kategorie === cat; });
+        if (!items.length) continue;
+        var cf = SM_KAT_FARBEN[cat] || {farbe:'#610000',bg:'#fff0ee'};
+        html += '<div style="margin-bottom:24px">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+        html += '<div style="width:4px;height:20px;border-radius:2px;background:' + cf.farbe + '"></div>';
+        html += '<h3 style="font-size:13px;font-weight:800;color:' + cf.farbe + ';text-transform:uppercase;letter-spacing:.08em;margin:0">' + cat + '</h3>';
+        html += '<span style="font-size:11px;color:#8d6562;font-weight:600">' + items.length + ' Materialien</span>';
+        html += '</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:7px">';
+        for (var mi = 0; mi < items.length; mi++) {
+          var m = items[mi];
+          html += '<div style="background:#fff;border:1.5px solid ' + cf.bg + ';border-left:3px solid ' + cf.farbe + ';border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:12px">';
+          html += '<div style="flex:1;min-width:0">';
+          html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+          html += '<span style="font-size:14px;font-weight:800;color:#261816">' + escHtml(m.name) + '</span>';
+          html += '<span style="font-size:11px;font-weight:600;color:' + cf.farbe + ';background:' + cf.bg + ';border-radius:6px;padding:1px 8px">' + escHtml(m.einheit) + '</span>';
+          if (m.mindestbestand) {
+            html += '<span style="font-size:11px;color:#8d6562">Min: ' + m.mindestbestand + ' ' + escHtml(m.einheit) + '</span>';
+          }
+          html += '</div></div>';
+          html += '<div style="display:flex;gap:5px">';
+          html += '<button onclick="smBearbeiten(\'' + m.id + '\')" style="background:#fff0ee;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0"><span class="material-symbols-outlined" style="font-size:16px;color:#610000">edit</span></button>';
+          html += '<button onclick="smLoeschen(\'' + m.id + '\')" style="background:#fff0ee;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0"><span class="material-symbols-outlined" style="font-size:16px;color:#b52619">delete</span></button>';
+          html += '</div></div>';
+        }
+        html += '</div></div>';
+      }
+    }
+    panel.innerHTML = html;
+  } catch(err) {
+    console.error('Standardmaterial Fehler:', err);
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
+  }
+}
+
+function smNeuesMaterial() { _smShowForm(null); }
+function smBearbeiten(id) { _smShowForm(id); }
+
+function _smShowForm(id) {
+  var list = smLoad();
+  var item = id ? list.find(function(i){ return i.id === id; }) : null;
+  var area = document.getElementById('sm-form-area');
+  if (!area) return;
+  area.innerHTML = '<div style="background:#fff;border:2px solid #610000;border-radius:18px;padding:20px;margin-bottom:20px">'
+    + '<h3 style="font-size:15px;font-weight:800;color:#610000;margin:0 0 16px">' + (item ? 'Material bearbeiten' : 'Neues Material') + '</h3>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    + '<div>'
+    + '<label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name *</label>'
+    + '<input id="sm-f-name" type="text" value="' + (item ? escHtml(item.name) : '') + '" placeholder="z.B. Pizzakarton 33cm"'
+    + ' style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>'
+    + '</div>'
+    + '<div>'
+    + '<label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie *</label>'
+    + '<select id="sm-f-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">'
+    + SM_KATEGORIEN.map(function(k){ return '<option value="' + k + '"' + (item && item.kategorie === k ? ' selected' : '') + '>' + k + '</option>'; }).join('')
+    + '</select>'
+    + '</div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'
+    + '<div>'
+    + '<label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Einheit *</label>'
+    + '<input id="sm-f-einheit" type="text" value="' + (item ? escHtml(item.einheit) : '') + '" placeholder="Stück, kg, Rolle…"'
+    + ' style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>'
+    + '</div>'
+    + '<div>'
+    + '<label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Mindestbestand</label>'
+    + '<input id="sm-f-min" type="number" min="0" value="' + (item && item.mindestbestand ? item.mindestbestand : '') + '" placeholder="optional"'
+    + ' style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>'
+    + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<button onclick="_smSpeichern(\'' + (id||'') + '\')" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>'
+    + '<button onclick="document.getElementById(\'sm-form-area\').innerHTML=\'\'" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>'
+    + '</div>'
+    + '</div>';
+  area.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function _smSpeichern(id) {
+  var name = (document.getElementById('sm-f-name')?.value||'').trim();
+  var kat = (document.getElementById('sm-f-kat')?.value||'').trim();
+  var einheit = (document.getElementById('sm-f-einheit')?.value||'').trim();
+  var min = parseInt(document.getElementById('sm-f-min')?.value) || 0;
+  if (!name) { _markField('sm-f-name', true); _showToast('Bitte Namen eingeben', 'error'); return; }
+  if (!einheit) { _markField('sm-f-einheit', true); _showToast('Bitte Einheit eingeben', 'error'); return; }
+  var list = smLoad();
+  if (id) {
+    list = list.map(function(i){ return i.id === id ? { id:i.id, name:name, kategorie:kat, einheit:einheit, mindestbestand:min } : i; });
+  } else {
+    list.push({ id: smGenId(), name:name, kategorie:kat, einheit:einheit, mindestbestand:min });
+  }
+  smSave(list);
+  _showToast('Material gespeichert', 'success');
+  renderStandardmaterialTab();
+}
+
+function smLoeschen(id) {
+  _showConfirm('Material wirklich löschen?', function() {
+    smSave(smLoad().filter(function(i){ return i.id !== id; }));
+    _showToast('Material gelöscht', 'success');
+    renderStandardmaterialTab();
+  });
+}
+
+function smExportJSON() {
+  var list = smLoad();
+  var blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'standardmaterial_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  _showToast('JSON exportiert', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
