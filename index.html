@@ -759,8 +759,16 @@
       #mobile-bottom-nav   { display:none !important }
       #mehr-drawer         { display:none !important }
       #mehr-drawer-overlay { display:none !important }
-      #app-main            { padding-left:80px }
-      #app-footer          { padding-left:80px }
+      #app-main, #app-footer, #stats-dashboard {
+        padding-left:72px;
+        transition:padding-left .25s cubic-bezier(.4,0,.2,1);
+        margin-left:0; margin-right:0; max-width:none;
+      }
+      body.ts-open #app-main,
+      body.ts-open #app-footer,
+      body.ts-open #stats-dashboard {
+        padding-left:228px;
+      }
     }
 
     /* ── Desktop grouped nav ── */
@@ -10779,6 +10787,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saved) { currentUser = JSON.parse(saved); showApp(); return; }
   } catch(_) {}
   // Login-Screen ist bereits sichtbar (default)
+
+  // Tablet-Sidebar Push-Effekt: body.ts-open beim Hover setzen
+  const tsSidebar = document.getElementById('tablet-sidebar');
+  if (tsSidebar) {
+    tsSidebar.addEventListener('mouseenter', () => {
+      document.body.classList.add('ts-open');
+    });
+    tsSidebar.addEventListener('mouseleave', () => {
+      if (!tsSidebar.classList.contains('ts-expanded')) {
+        document.body.classList.remove('ts-open');
+      }
+    });
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════
