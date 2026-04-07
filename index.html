@@ -760,14 +760,14 @@
       #mehr-drawer         { display:none !important }
       #mehr-drawer-overlay { display:none !important }
       #app-main, #app-footer, #stats-dashboard {
-        padding-left:72px !important;
+        padding-left:80px !important;
         transition:padding-left .25s cubic-bezier(.4,0,.2,1);
         margin-left:0 !important; margin-right:0 !important; max-width:none !important;
       }
       body.ts-open #app-main,
       body.ts-open #app-footer,
       body.ts-open #stats-dashboard {
-        padding-left:228px !important;
+        padding-left:232px !important;
       }
     }
 
@@ -873,22 +873,24 @@
     /* ════ PAGE HEADER PATTERN ════ */
     .page-hdr {
       display: flex; align-items: center; gap: 14px;
-      padding: 20px 0 18px;
-      border-bottom: 1px solid var(--border-2);
+      padding: 18px 22px;
+      border-radius: 16px;
       margin-bottom: 20px;
+      background: linear-gradient(135deg, #610000, #8b0000);
+      color: #fff;
     }
     .page-hdr-icon {
       width: 44px; height: 44px; border-radius: var(--r-md);
-      background: var(--red-soft); color: var(--red);
+      background: rgba(255,255,255,0.18); color: #fff;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
     .page-hdr-icon .material-symbols-outlined { font-size: 22px; }
     .page-hdr-title {
       font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.2;
+      font-size: 20px; font-weight: 800; color: #fff; line-height: 1.2;
     }
-    .page-hdr-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; font-weight: 500; }
+    .page-hdr-sub { font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 2px; font-weight: 500; }
     .page-hdr-right { margin-left: auto; flex-shrink: 0; }
 
     /* ════ ALERT BOX ════ */
