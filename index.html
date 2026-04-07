@@ -898,7 +898,7 @@
     .alert-box-blue  { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
   </style>
 </head>
-<body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
+<body style="background-color:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(circle at 1px 1px, rgba(139,0,0,0.025) 1px, transparent 0);background-size:32px 32px;">
 
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="login-screen">
@@ -1260,6 +1260,16 @@ function _safeLocalGet(key, defaultVal) {
 }
 function _safeLocalSet(key, val) {
   try { localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(_) {}
+}
+
+function _pageHdr(icon, title, sub, actionHtml) {
+  return '<div class="page-hdr">' +
+    '<div class="page-hdr-icon"><span class="material-symbols-outlined">' + icon + '</span></div>' +
+    '<div style="flex:1;min-width:0"><div class="page-hdr-title">' + title + '</div>' +
+    (sub ? '<div class="page-hdr-sub">' + sub + '</div>' : '') +
+    '</div>' +
+    (actionHtml ? '<div class="page-hdr-right">' + actionHtml + '</div>' : '') +
+    '</div>';
 }
 // ═══════════════════════════════════════════════════════════════
 // js/config.js
@@ -1975,11 +1985,8 @@ function renderFehlmaterialTab() {
   if (fmCurrentSection === 'auswertung') content = renderFmAuswertung();
 
   panel.innerHTML =
-    '<div class="ws-section-header" style="margin-bottom:20px">' +
-    '<div class="ws-section-title">' +
-    '<span class="material-symbols-outlined">assignment_late</span>Fehlmaterial' +
-    (dringendCount>0 ? '<span class="ws-badge ws-badge-red">' + dringendCount + ' dringend</span>' : '') +
-    '</div></div>' +
+    _pageHdr('assignment_late', 'Fehlmaterial',
+      FM_DATA.filter(x=>x.status==='offen').length + ' offen' + (dringendCount>0 ? ' · <span style="color:#c62828;font-weight:700">' + dringendCount + ' dringend</span>' : '')) +
     subNav + content;
 
   fmUpdateBadge();
@@ -2757,9 +2764,8 @@ function renderChecklisteTab() {
   if (clCurrentView === 'historie') content = renderClHistorie();
 
   panel.innerHTML =
-    '<div class="ws-section-header" style="margin-bottom:20px">' +
-    '<div class="ws-section-title"><span class="material-symbols-outlined">checklist</span>Tages-Checkliste</div>' +
-    '</div>' + subNav + content;
+    _pageHdr('checklist', 'Tages-Checkliste', 'Morgen- und Abend-Protokoll') +
+    subNav + content;
   clUpdateBadge();
 }
 
@@ -7750,15 +7756,7 @@ function renderMitarbeiterTab() {
   const weekKey = MA_STATE.weekKey;
 
   let html = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">badge</span>
-      </div>
-      <div>
-        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Personal</h2>
-        <p style="font-size:13px;color:#5a403c;margin:0">Mitarbeiter &amp; Wochenplan</p>
-      </div>
-    </div>
+    ${_pageHdr('badge', 'Personal', mitarbeiter.length + ' Mitarbeiter · Wochenplan')}
 
     <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid #e3beb8">
       <button onclick="MA_STATE.view='plan';renderMitarbeiterTab()"
@@ -9446,32 +9444,16 @@ function _buildEinkaufslisteHTML() {
   var html = '';
 
   // ── Header ──
-  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">';
-  html += '<div>';
-  html += '<h1 style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:24px;font-weight:800;color:#261816;margin:0 0 4px">🛒 Einkaufsliste</h1>';
+  var subText = total > 0
+    ? doneCount + ' von ' + total + ' erledigt' + (totalCost > 0.01 ? ' · geschätzt <strong style="color:var(--red)">' + eur(totalCost) + '</strong>' : '')
+    : 'Noch keine Artikel';
+  var actionBtns = '';
+  if (doneCount > 0) actionBtns += '<button onclick="elClearDone()" class="ws-btn ws-btn-ghost ws-btn-sm"><span class="material-symbols-outlined">playlist_remove</span>Erledigte löschen</button>';
   if (total > 0) {
-    html += '<p style="font-size:13px;color:#5a403c;margin:0">' + doneCount + ' von ' + total + ' erledigt';
-    if (totalCost > 0.01) html += ' &nbsp;·&nbsp; geschätzt <strong style="color:#610000">' + eur(totalCost) + '</strong>';
-    html += '</p>';
-  } else {
-    html += '<p style="font-size:13px;color:#8d6562;margin:0">Noch keine Artikel</p>';
+    actionBtns += '<button onclick="printEinkaufsliste()" class="ws-btn ws-btn-ghost ws-btn-sm"><span class="material-symbols-outlined">print</span>Drucken</button>';
+    actionBtns += '<button onclick="elClearAll()" class="ws-btn ws-btn-sm" style="background:#fef2f2;color:#dc2626;border:none"><span class="material-symbols-outlined">delete_sweep</span>Leeren</button>';
   }
-  html += '</div>';
-
-  // Action-Buttons
-  html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-  if (doneCount > 0) {
-    html += '<button onclick="elClearDone()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#fff;color:#5a403c;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">';
-    html += '<span class="material-symbols-outlined" style="font-size:16px">playlist_remove</span>Erledigte löschen</button>';
-  }
-  if (total > 0) {
-    html += '<button onclick="printEinkaufsliste()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#fff;color:#5a403c;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">';
-    html += '<span class="material-symbols-outlined" style="font-size:16px">print</span>Drucken</button>';
-    html += '<button onclick="elClearAll()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#fff;color:#93000a;border:1.5px solid #ffdad6;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">';
-    html += '<span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>Leeren</button>';
-  }
-  html += '</div>';
-  html += '</div>';
+  html += _pageHdr('shopping_cart', 'Einkaufsliste', subText, '<div style="display:flex;gap:6px;flex-wrap:wrap">' + actionBtns + '</div>');
 
   // ── Progress Bar ──
   if (total > 0) {
@@ -10494,18 +10476,8 @@ function renderSpeisekarteTab() {
     for (const i of menu) catCounts[i.kat] = (catCounts[i.kat]||0) + 1;
 
     let html = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">menu_book</span>
-      </div>
-      <div style="flex:1">
-        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Speisekarte</h2>
-        <p style="font-size:13px;color:#5a403c;margin:0">${menu.filter(i=>i.aktiv).length} aktive Gerichte · ${menu.length} gesamt</p>
-      </div>
-      <button onclick="skNeuesGericht()" style="background:#610000;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
-        <span class="material-symbols-outlined" style="font-size:16px">add</span>Neu
-      </button>
-    </div>
+    ${_pageHdr('menu_book', 'Speisekarte', menu.filter(i=>i.aktiv).length + ' aktive Gerichte · ' + menu.length + ' gesamt',
+      '<button onclick="skNeuesGericht()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>')}
     <div id="sk-form-area"></div>
     <div style="margin-bottom:14px">
       <input type="text" placeholder="Suchen (Name, Nr., Zutaten)…" oninput="SK_SEARCH=this.value;renderSpeisekarteTab()"
@@ -10668,18 +10640,8 @@ function renderLieferantenTab() {
   try {
     const list = lfLoad();
     let html = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#610000,#8b0000);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <span class="material-symbols-outlined" style="font-size:26px;color:#fff">local_shipping</span>
-      </div>
-      <div style="flex:1">
-        <h2 style="font-size:20px;font-weight:800;color:#261816;margin:0">Lieferanten</h2>
-        <p style="font-size:13px;color:#5a403c;margin:0">${list.length} gespeichert</p>
-      </div>
-      <button onclick="lfNeu()" style="background:#610000;color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
-        <span class="material-symbols-outlined" style="font-size:16px">add</span>Neu
-      </button>
-    </div>
+    ${_pageHdr('local_shipping', 'Lieferanten', list.length + ' gespeichert',
+      '<button onclick="lfNeu()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>')}
     <div id="lf-form-area"></div>
     <div style="display:flex;flex-direction:column;gap:12px">`;
 
@@ -10943,10 +10905,7 @@ function renderDienstplanTab() {
   }).join('');
 
   p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">📅 Dienstplan</h2>
-      <p style="color:#5a403c;font-size:14px">Wochenübersicht — Schichten per Klick zuweisen</p>
-    </div>
+    ${_pageHdr('calendar_month', 'Dienstplan', 'KW ' + kw + ' — ' + fmt(weekDates[0]) + ' bis ' + fmt(weekDates[6]))}
     <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;box-shadow:0 2px 8px rgba(0,0,0,.06)">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
         <button onclick="dienstplanWoche(-1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">← Vorwoche</button>
@@ -11139,12 +11098,7 @@ function renderAufgabenTab() {
   }).join('');
 
   panel.innerHTML = `
-  <div style="margin-bottom:20px">
-    <h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px;display:flex;align-items:center;gap:8px">
-      <span class="material-symbols-outlined" style="color:#610000">task_alt</span>Aufgaben
-    </h2>
-    <p style="color:#5a403c;font-size:14px;margin:0">${offenCount} offen</p>
-  </div>
+  ${_pageHdr('task_alt', 'Aufgaben', offenCount + ' offen')}
 
   <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:20px">
     <div style="font-size:14px;font-weight:800;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:6px">
@@ -11289,10 +11243,7 @@ function renderSchichtCheckTab() {
     </div>`;
 
   p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">📋 Schicht-Checkliste</h2>
-      <p style="color:#5a403c;font-size:14px">${today} — Wird täglich automatisch zurückgesetzt</p>
-    </div>
+    ${_pageHdr('playlist_add_check', 'Schicht-Checkliste', today + ' — Wird täglich zurückgesetzt')}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -11364,10 +11315,7 @@ function renderBestellungTab() {
 
   const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton'];
   p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">🛍️ Bestellliste</h2>
-      <p style="color:#5a403c;font-size:14px">${offenCount} zu bestellen${dringlichCount?' — <span style="color:#c62828;font-weight:700">🔴 '+dringlichCount+' dringend</span>':''}</p>
-    </div>
+    ${_pageHdr('shopping_cart_checkout', 'Bestellliste', offenCount + ' zu bestellen' + (dringlichCount ? ' · <span style="color:#c62828;font-weight:700">' + dringlichCount + ' dringend</span>' : ''))}
     <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
       <div>
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -11495,13 +11443,9 @@ function renderLagerTab() {
 
   const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton','Beutel'];
   p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">📦 Lagerbestand</h2>
-      <p style="color:#5a403c;font-size:14px">
-        ${lager.length} Artikel — 🔴 ${rotCount} kritisch — 🟡 ${gelbCount} niedrig
-        ${rotCount ? ` — <button onclick="lagerAlleRotBestellen()" style="padding:2px 10px;border-radius:6px;border:1px solid #ef9a9a;background:#ffebee;color:#c62828;font-size:12px;font-weight:700;cursor:pointer">Alle kritischen bestellen →</button>` : ''}
-      </p>
-    </div>
+    ${_pageHdr('warehouse', 'Lagerbestand',
+      lager.length + ' Artikel · <span style="color:#c62828">🔴 ' + rotCount + ' kritisch</span> · <span style="color:#e65100">🟡 ' + gelbCount + ' niedrig</span>',
+      rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a"><span class="material-symbols-outlined">shopping_cart</span>Alle kritischen bestellen</button>' : '')}
     <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
       <div>
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
@@ -11646,10 +11590,7 @@ function renderWareneinsatzTab() {
   const avgMarge = gerichte.length ? Math.round(gerichte.reduce((s,g)=>s+marge(g),0)/gerichte.length) : 0;
 
   p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">💰 Wareneinsatz</h2>
-      <p style="color:#5a403c;font-size:14px">${gerichte.length} Gerichte — Ø Marge: <b>${avgMarge}%</b>${sorted.length?' — Beste: <b>'+_esc(sorted[0].name)+' ('+besteMarge+'%)</b>':''}</p>
-    </div>
+    ${_pageHdr('calculate', 'Wareneinsatz', gerichte.length + ' Gerichte · Ø Marge: <strong>' + avgMarge + '%</strong>' + (sorted.length ? ' · Beste: <strong>' + _esc(sorted[0].name) + ' (' + besteMarge + '%)</strong>' : ''))}
     <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
       <div>${rows}</div>
       <div style="position:sticky;top:20px">
@@ -11746,10 +11687,7 @@ function renderPreisalarmTab() {
   }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Noch keine Preisalarme — füge Produkte hinzu</div>`;
 
   p.innerHTML = `
-    <div style="margin-bottom:24px">
-      <h2 style="font-size:22px;font-weight:800;color:#261816;margin-bottom:4px">🔔 Preisalarm</h2>
-      <p style="color:#5a403c;font-size:14px">${eintraege.length} Produkte überwacht${alarmCount?' — <span style="color:#c62828;font-weight:700">🔔 '+alarmCount+' Alarm(e) aktiv</span>':' — Alles im Rahmen ✓'}</p>
-    </div>
+    ${_pageHdr('notifications_active', 'Preisalarm', eintraege.length + ' Produkte überwacht' + (alarmCount ? ' · <span style="color:#c62828;font-weight:700">' + alarmCount + ' Alarm(e) aktiv</span>' : ' · Alles im Rahmen ✓'))}
     ${alarmCount ? `<div style="padding:14px 18px;border-radius:12px;background:#ffebee;border:1.5px solid #ef9a9a;margin-bottom:20px;font-size:14px;font-weight:700;color:#c62828">🔔 ${alarmCount} Produkt(e) über Zielpreis — bitte Lieferant kontaktieren!</div>` : ''}
     <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
       <div>${rows}</div>
@@ -11887,7 +11825,7 @@ function renderStatistikTab() {
 
   panel.innerHTML =
     '<div style="padding:16px;max-width:900px;margin:0 auto">' +
-    '<h2 style="color:#8B0000;margin:0 0 16px;font-size:20px">&#x1F4CA; Verkaufsstatistik</h2>' +
+    _pageHdr('bar_chart', 'Verkaufsstatistik', gesamtGerichte + ' Gerichte · € ' + gesamtUmsatz.toFixed(2) + ' Umsatz') +
     '<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">' +
       '<button onclick="document.getElementById(\'panel-statistik\').dataset.view=\'tag\';renderStatistikTab();" style="' + (viewMode === 'tag' ? activeStyle : inactiveStyle) + '">Heute</button>' +
       '<button onclick="document.getElementById(\'panel-statistik\').dataset.view=\'woche\';renderStatistikTab();" style="' + (viewMode === 'woche' ? activeStyle : inactiveStyle) + '">Diese Woche</button>' +
@@ -12049,7 +11987,7 @@ function renderTagesangeboteTab() {
 
   panel.innerHTML =
     '<div style="padding:16px;max-width:900px;margin:0 auto">' +
-    '<h2 style="color:#8B0000;margin:0 0 16px;font-size:20px">&#x1F3F7;&#xFE0F; Tagesangebote</h2>' +
+    _pageHdr('local_offer', 'Tagesangebote', aktive.length + ' aktiv · ' + zukuenftige.length + ' geplant') +
     bannerHtml +
     '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Neues Angebot</h3>' +
@@ -12259,7 +12197,7 @@ function renderUmsatzTab() {
   }
 
   panel.innerHTML = '<div style="padding:16px;max-width:900px;margin:0 auto">' +
-    '<h2 style="color:#8B0000;margin:0 0 16px;font-size:20px">&#x1F4B0; Umsatz-Dashboard</h2>' +
+    _pageHdr('payments', 'Umsatz-Dashboard', new Date().toLocaleDateString('de-AT', {month:'long', year:'numeric'})) +
     zielHtml + kpiHtml + formHtml + wocheHtml + einnahmenTabelleHtml + ausgabenTabelleHtml +
     '</div>';
 }
