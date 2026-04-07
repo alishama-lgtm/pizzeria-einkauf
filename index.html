@@ -691,6 +691,10 @@
     .pin-key:hover{background:#fff0ee;}
     .pin-key-del{background:#ffeaea;border-color:#f5c2c2;color:#8B0000;}
     .pin-key-ok{background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20;}
+    /* Kassa Schnell-Buttons */
+    .kassa-schnell-btn{padding:8px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:14px;font-weight:700;color:#610000;font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .1s,transform .1s;}
+    .kassa-schnell-btn:active{transform:scale(.94);background:#fff0ee;}
+    .kassa-schnell-btn:hover{background:#fff0ee;}
 
     /* ── Dropdown "Mehr" ── */
     #mehr-dd-menu {
@@ -4821,58 +4825,97 @@ function renderBizKassabuch() {
   const nettoSpeise = speiseUmsatz - mwst10;
   const nettoGetraenk = getraenkUmsatz - mwst20;
 
-  return `
-<h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#261816;margin-bottom:20px;display:flex;align-items:center;gap:8px">
-  <span class="material-symbols-outlined" style="color:#8B0000">account_balance</span>Kassabuch
-</h2>
+  // Break-even Tagesziel für Heute-Block
+  const _fix = bizGetFixkosten();
+  const _fixSum = Object.values(_fix).reduce((s,v)=>s+(+v||0),0);
+  const _personal = bizGetPersonal();
+  const _personalM = _personal.reduce((s,p)=>s+(+p.stunden||0)*(+p.lohn||0)*4.33,0);
+  const _tagesziel = Math.max(Math.round((_fixSum+_personalM)/30 + bizGetEinkaufThisMonth()/30), 80);
+  const _todayRev  = todayEntry.gesamt || 0;
+  const _zielPct   = Math.min(Math.round((_todayRev / _tagesziel) * 100), 100);
+  const _zielOk    = _todayRev >= _tagesziel;
 
-<!-- Einnahmen erfassen -->
+  return `
+<!-- ═══ HEUTE-BLOCK ═══ -->
+<div style="background:linear-gradient(135deg,#610000,#8B0000);border-radius:20px;padding:22px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden">
+  <div style="font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">
+    ${bizDayName(today)}, ${today.split('-').reverse().join('.')}
+  </div>
+  <div id="kassa-heute-gesamt" style="font-size:46px;font-weight:800;line-height:1.1;margin-bottom:10px;font-family:'Plus Jakarta Sans',sans-serif">
+    ${bizEur(_todayRev)}
+  </div>
+  <div style="display:flex;gap:16px;font-size:13px;opacity:.9;margin-bottom:14px;flex-wrap:wrap">
+    <span id="kassa-heute-bar">💵 Bar: ${bizEur(todayEntry.bar||0)}</span>
+    <span id="kassa-heute-karte">💳 Karte: ${bizEur(todayEntry.karte||0)}</span>
+  </div>
+  <div style="background:rgba(255,255,255,.2);border-radius:8px;height:8px;margin-bottom:8px">
+    <div id="kassa-heute-bar-pct" style="background:${_zielOk?'#69f0ae':'#fff'};border-radius:8px;height:8px;width:${_zielPct}%;transition:width .5s;max-width:100%"></div>
+  </div>
+  <div style="font-size:12px;opacity:.75">
+    <span id="kassa-heute-ziel">Tagesziel: ${bizEur(_tagesziel)} · ${_zielPct}% erreicht${_zielOk?' ✅':''}</span>
+  </div>
+</div>
+
+<!-- ═══ EINNAHMEN ERFASSEN ═══ -->
 <div class="ws-card" style="margin-bottom:20px">
   <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px;display:flex;align-items:center;gap:6px">
     <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">edit_calendar</span>
-    Heute erfassen — ${bizDayName(today)}, ${today.split('-').reverse().join('.')}
+    Heute erfassen
   </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px">
-    <div>
-      <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:5px">💵 Bar-Einnahmen (€)</label>
-      <input type="number" id="kassa-bar" value="${todayEntry.bar||''}" min="0" step="0.01" placeholder="0,00"
-        oninput="bizUpdateKassaTotal()"
-        style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:16px;font-weight:700;font-family:inherit;outline:none;box-sizing:border-box">
-    </div>
-    <div>
-      <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:5px">💳 Karten-Einnahmen (€)</label>
-      <input type="number" id="kassa-karte" value="${todayEntry.karte||''}" min="0" step="0.01" placeholder="0,00"
-        oninput="bizUpdateKassaTotal()"
-        style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:16px;font-weight:700;font-family:inherit;outline:none;box-sizing:border-box">
-    </div>
-    <div>
-      <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:5px">🍕 Speisen-Anteil (%)</label>
-      <input type="number" id="kassa-speise" value="${sa}" min="0" max="100"
-        oninput="bizUpdateKassaTotal()"
-        style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:16px;font-weight:700;font-family:inherit;outline:none;box-sizing:border-box">
+
+  <!-- Bar -->
+  <div style="margin-bottom:14px">
+    <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:6px">💵 Bar-Einnahmen (€)</label>
+    <input type="number" id="kassa-bar" value="${todayEntry.bar||''}" min="0" step="0.01" placeholder="0,00"
+      inputmode="decimal" oninput="bizUpdateKassaTotal()"
+      style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:18px;font-weight:700;font-family:inherit;outline:none;box-sizing:border-box">
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      ${[50,100,200,500].map(a=>`<button onclick="bizAddToBar(${a})" class="kassa-schnell-btn">+${a}</button>`).join('')}
+      <button onclick="bizResetField('kassa-bar')" class="kassa-schnell-btn" style="background:#ffeaea;border-color:#f5c2c2;color:#8B0000">✕ Reset</button>
     </div>
   </div>
+
+  <!-- Karte -->
+  <div style="margin-bottom:14px">
+    <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:6px">💳 Karten-Einnahmen (€)</label>
+    <input type="number" id="kassa-karte" value="${todayEntry.karte||''}" min="0" step="0.01" placeholder="0,00"
+      inputmode="decimal" oninput="bizUpdateKassaTotal()"
+      style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:18px;font-weight:700;font-family:inherit;outline:none;box-sizing:border-box">
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      ${[50,100,200,500].map(a=>`<button onclick="bizAddToKarte(${a})" class="kassa-schnell-btn">+${a}</button>`).join('')}
+      <button onclick="bizResetField('kassa-karte')" class="kassa-schnell-btn" style="background:#ffeaea;border-color:#f5c2c2;color:#8B0000">✕ Reset</button>
+    </div>
+  </div>
+
+  <!-- Speisen-Anteil -->
+  <div style="margin-bottom:16px">
+    <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:6px">🍕 Speisen-Anteil (%)</label>
+    <input type="number" id="kassa-speise" value="${sa}" min="0" max="100"
+      inputmode="numeric" oninput="bizUpdateKassaTotal()"
+      style="width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #e3beb8;font-size:18px;font-weight:700;font-family:inherit;outline:none;box-sizing:border-box">
+  </div>
+
   <!-- Gesamt + MwSt -->
   <div style="background:#fff0ee;border-radius:12px;padding:16px;margin-bottom:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e3beb8">
-      <span style="font-size:15px;font-weight:700;color:#261816">Gesamt-Tagesumsatz</span>
-      <span id="kassa-gesamt-display" style="font-size:24px;font-weight:800;color:#610000">€&nbsp;0,00</span>
+      <span style="font-size:15px;font-weight:700;color:#261816">Gesamt</span>
+      <span id="kassa-gesamt-display" style="font-size:26px;font-weight:800;color:#610000">${bizEur(_todayRev)}</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
       <div>
-        <div style="color:#5a403c;margin-bottom:3px">Netto Speisen (10% MwSt)</div>
+        <div style="color:#5a403c;margin-bottom:3px">Netto Speisen (10%)</div>
         <div id="kassa-netto-speise" style="font-weight:700;color:#261816">€ 0,00</div>
         <div id="kassa-mwst10" style="color:#8d6562;font-size:11px">MwSt 10%: € 0,00</div>
       </div>
       <div>
-        <div style="color:#5a403c;margin-bottom:3px">Netto Getränke (20% MwSt)</div>
+        <div style="color:#5a403c;margin-bottom:3px">Netto Getränke (20%)</div>
         <div id="kassa-netto-getraenk" style="font-weight:700;color:#261816">€ 0,00</div>
         <div id="kassa-mwst20" style="color:#8d6562;font-size:11px">MwSt 20%: € 0,00</div>
       </div>
     </div>
   </div>
-  <button onclick="bizSaveKassaEntry()" class="ws-btn ws-btn-primary" style="width:100%;justify-content:center;gap:8px">
-    <span class="material-symbols-outlined" style="font-size:18px">save</span>Eintrag speichern
+  <button onclick="bizSaveKassaEntry()" class="ws-btn ws-btn-primary" style="width:100%;justify-content:center;gap:8px;font-size:15px;padding:14px">
+    <span class="material-symbols-outlined" style="font-size:18px">save</span>Heute speichern
   </button>
 </div>
 
@@ -4956,6 +4999,40 @@ function bizUpdateKassaTotal() {
   setEl('kassa-mwst10', 'MwSt 10%: '+bizEur(mwst10));
   setEl('kassa-netto-getraenk', bizEur(getraenk-mwst20));
   setEl('kassa-mwst20', 'MwSt 20%: '+bizEur(mwst20));
+  // Heute-Block live updaten
+  setEl('kassa-heute-gesamt', bizEur(gesamt));
+  setEl('kassa-heute-bar', '💵 Bar: '+bizEur(bar));
+  setEl('kassa-heute-karte', '💳 Karte: '+bizEur(karte));
+  const fix = bizGetFixkosten(), personal = bizGetPersonal();
+  const fixSum = Object.values(fix).reduce((s,v)=>s+(+v||0),0);
+  const personalM = personal.reduce((s,p)=>s+(+p.stunden||0)*(+p.lohn||0)*4.33,0);
+  const tagesziel = Math.max(Math.round((fixSum+personalM)/30 + bizGetEinkaufThisMonth()/30), 80);
+  const pct = Math.min(Math.round((gesamt/tagesziel)*100),100);
+  const ok = gesamt >= tagesziel;
+  const pctBar = document.getElementById('kassa-heute-bar-pct');
+  if (pctBar) { pctBar.style.width=pct+'%'; pctBar.style.background=ok?'#69f0ae':'#fff'; }
+  setEl('kassa-heute-ziel', `Tagesziel: ${bizEur(tagesziel)} · ${pct}% erreicht${ok?' ✅':''}`);
+}
+
+function bizAddToBar(amount) {
+  const inp = document.getElementById('kassa-bar');
+  if (!inp) return;
+  inp.value = ((parseFloat(inp.value)||0) + amount).toFixed(2);
+  bizUpdateKassaTotal();
+}
+
+function bizAddToKarte(amount) {
+  const inp = document.getElementById('kassa-karte');
+  if (!inp) return;
+  inp.value = ((parseFloat(inp.value)||0) + amount).toFixed(2);
+  bizUpdateKassaTotal();
+}
+
+function bizResetField(id) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  inp.value = '';
+  bizUpdateKassaTotal();
 }
 
 function bizSaveKassaEntry() {
