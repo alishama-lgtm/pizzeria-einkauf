@@ -680,6 +680,17 @@
     /* ── Login Screen ── */
     #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#fff8f6,#ffe4e0);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
     #login-screen.hide{display:none;}
+    /* Rollen-Buttons (Schritt 1) */
+    .login-role-btn{padding:18px 10px;border-radius:14px;border:2px solid #e3beb8;background:#fff8f6;font-size:14px;font-weight:700;color:#5a403c;font-family:inherit;cursor:pointer;text-align:center;transition:background .12s,border-color .12s,transform .1s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+    .login-role-btn:active{transform:scale(.96);background:#fff0ee;}
+    .login-role-btn:hover{background:#fff0ee;border-color:#c9a0a0;}
+    .login-role-btn .role-icon{font-size:28px;display:block;margin-bottom:6px}
+    /* PIN Numpad */
+    .pin-key{padding:0;height:64px;border-radius:14px;border:2px solid #e3beb8;background:#fff8f6;font-size:24px;font-weight:700;color:#261816;font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .1s,transform .1s;}
+    .pin-key:active{transform:scale(.93);background:#fff0ee;}
+    .pin-key:hover{background:#fff0ee;}
+    .pin-key-del{background:#ffeaea;border-color:#f5c2c2;color:#8B0000;}
+    .pin-key-ok{background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20;}
 
     /* ── Dropdown "Mehr" ── */
     #mehr-dd-menu {
@@ -912,52 +923,66 @@
 
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="login-screen">
-  <div style="background:#fff;border-radius:24px;border:1.5px solid #e3beb8;box-shadow:0 20px 60px rgba(139,0,0,0.13);padding:40px 36px;width:100%;max-width:420px;">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px">
-      <span style="font-size:42px;line-height:1">🍕</span>
+  <div style="background:#fff;border-radius:24px;border:1.5px solid #e3beb8;box-shadow:0 20px 60px rgba(139,0,0,0.13);padding:28px 24px;width:100%;max-width:400px;">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <span style="font-size:38px;line-height:1">🍕</span>
       <div>
-        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#8B0000">Pizzeria San Carino</div>
-        <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Internes Management System</div>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:800;color:#8B0000">Pizzeria San Carino</div>
+        <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Internes Management</div>
       </div>
     </div>
-    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:#261816;margin-bottom:6px">Willkommen 👋</div>
-    <div style="font-size:13px;color:#8e706b;margin-bottom:24px">Melde dich mit deinen Zugangsdaten an.</div>
-    <div id="login-error" style="display:none;background:#ffdad6;color:#93000a;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:16px">❌ Falscher Benutzername oder Passwort</div>
-    <div style="margin-bottom:14px">
-      <label style="display:block;font-size:12px;font-weight:700;color:#5a403c;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Benutzername</label>
-      <input id="login-user" type="text" placeholder="z.B. admin" autocomplete="username"
-        onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"
-        style="width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid #e2e2e8;font-size:15px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box"
-        onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e2e2e8'"/>
+
+    <!-- SCHRITT 1: Rolle wählen -->
+    <div id="login-step1">
+      <div style="font-size:15px;font-weight:700;color:#261816;margin-bottom:14px">Wer bist du?</div>
+      <div id="login-error" style="display:none;background:#ffdad6;color:#93000a;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:12px">❌ Falscher PIN</div>
+      <div id="login-role-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
     </div>
-    <div style="margin-bottom:20px">
-      <label style="display:block;font-size:12px;font-weight:700;color:#5a403c;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Passwort</label>
-      <div style="position:relative">
-        <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"
-          onkeydown="if(event.key==='Enter')doLogin()"
-          style="width:100%;padding:13px 48px 13px 16px;border-radius:12px;border:1.5px solid #e2e2e8;font-size:15px;font-family:inherit;color:#261816;outline:none;box-sizing:border-box"
-          onfocus="this.style.borderColor='#8B0000'" onblur="this.style.borderColor='#e2e2e8'"/>
-        <button onclick="toggleLoginPw()" type="button" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8e706b;padding:0">
-          <span class="material-symbols-outlined" id="pw-eye" style="font-size:20px">visibility</span>
-        </button>
+
+    <!-- SCHRITT 2: PIN eingeben -->
+    <div id="login-step2" style="display:none">
+      <!-- Zurück + Titel -->
+      <div style="display:flex;align-items:center;margin-bottom:20px;gap:8px">
+        <button onclick="pinGoBack()" style="background:#fff0ee;border:1.5px solid #e3beb8;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700;color:#8B0000;font-family:inherit">← Zurück</button>
+        <div style="flex:1;text-align:center">
+          <div id="pin-role-label" style="font-size:17px;font-weight:800;color:#8B0000"></div>
+          <div style="font-size:11px;color:#9ca3af">PIN eingeben</div>
+        </div>
       </div>
-    </div>
-    <button onclick="doLogin()" style="width:100%;padding:14px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:24px"
-      onmouseover="this.style.background='#6a0000'" onmouseout="this.style.background='#8B0000'">
-      <span id="login-btn-text">Anmelden</span>
-    </button>
-    <div style="border-top:1px solid #f0e4e1;padding-top:20px">
-      <div style="font-size:11px;font-weight:700;color:#b0948f;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Test-Zugänge</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button onclick="quickLogin('admin')"      style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👑 Admin</button>
-        <button onclick="quickLogin('manager')"    style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🏢 Manager</button>
-        <button onclick="quickLogin('kueche')"     style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">👨‍🍳 Küche</button>
-        <button onclick="quickLogin('pizza')"      style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🍕 Pizza</button>
-        <button onclick="quickLogin('fahrer')"     style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🚗 Fahrer</button>
-        <button onclick="quickLogin('reinigung')"  style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🧹 Reinigung</button>
-        <button onclick="quickLogin('service')"    style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;font-family:inherit;cursor:pointer" onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff8f6'">🍽️ Service</button>
+
+      <!-- PIN-Punkte -->
+      <div style="display:flex;justify-content:center;gap:18px;margin-bottom:24px">
+        <div id="pin-dot-0" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
+        <div id="pin-dot-1" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
+        <div id="pin-dot-2" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
+        <div id="pin-dot-3" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
       </div>
+
+      <!-- Numpad -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+        <button class="pin-key" onclick="pinDigit(1)">1</button>
+        <button class="pin-key" onclick="pinDigit(2)">2</button>
+        <button class="pin-key" onclick="pinDigit(3)">3</button>
+        <button class="pin-key" onclick="pinDigit(4)">4</button>
+        <button class="pin-key" onclick="pinDigit(5)">5</button>
+        <button class="pin-key" onclick="pinDigit(6)">6</button>
+        <button class="pin-key" onclick="pinDigit(7)">7</button>
+        <button class="pin-key" onclick="pinDigit(8)">8</button>
+        <button class="pin-key" onclick="pinDigit(9)">9</button>
+        <button class="pin-key pin-key-del" onclick="pinDelete()">⌫</button>
+        <button class="pin-key" onclick="pinDigit(0)">0</button>
+        <button class="pin-key pin-key-ok" onclick="pinConfirm()">✓</button>
+      </div>
+
+      <!-- Angemeldet bleiben -->
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;background:#fff8f6;border-radius:12px;border:1.5px solid #f0e4e1">
+        <input type="checkbox" id="login-remember" style="width:18px;height:18px;accent-color:#8B0000;cursor:pointer">
+        <span style="font-size:13px;font-weight:600;color:#5a403c">Angemeldet bleiben</span>
+      </label>
     </div>
+
   </div>
 </div>
 
@@ -9795,9 +9820,123 @@ function _updateMobMehrActive() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LOGIN SYSTEM
+// LOGIN SYSTEM — 2-Schritt PIN Login
 // ═══════════════════════════════════════════════════════════════
 const USERS = PIZZERIA_USERS;
+
+// Rollen-Buttons dynamisch generieren
+(function buildRoleButtons() {
+  const container = document.getElementById('login-role-buttons');
+  if (!container) return;
+  PIZZERIA_USERS.forEach(u => {
+    const btn = document.createElement('button');
+    btn.className = 'login-role-btn';
+    btn.innerHTML = `<span class="role-icon">${u.label.split(' ')[0]}</span>${u.label.split(' ').slice(1).join(' ')}`;
+    btn.onclick = () => selectRole(u.username);
+    container.appendChild(btn);
+  });
+})();
+
+let _pinUser   = null;   // ausgewählter User-Eintrag
+let _pinBuffer = [];     // eingegebene Ziffern
+
+function selectRole(username) {
+  _pinUser   = PIZZERIA_USERS.find(u => u.username === username);
+  _pinBuffer = [];
+  if (!_pinUser) return;
+  document.getElementById('pin-role-label').textContent = _pinUser.label;
+  _pinUpdateDots();
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-step1').style.display = 'none';
+  document.getElementById('login-step2').style.display = 'block';
+}
+
+function pinGoBack() {
+  _pinBuffer = [];
+  _pinUpdateDots();
+  document.getElementById('login-step1').style.display = 'block';
+  document.getElementById('login-step2').style.display = 'none';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+function pinDigit(d) {
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer.push(String(d));
+  _pinUpdateDots();
+  if (_pinBuffer.length === 4) setTimeout(pinConfirm, 120);
+}
+
+function pinDelete() {
+  if (_pinBuffer.length > 0) { _pinBuffer.pop(); _pinUpdateDots(); }
+}
+
+function _pinUpdateDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pin-dot-' + i);
+    if (!dot) continue;
+    dot.style.background    = i < _pinBuffer.length ? '#8B0000' : '#fff';
+    dot.style.borderColor   = i < _pinBuffer.length ? '#8B0000' : '#e3beb8';
+  }
+}
+
+function pinConfirm() {
+  const entered = _pinBuffer.join('');
+  const expectedPin = _pinUser ? _pinUser.pin : null;
+  if (!expectedPin || entered !== expectedPin) {
+    // Shake + Fehler
+    _pinBuffer = [];
+    _pinUpdateDots();
+    const err = document.getElementById('login-error');
+    err.style.display = 'block';
+    // Schritt 1 bleibt ausgeblendet, Fehler im Schritt-2-Bereich anzeigen
+    // (Error-div ist im Step1, kurz einblenden)
+    return;
+  }
+  // Erfolg
+  currentUser = _pinUser;
+  const remember = document.getElementById('login-remember').checked;
+  try {
+    if (remember) {
+      localStorage.setItem('pizzeria_session', JSON.stringify({ username: _pinUser.username, ts: Date.now() }));
+    } else {
+      localStorage.removeItem('pizzeria_session');
+    }
+    sessionStorage.setItem('pizzeria_user', JSON.stringify(_pinUser));
+  } catch(_) {}
+  showApp();
+}
+
+// Persistenter Login: beim Laden prüfen
+function checkPersistentLogin() {
+  try {
+    const saved = localStorage.getItem('pizzeria_session');
+    if (!saved) return false;
+    const { username, ts } = JSON.parse(saved);
+    // Max. 7 Tage gültig
+    if (Date.now() - ts > 7 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem('pizzeria_session');
+      return false;
+    }
+    const user = PIZZERIA_USERS.find(u => u.username === username);
+    if (!user) return false;
+    currentUser = user;
+    return true;
+  } catch(_) { return false; }
+}
+
+// Alte quickLogin-Funktion bleibt als Fallback
+function doLogin() {}  // wird nicht mehr aufgerufen
+function quickLogin(u) {
+  selectRole(u);
+  // PIN auto-confirm mit gespeichertem Pin (für Tests)
+  const user = PIZZERIA_USERS.find(x => x.username === u);
+  if (user && user.pin) {
+    _pinBuffer = user.pin.split('');
+    _pinUpdateDots();
+    setTimeout(pinConfirm, 200);
+  }
+}
+function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
   admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz'],
@@ -9815,53 +9954,23 @@ const ROLE_COLORS = {
 
 let currentUser = null;
 
-function doLogin() {
-  const u = document.getElementById('login-user').value.trim().toLowerCase();
-  const p = document.getElementById('login-pass').value;
-  const err = document.getElementById('login-error');
-  const btnTxt = document.getElementById('login-btn-text');
-  btnTxt.textContent = 'Prüfe...';
-  setTimeout(() => {
-    const user = USERS.find(x => x.username === u && x.password === p);
-    if (!user) {
-      err.style.display = 'block';
-      btnTxt.textContent = 'Anmelden';
-      document.getElementById('login-pass').value = '';
-      document.getElementById('login-pass').focus();
-      return;
-    }
-    err.style.display = 'none';
-    currentUser = user;
-    try { sessionStorage.setItem('pizzeria_user', JSON.stringify(user)); } catch(_) {}
-    showApp();
-  }, 300);
-}
-
-function quickLogin(u, p) {
-  if (p === undefined) { const found = PIZZERIA_USERS.find(x => x.username === u); p = found ? found.password : ''; }
-  document.getElementById('login-user').value = u;
-  document.getElementById('login-pass').value = p;
-  doLogin();
-}
+// doLogin + quickLogin werden jetzt durch PIN-System ersetzt (siehe oben)
 
 function doLogout() {
   currentUser = null;
+  _pinBuffer = [];
+  _pinUser   = null;
   try { sessionStorage.removeItem('pizzeria_user'); } catch(_) {}
-  document.getElementById('login-user').value = '';
-  document.getElementById('login-pass').value = '';
+  try { localStorage.removeItem('pizzeria_session'); } catch(_) {}
+  // Schritt 1 wieder anzeigen
+  document.getElementById('login-step1').style.display = 'block';
+  document.getElementById('login-step2').style.display = 'none';
   document.getElementById('login-error').style.display = 'none';
-  document.getElementById('login-btn-text').textContent = 'Anmelden';
+  document.getElementById('login-remember').checked = false;
   document.getElementById('login-screen').classList.remove('hide');
   document.getElementById('logout-btn').style.display = 'none';
   document.getElementById('settings-btn').style.display = 'none';
   document.getElementById('role-badge').style.display = 'none';
-}
-
-function toggleLoginPw() {
-  const inp = document.getElementById('login-pass');
-  const eye = document.getElementById('pw-eye');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  eye.textContent = inp.type === 'password' ? 'visibility' : 'visibility_off';
 }
 
 function showApp() {
@@ -10798,12 +10907,18 @@ function lfLoeschen(id) {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Session wiederherstellen
+  // 1. Persistenter Login (localStorage, "Angemeldet bleiben")
+  if (checkPersistentLogin()) { showApp(); return; }
+  // 2. Session wiederherstellen (sessionStorage, Tab noch offen)
   try {
     const saved = sessionStorage.getItem('pizzeria_user');
-    if (saved) { currentUser = JSON.parse(saved); showApp(); return; }
+    if (saved) {
+      const u = JSON.parse(saved);
+      const found = PIZZERIA_USERS.find(x => x.username === u.username);
+      if (found) { currentUser = found; showApp(); return; }
+    }
   } catch(_) {}
-  // Login-Screen ist bereits sichtbar (default)
+  // 3. Login-Screen anzeigen (default)
 });
 
 // ═══════════════════════════════════════════════════════════════
