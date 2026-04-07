@@ -10576,7 +10576,8 @@ function skLoad() {
   try {
     const ver = parseInt(localStorage.getItem(SK_VER_KEY)||'0');
     if (ver < SK_VERSION) { const d=_skDefault(); skSave(d); return d; }
-    return JSON.parse(localStorage.getItem(SK_KEY)||'null')||_skDefault();
+    const data = JSON.parse(localStorage.getItem(SK_KEY)||'null')||_skDefault();
+    return data.map(function(i){ return i.kalk ? i : Object.assign({},i,{kalk:{wareneinsatz:0,personal:0,verpackung:0,zutaten:[]}}); });
   } catch(_) { return _skDefault(); }
 }
 function skSave(d) { try { localStorage.setItem(SK_KEY,JSON.stringify(d)); localStorage.setItem(SK_VER_KEY,String(SK_VERSION)); } catch(_) {} }
@@ -10795,6 +10796,44 @@ function skPreisAnzeige(item) {
   return eur(item.preis || 0);
 }
 
+function skAmpel(marge) {
+  if (marge >= 65) return '🟢';
+  if (marge >= 45) return '🟡';
+  return '🔴';
+}
+function skGetVK(item) { return item.preis || (item.preise && item.preise[0]) || 0; }
+function skKalkMarge(item) {
+  const k = item.kalk || {};
+  const vk = skGetVK(item);
+  const kosten = (k.wareneinsatz||0) + (k.personal||0) + (k.verpackung||0);
+  if (kosten === 0) return null;
+  return vk > 0 ? ((vk - kosten) / vk * 100) : 0;
+}
+function skOptimierung(item) {
+  const marge = skKalkMarge(item);
+  if (marge === null || marge >= 65) return '';
+  const k = item.kalk || {};
+  const kosten = (k.wareneinsatz||0) + (k.personal||0) + (k.verpackung||0);
+  const vk = skGetVK(item);
+  const vkZiel = kosten / 0.35;
+  const diff = Math.ceil((vkZiel - vk) * 10) / 10;
+  return diff > 0 ? 'Preis um \u20AC\u00A0' + diff.toFixed(2) + ' erh\u00F6hen \u2192 65% Marge' : '';
+}
+function skKalkZeile(item) {
+  const marge = skKalkMarge(item);
+  if (marge === null) return '<div style="font-size:11px;color:#b0a09d;margin-top:4px">Kalkulation nicht eingetragen</div>';
+  const k = item.kalk || {};
+  const vk = skGetVK(item);
+  const kosten = (k.wareneinsatz||0) + (k.personal||0) + (k.verpackung||0);
+  const opt = skOptimierung(item);
+  return '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">'
+    + '<span style="font-size:14px">' + skAmpel(marge) + '</span>'
+    + '<span style="font-size:12px;font-weight:700;color:' + (marge>=65?'#2e7d32':marge>=45?'#e65100':'#b52619') + '">' + marge.toFixed(1) + '% Marge</span>'
+    + '<span style="font-size:11px;color:#8d6562">VK ' + eur(vk) + ' \u2212 Kosten ' + eur(kosten) + ' (WE ' + eur(k.wareneinsatz||0) + ' + P ' + eur(k.personal||0) + ' + Vp ' + eur(k.verpackung||0) + ')</span>'
+    + (opt ? '<div style="font-size:11px;color:#e65100;font-weight:600;width:100%">\u26A0 ' + opt + '</div>' : '')
+    + '</div>';
+}
+
 function renderSpeisekarteTab() {
   const panel = document.getElementById('panel-speisekarte');
   if (!panel) return;
@@ -10828,6 +10867,24 @@ function renderSpeisekarteTab() {
     }
     html += `</div>`;
 
+    // Kalkulations-Zusammenfassung
+    const kalkItems = menu.filter(i => i.aktiv && i.kalk && ((i.kalk.wareneinsatz||0)+(i.kalk.personal||0)+(i.kalk.verpackung||0)) > 0);
+    const kalkCount = kalkItems.length;
+    const aktivCount = menu.filter(i => i.aktiv).length;
+    if (kalkCount > 0) {
+      const margen = kalkItems.map(i => skKalkMarge(i)).filter(m => m !== null);
+      const avgMarge = margen.length ? (margen.reduce((a,b)=>a+b,0)/margen.length) : 0;
+      const rot = margen.filter(m => m < 45).length;
+      const gelb = margen.filter(m => m >= 45 && m < 65).length;
+      const gruen = margen.filter(m => m >= 65).length;
+      html += `<div style="background:linear-gradient(135deg,#fff8f6,#fff);border:1.5px solid #f0d8d4;border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+        <div style="font-size:12px;font-weight:800;color:#610000">\uD83D\uDCCA Kalkulation</div>
+        <div style="font-size:12px;color:#5a403c"><strong>${kalkCount}</strong> von ${aktivCount} kalkuliert</div>
+        <div style="font-size:12px;color:#5a403c">\u00D8 Marge: <strong style="color:${avgMarge>=65?'#2e7d32':avgMarge>=45?'#e65100':'#b52619'}">${avgMarge.toFixed(1)}%</strong></div>
+        <div style="font-size:12px">\uD83D\uDFE2 ${gruen} &nbsp;\uD83D\uDFE1 ${gelb} &nbsp;\uD83D\uDD34 ${rot}</div>
+      </div>`;
+    }
+
     if (filtered.length === 0) {
       html += `<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Keine Gerichte gefunden.</div>`;
     } else {
@@ -10851,6 +10908,7 @@ function renderSpeisekarteTab() {
                 ${!item.aktiv?'<span style="font-size:10px;font-weight:700;color:#8d6562;background:#f3ebe9;border-radius:6px;padding:1px 6px">inaktiv</span>':''}
               </div>
               ${item.beschr?`<div style="font-size:12px;color:#8d6562;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(item.beschr)}</div>`:''}
+              ${skKalkZeile(item)}
             </div>
             <div style="font-size:15px;font-weight:900;color:${kat.farbe};white-space:nowrap;text-align:right">${skPreisAnzeige(item)}</div>
             <div style="display:flex;gap:5px">
@@ -10910,7 +10968,43 @@ function _skShowForm(id) {
         <input id="sk-f-beschr" type="text" value="${item?escHtml(item.beschr||''):''}" placeholder="Zutaten, Hinweise..."
           style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
       </div>
-      <div style="display:flex;gap:10px">
+      <div style="border-top:1.5px solid #f0d8d4;margin-top:16px;padding-top:16px">
+        <div style="font-size:12px;font-weight:800;color:#610000;margin-bottom:12px">📊 Kalkulation pro Portion</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Wareneinsatz (€)</label>
+            <input id="sk-f-we" type="number" step="0.1" min="0" value="${item&&item.kalk?item.kalk.wareneinsatz||'':''}" placeholder="0.00"
+              oninput="_skKalkPreview()"
+              style="width:100%;padding:10px 12px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Personal (€)</label>
+            <input id="sk-f-personal" type="number" step="0.1" min="0" value="${item&&item.kalk?item.kalk.personal||'':''}" placeholder="0.00"
+              oninput="_skKalkPreview()"
+              style="width:100%;padding:10px 12px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Verpackung (€)</label>
+            <input id="sk-f-vp" type="number" step="0.1" min="0" value="${item&&item.kalk?item.kalk.verpackung||'':''}" placeholder="0.00"
+              oninput="_skKalkPreview()"
+              style="width:100%;padding:10px 12px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+          </div>
+        </div>
+        <div id="sk-kalk-preview" style="background:#f9f5f4;border-radius:10px;padding:10px 14px;font-size:12px;color:#5a403c"></div>
+        <div style="margin-top:12px">
+          <div style="font-size:11px;font-weight:700;color:#5a403c;margin-bottom:6px">Zutaten (optional)</div>
+          <div id="sk-zutaten-list">${(item&&item.kalk&&item.kalk.zutaten||[]).map(function(z,idx){
+            return '<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center" data-zutat="'+idx+'">'
+              +'<input class="sk-z-name" type="text" value="'+escHtml(z.name||'')+'" placeholder="Zutat" style="flex:2;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/>'
+              +'<input class="sk-z-menge" type="text" value="'+escHtml(z.menge||'')+'" placeholder="Menge" style="flex:1;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/>'
+              +'<input class="sk-z-kosten" type="number" step="0.01" value="'+(z.kosten||'')+'" placeholder="€" oninput="_skKalkPreview()" style="flex:1;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/>'
+              +'<button onclick="this.parentElement.remove();_skKalkPreview()" style="background:#ffdad6;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:14px;line-height:1">✕</button>'
+              +'</div>';
+          }).join('')}</div>
+          <button onclick="_skAddZutat()" style="background:#f3ebe9;border:1.5px solid #e3beb8;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;color:#610000;cursor:pointer;font-family:inherit">+ Zutat</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
         <button onclick="_skSpeichern('${id||''}')" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
         <button onclick="document.getElementById('sk-form-area').innerHTML=''" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>
       </div>
@@ -10918,20 +11012,68 @@ function _skShowForm(id) {
   area.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
+function _skReadZutaten() {
+  var list = [];
+  var rows = document.querySelectorAll('#sk-zutaten-list [data-zutat]');
+  rows.forEach(function(row) {
+    var n = row.querySelector('.sk-z-name'); var m = row.querySelector('.sk-z-menge'); var k = row.querySelector('.sk-z-kosten');
+    if (n && (n.value.trim() || (k && parseFloat(k.value)))) {
+      list.push({ name: n.value.trim(), menge: m ? m.value.trim() : '', kosten: k ? (parseFloat(k.value)||0) : 0 });
+    }
+  });
+  return list;
+}
+function _skAddZutat() {
+  var container = document.getElementById('sk-zutaten-list');
+  if (!container) return;
+  var idx = container.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center';
+  div.setAttribute('data-zutat', idx);
+  div.innerHTML = '<input class="sk-z-name" type="text" placeholder="Zutat" style="flex:2;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/>'
+    +'<input class="sk-z-menge" type="text" placeholder="Menge" style="flex:1;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/>'
+    +'<input class="sk-z-kosten" type="number" step="0.01" placeholder="\u20AC" oninput="_skKalkPreview()" style="flex:1;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/>'
+    +'<button onclick="this.parentElement.remove();_skKalkPreview()" style="background:#ffdad6;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:14px;line-height:1">\u2715</button>';
+  container.appendChild(div);
+}
+function _skKalkPreview() {
+  var prev = document.getElementById('sk-kalk-preview');
+  if (!prev) return;
+  var vk = parseFloat(document.getElementById('sk-f-preis')?.value) || 0;
+  var we = parseFloat(document.getElementById('sk-f-we')?.value) || 0;
+  var pe = parseFloat(document.getElementById('sk-f-personal')?.value) || 0;
+  var vp = parseFloat(document.getElementById('sk-f-vp')?.value) || 0;
+  var zutatenKosten = 0;
+  document.querySelectorAll('#sk-zutaten-list .sk-z-kosten').forEach(function(el){ zutatenKosten += parseFloat(el.value)||0; });
+  var gesamt = we + pe + vp;
+  if (zutatenKosten > 0 && we === 0) gesamt = zutatenKosten + pe + vp;
+  if (vk <= 0 || gesamt <= 0) { prev.innerHTML = '<span style="color:#b0a09d">VK-Preis und Kosten eingeben f\u00FCr Vorschau</span>'; return; }
+  var marge = (vk - gesamt) / vk * 100;
+  var farbe = marge >= 65 ? '#2e7d32' : marge >= 45 ? '#e65100' : '#b52619';
+  prev.innerHTML = skAmpel(marge) + ' <strong style="color:'+farbe+'">' + marge.toFixed(1) + '% Marge</strong>'
+    + ' &middot; VK ' + eur(vk) + ' \u2212 Kosten ' + eur(gesamt) + ' = <strong>' + eur(vk - gesamt) + ' Gewinn</strong>'
+    + (marge < 65 ? '<br><span style="color:#e65100;font-weight:600">\u26A0 ' + (function(){ var z=gesamt/0.35; var d=Math.ceil((z-vk)*10)/10; return d>0?'Preis um \u20AC\u00A0'+d.toFixed(2)+' erh\u00F6hen \u2192 65% Marge':''; })() + '</span>' : '');
+}
 function _skSpeichern(id) {
   const name  = document.getElementById('sk-f-name')?.value.trim();
   const preis = parseFloat(document.getElementById('sk-f-preis')?.value);
   const kat   = document.getElementById('sk-f-kat')?.value;
   const beschr= document.getElementById('sk-f-beschr')?.value.trim();
+  const we      = parseFloat(document.getElementById('sk-f-we')?.value) || 0;
+  const personal= parseFloat(document.getElementById('sk-f-personal')?.value) || 0;
+  const vp      = parseFloat(document.getElementById('sk-f-vp')?.value) || 0;
+  const zutaten = _skReadZutaten();
+  const kalk    = { wareneinsatz: we, personal: personal, verpackung: vp, zutaten: zutaten };
   if (!name) { _markField('sk-f-name', true); _showToast('Bitte Namen eingeben', 'error'); return; }
   if (isNaN(preis) || preis < 0) { _markField('sk-f-preis', true); _showToast('Bitte gültigen Preis eingeben', 'error'); return; }
   let menu = skLoad();
   if (id) {
-    menu = menu.map(i => i.id === id ? { ...i, name, preis, kat, beschr } : i);
+    menu = menu.map(i => i.id === id ? { ...i, name, preis, kat, beschr, kalk } : i);
   } else {
-    menu.push({ id: skGenId(), kat, name, preis, beschr, aktiv: true });
+    menu.push({ id: skGenId(), kat, name, preis, beschr, kalk, aktiv: true });
   }
   skSave(menu);
+  _showToast('Gericht gespeichert', 'success');
   renderSpeisekarteTab();
 }
 
