@@ -921,9 +921,127 @@
     .alert-box-amber { background: #fff8e1; border-color: #ffe082; color: #e65100; }
     .alert-box-green { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
     .alert-box-blue  { background: #e3f2fd; border-color: #90caf9; color: #1565c0; }
+
+    /* ════ GEWINN-DASHBOARD ════ */
+    .gewinn-hero {
+      background: linear-gradient(135deg, #0d3b0d, #1b5e20);
+      border-radius: 20px; padding: 28px; color: #fff;
+      margin-bottom: 20px; position: relative; overflow: hidden;
+    }
+    .gewinn-hero.negative {
+      background: linear-gradient(135deg, #4a0000, #8B0000);
+    }
+    .gewinn-big-num {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 48px; font-weight: 800; line-height: 1.1;
+    }
+    @media (max-width: 480px) {
+      .gewinn-big-num { font-size: 36px; }
+      .gewinn-hero { padding: 20px; }
+    }
+    .gewinn-compare-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    }
+    .gewinn-compare-up   { background: rgba(105,240,174,0.2); color: #a5f7a0; }
+    .gewinn-compare-down { background: rgba(255,154,154,0.2); color: #ff9a9a; }
+    .gewinn-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px; margin-bottom: 20px;
+    }
+    .gewinn-bar-chart {
+      display: flex; align-items: flex-end; gap: 8px; height: 160px; padding: 0 4px;
+    }
+    .gewinn-bar-group {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .gewinn-bar {
+      width: 100%; border-radius: 6px 6px 0 0; min-height: 4px;
+      transition: height 0.4s ease;
+    }
+    .gewinn-bar-green { background: linear-gradient(180deg, #4caf50, #2e7d32); }
+    .gewinn-bar-red   { background: linear-gradient(180deg, #ef5350, #c62828); }
+    .gewinn-bar-label { font-size: 10px; color: #5a403c; font-weight: 600; }
+    .gewinn-breakeven-bar {
+      height: 20px; background: #e3beb8; border-radius: 10px; overflow: hidden;
+    }
+    .gewinn-breakeven-fill {
+      height: 100%; border-radius: 10px; transition: width 0.5s ease;
+    }
+    .gewinn-killer-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid #f0e4e1;
+    }
+    .gewinn-killer-row:last-child { border-bottom: none; }
+    .gewinn-trend-line {
+      stroke: #FFD700; stroke-width: 2.5; fill: none;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ── Toast Notifications ── */
+    @keyframes toastIn  { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    @keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+    ._toast-popup {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+      padding:10px 20px; border-radius:12px; font-size:13px; font-weight:600;
+      z-index:99999; pointer-events:none; display:flex; align-items:center;
+      gap:8px; white-space:nowrap; max-width:90vw; color:#fff;
+      animation: toastIn .22s ease forwards;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+    }
+    ._toast-popup.toast-success { background:#1b5e20; border-left:4px solid #4caf50; }
+    ._toast-popup.toast-error   { background:#93000a; border-left:4px solid #ef5350; }
+    ._toast-popup.toast-warning { background:#e65100; border-left:4px solid #ffcc02; }
+    ._toast-popup.toast-info    { background:#1a237e; border-left:4px solid #64b5f6; }
+    ._toast-popup.toast-fade-out { animation: toastOut .2s ease forwards; }
+
+    /* ── Feld-Validierung ── */
+    .field-error {
+      border-color:#ef4444 !important;
+      box-shadow:0 0 0 3px rgba(239,68,68,0.18) !important;
+    }
+    .field-error-msg {
+      color:#ef4444; font-size:11px; font-weight:600;
+      margin-top:3px; display:block;
+    }
+
+    /* ── Bestätigungs-Dialog ── */
+    #_confirm-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45);
+      z-index:999999; align-items:center; justify-content:center;
+    }
+    #_confirm-overlay.active { display:flex; }
+    #_confirm-box {
+      background:#fff; border-radius:18px; padding:28px 28px 20px;
+      max-width:340px; width:90%; box-shadow:0 8px 40px rgba(0,0,0,0.22);
+      text-align:center; animation: toastIn .2s ease;
+    }
+    #_confirm-icon { font-size:36px; margin-bottom:10px; }
+    #_confirm-msg  { font-size:15px; font-weight:600; color:#1a1a1a; margin-bottom:20px; line-height:1.45; }
+    #_confirm-btns { display:flex; gap:10px; justify-content:center; }
+    #_confirm-btns button {
+      flex:1; padding:11px 0; border-radius:10px; border:none;
+      font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+    }
+    #_confirm-cancel { background:#f1f5f9; color:#64748b; }
+    #_confirm-ok     { background:#8B0000; color:#fff; }
+    #_confirm-cancel:hover { background:#e2e8f0; }
+    #_confirm-ok:hover     { background:#6b0000; }
   </style>
 </head>
 <body style="background-color:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(circle at 1px 1px, rgba(139,0,0,0.025) 1px, transparent 0);background-size:32px 32px;">
+
+<!-- ═══ BESTÄTIGUNGS-DIALOG ═══ -->
+<div id="_confirm-overlay">
+  <div id="_confirm-box">
+    <div id="_confirm-icon">⚠️</div>
+    <div id="_confirm-msg">Wirklich löschen?</div>
+    <div id="_confirm-btns">
+      <button id="_confirm-cancel" onclick="_confirmResolve(false)">Abbrechen</button>
+      <button id="_confirm-ok"     onclick="_confirmResolve(true)">Löschen</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="login-screen">
@@ -2103,7 +2221,7 @@ function renderFmEingabe() {
           (e.status!=='erledigt'
             ? '<button onclick="fmSetStatus(\''+e.id+'\',\'erledigt\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex:1"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span>✅ Erledigt</button>'
             : '') +
-          '<button onclick="if(confirm(\'Löschen?\'))fmDelete(\''+e.id+'\')" style="min-height:44px;width:44px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
+          '<button onclick="_showConfirm(\'Löschen?\',function(){fmDelete(\''+e.id+'\')})" style="min-height:44px;width:44px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
           (e.status!=='erledigt'
             ? '<button onclick="fmSendToN8n(\''+e.id+'\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e3f2fd;color:#1565c0;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" title="An n8n senden"><span style="font-size:14px">📤</span> n8n</button>'
             : '') +
@@ -5049,12 +5167,13 @@ function bizSaveKassaEntry() {
 }
 
 function bizDeleteKassaEntry(date) {
-  if (!confirm('Eintrag für '+date.split('-').reverse().join('.')+' löschen?')) return;
-  let kassa = bizGetKassa();
-  kassa = kassa.filter(e => e.date !== date);
-  bizSaveKassa(kassa);
-  renderBusinessTab();
-  showBizSection('biz-kassabuch');
+  _showConfirm('Eintrag für '+date.split('-').reverse().join('.')+' löschen?', function() {
+    let kassa = bizGetKassa();
+    kassa = kassa.filter(e => e.date !== date);
+    bizSaveKassa(kassa);
+    renderBusinessTab();
+    showBizSection('biz-kassabuch');
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5688,7 +5807,7 @@ function renderBizSettings() {
       style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;color:#8d6562;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:16px">logout</span> Ausloggen
     </button>
-    <button onclick="if(confirm('⚠️ Wirklich alle Business-Daten löschen? Dies kann nicht rückgängig gemacht werden!'))bizClearAll()"
+    <button onclick="_showConfirm('⚠️ Wirklich alle Business-Daten löschen? Dies kann nicht rückgängig gemacht werden!',function(){bizClearAll()},{okLabel:'Alles löschen'})"
       style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e3beb8;background:#ffdad6;color:#ba1a1a;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
       <span class="material-symbols-outlined" style="font-size:16px">delete_forever</span> Alle Daten löschen
     </button>
@@ -7697,7 +7816,7 @@ function renderVerlaufTab() {
     <div style="background:#fff;border:1px solid #e3beb866;border-radius:18px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)">
       <div style="padding:14px 20px;border-bottom:1px solid #e3beb844;background:#f8dcd8;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:15px;font-weight:700;color:#261816">Alle Einkäufe</span>
-        <button onclick="if(confirm('Gesamte Einkaufshistorie löschen?')){HISTORY=[];saveHistory();renderVerlaufTab()}"
+        <button onclick="_showConfirm('Gesamte Einkaufshistorie löschen?',function(){HISTORY=[];saveHistory();renderVerlaufTab()},{okLabel:'Leeren'})"
           style="padding:5px 12px;border-radius:8px;border:1px solid #e3beb8;background:#fff;font-size:11px;color:#8d6562;cursor:pointer;font-family:inherit">
           Löschen
         </button>
@@ -7808,9 +7927,10 @@ function maHinzufuegen() {
 }
 
 function maLoeschen(id) {
-  if (!confirm('Mitarbeiter wirklich löschen?')) return;
-  saveMitarbeiterList(getMitarbeiter().filter(m => m.id !== id));
-  renderMitarbeiterTab();
+  _showConfirm('Mitarbeiter wirklich löschen?', function() {
+    saveMitarbeiterList(getMitarbeiter().filter(m => m.id !== id));
+    renderMitarbeiterTab();
+  });
 }
 
 function maSetShift(weekKey, maId, day, field, value) {
@@ -9017,7 +9137,7 @@ function _buildNeuView() {
     html += '<div>';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
     html += '<h4 style="font-size:14px;font-weight:700;color:#261816;margin:0">Eigene Deals (' + customs.length + ')</h4>';
-    html += '<button onclick="if(confirm(\'Alle eigenen Deals löschen?\')){localStorage.removeItem(\'pizzeria_custom_deals\');renderAngeboteTab()}" style="font-size:11px;color:#8d6562;background:none;border:1px solid #e3beb8;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit">Alle löschen</button>';
+    html += '<button onclick="_showConfirm(\'Alle eigenen Deals löschen?\',function(){localStorage.removeItem(\'pizzeria_custom_deals\');renderAngeboteTab()},{okLabel:\'Löschen\'})" style="font-size:11px;color:#8d6562;background:none;border:1px solid #e3beb8;border-radius:8px;padding:4px 10px;cursor:pointer;font-family:inherit">Alle löschen</button>';
     html += '</div>';
     html += '<div style="display:flex;flex-direction:column;gap:8px">';
     for (const d of customs) {
@@ -9482,9 +9602,10 @@ function elClearDone() {
 }
 
 function elClearAll() {
-  if (!confirm('Einkaufsliste komplett leeren?')) return;
-  saveEinkaufsliste([]);
-  renderEinkaufslisteTab();
+  _showConfirm('Einkaufsliste komplett leeren?', function() {
+    saveEinkaufsliste([]);
+    renderEinkaufslisteTab();
+  }, { okLabel: 'Leeren' });
 }
 
 function elQuickAdd() {
@@ -10802,9 +10923,10 @@ function skToggleAktiv(id) {
 }
 
 function skLoeschen(id) {
-  if (!confirm('Gericht wirklich löschen?')) return;
-  skSave(skLoad().filter(i => i.id !== id));
-  renderSpeisekarteTab();
+  _showConfirm('Gericht wirklich löschen?', function() {
+    skSave(skLoad().filter(i => i.id !== id));
+    renderSpeisekarteTab();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -10960,9 +11082,10 @@ function _lfSpeichern(id) {
 }
 
 function lfLoeschen(id) {
-  if (!confirm('Lieferant wirklich löschen?')) return;
-  lfSave(lfLoad().filter(i => i.id !== id));
-  renderLieferantenTab();
+  _showConfirm('Lieferant wirklich löschen?', function() {
+    lfSave(lfLoad().filter(i => i.id !== id));
+    renderLieferantenTab();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -11062,11 +11185,12 @@ function saveApiKey() {
 }
 
 function clearApiKey() {
-  if (!confirm('API Key wirklich löschen?')) return;
-  localStorage.removeItem('pizzeria_api_key');
-  ANTHROPIC_API_KEY = '';
-  document.getElementById('settings-modal')?.remove();
-  _showToast('API Key gelöscht', 'info');
+  _showConfirm('API Key wirklich löschen?', function() {
+    localStorage.removeItem('pizzeria_api_key');
+    ANTHROPIC_API_KEY = '';
+    document.getElementById('settings-modal')?.remove();
+    _showToast('API Key gelöscht', 'info');
+  }, { okLabel: 'Löschen' });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -12476,44 +12600,57 @@ function umsatzSetZiel() {
   renderUmsatzTab();
 }
 
+var _confirmCallback = null;
+function _showConfirm(msg, onOk, opts) {
+  opts = opts || {};
+  document.getElementById('_confirm-msg').textContent = msg;
+  document.getElementById('_confirm-icon').textContent = opts.icon || '⚠️';
+  document.getElementById('_confirm-ok').textContent   = opts.okLabel || 'Löschen';
+  document.getElementById('_confirm-ok').style.background = opts.danger === false ? '#1b5e20' : '#8B0000';
+  document.getElementById('_confirm-cancel').textContent  = opts.cancelLabel || 'Abbrechen';
+  _confirmCallback = onOk;
+  document.getElementById('_confirm-overlay').classList.add('active');
+}
+function _confirmResolve(ok) {
+  document.getElementById('_confirm-overlay').classList.remove('active');
+  if (ok && typeof _confirmCallback === 'function') _confirmCallback();
+  _confirmCallback = null;
+}
+// Overlay-Klick schließt Dialog
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('_confirm-overlay').addEventListener('click', function(e) {
+    if (e.target === this) _confirmResolve(false);
+  });
+});
+
 function _markField(id, isError) {
   var el = document.getElementById(id);
   if (!el) return;
   if (isError) {
-    el.style.borderColor = '#ef4444';
-    el.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.15)';
-    el.addEventListener('input', function clearErr() {
-      el.style.borderColor = '';
-      el.style.boxShadow = '';
+    el.classList.add('field-error');
+    function clearErr() {
+      el.classList.remove('field-error');
       el.removeEventListener('input', clearErr);
-    });
-    el.addEventListener('change', function clearErr2() {
-      el.style.borderColor = '';
-      el.style.boxShadow = '';
-      el.removeEventListener('change', clearErr2);
-    });
+      el.removeEventListener('change', clearErr);
+    }
+    el.addEventListener('input', clearErr);
+    el.addEventListener('change', clearErr);
   } else {
-    el.style.borderColor = '';
-    el.style.boxShadow = '';
+    el.classList.remove('field-error');
   }
 }
 
 function _showToast(msg, type) {
-  // Bestehende Toasts entfernen um Überlappung zu verhindern
   document.querySelectorAll('._toast-popup').forEach(el => el.remove());
-  const colors = {
-    success: { bg: '#1b5e20', icon: '✓' },
-    error:   { bg: '#93000a', icon: '✕' },
-    warning: { bg: '#e65100', icon: '⚠' },
-    info:    { bg: '#261816', icon: 'ℹ' }
-  };
-  const c = colors[type] || colors.info;
+  const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
   const t = document.createElement('div');
-  t.className = '_toast-popup';
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:'+c.bg+';color:#fff;padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;pointer-events:none;opacity:0;transition:opacity .2s;display:flex;align-items:center;gap:8px;white-space:nowrap;max-width:90vw';
-  t.innerHTML = '<span style="font-size:15px;flex-shrink:0">'+c.icon+'</span><span>'+_esc(String(msg))+'</span>';
+  t.className = '_toast-popup toast-' + (type || 'info');
+  t.innerHTML = '<span style="font-size:15px;flex-shrink:0">' + (icons[type] || icons.info) + '</span><span>' + _esc(String(msg)) + '</span>';
   document.body.appendChild(t);
-  requestAnimationFrame(() => { t.style.opacity = '1'; setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2500); });
+  setTimeout(() => {
+    t.classList.add('toast-fade-out');
+    setTimeout(() => t.remove(), 200);
+  }, 2500);
 }
 </script>
 <script>
