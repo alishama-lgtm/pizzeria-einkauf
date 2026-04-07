@@ -760,14 +760,14 @@
       #mehr-drawer         { display:none !important }
       #mehr-drawer-overlay { display:none !important }
       #app-main, #app-footer, #stats-dashboard {
-        padding-left:72px;
+        padding-left:72px !important;
         transition:padding-left .25s cubic-bezier(.4,0,.2,1);
-        margin-left:0; margin-right:0; max-width:none;
+        margin-left:0 !important; margin-right:0 !important; max-width:none !important;
       }
       body.ts-open #app-main,
       body.ts-open #app-footer,
       body.ts-open #stats-dashboard {
-        padding-left:228px;
+        padding-left:228px !important;
       }
     }
 
@@ -10780,15 +10780,8 @@ function lfLoeschen(id) {
 // ═══════════════════════════════════════════════════════════════
 // DOMContentLoaded — Session wiederherstellen oder Login zeigen
 // ═══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  // Session wiederherstellen
-  try {
-    const saved = sessionStorage.getItem('pizzeria_user');
-    if (saved) { currentUser = JSON.parse(saved); showApp(); return; }
-  } catch(_) {}
-  // Login-Screen ist bereits sichtbar (default)
-
-  // Tablet-Sidebar Push-Effekt: body.ts-open beim Hover setzen
+// Tablet-Sidebar Push-Effekt — global, läuft immer
+(function() {
   const tsSidebar = document.getElementById('tablet-sidebar');
   if (tsSidebar) {
     tsSidebar.addEventListener('mouseenter', () => {
@@ -10800,6 +10793,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Session wiederherstellen
+  try {
+    const saved = sessionStorage.getItem('pizzeria_user');
+    if (saved) { currentUser = JSON.parse(saved); showApp(); return; }
+  } catch(_) {}
+  // Login-Screen ist bereits sichtbar (default)
 });
 
 // ═══════════════════════════════════════════════════════════════
