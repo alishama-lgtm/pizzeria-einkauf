@@ -6358,13 +6358,13 @@ function _syncNavActiveStates(tab) {
 
 function tsSidebarToggle(grpId) {
   // Toggle sub-items visibility in tablet sidebar
-  const sidebar = document.getElementById('tablet-sidebar');
-  if (!sidebar) return;
-  const allSubs = sidebar.querySelectorAll('[data-ts-sub]');
-  const thisSubs = sidebar.querySelectorAll(`[data-ts-sub="${grpId}"]`);
-  const isOpen = thisSubs.length > 0 && thisSubs[0].classList.contains('ts-open');
-  allSubs.forEach(el => el.classList.remove('ts-open'));
-  if (!isOpen) thisSubs.forEach(el => el.classList.add('ts-open'));
+  const grpEl = document.getElementById(`tsg-${grpId}`);
+  if (!grpEl) return;
+  const isOpen = grpEl.classList.contains('ts-open');
+  // Alle Gruppen schliessen
+  document.querySelectorAll('#tablet-sidebar .ts-group').forEach(el => el.classList.remove('ts-open'));
+  // Diese Gruppe öffnen (wenn sie vorher zu war)
+  if (!isOpen) grpEl.classList.add('ts-open');
 }
 
 // ═══════════════════════════════════════════════════════════════
