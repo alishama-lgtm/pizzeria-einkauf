@@ -1208,6 +1208,7 @@
         <button data-nav-tab="gewinn" onclick="switchTab('gewinn')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">trending_up</span>Gewinn</button>
         <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">bar_chart</span>Verlauf</button>
         <button data-nav-tab="suche" onclick="switchTab('suche')" class="dd-item"><span style="font-size:14px">🔍</span>Suche</button>
+        <button data-nav-tab="buchhaltung" onclick="switchTab('buchhaltung')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">account_balance</span>Buchhaltung</button>
       </div>
     </div>
 
@@ -1265,6 +1266,7 @@
       <button class="ts-sub-item" data-nav-tab="gewinn" onclick="switchTab('gewinn')"><span class="ts-sub-icon">💰</span>Gewinn</button>
       <button class="ts-sub-item" data-nav-tab="verlauf" onclick="switchTab('verlauf')"><span class="ts-sub-icon">📈</span>Verlauf</button>
       <button class="ts-sub-item" data-nav-tab="suche" onclick="switchTab('suche')"><span class="ts-sub-icon">🔍</span>Suche</button>
+      <button class="ts-sub-item" data-nav-tab="buchhaltung" onclick="switchTab('buchhaltung')"><span class="ts-sub-icon">📑</span>Buchhaltung</button>
     </div>
   </div>
   <button class="ts-biz-btn" onclick="switchTab('business')">
@@ -1308,6 +1310,7 @@
   <div id="panel-tagesangebote" style="display:none"></div>
   <div id="panel-umsatz"       style="display:none"></div>
   <div id="panel-gewinn"       style="display:none"></div>
+  <div id="panel-buchhaltung"  style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -1399,6 +1402,7 @@
       <button data-drawer-nav="speisekarte" onclick="switchTab('speisekarte');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🍕</span>Speisekarte</button>
       <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">bar_chart</span>Verlauf</button>
       <button data-drawer-nav="gewinn" onclick="switchTab('gewinn');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">trending_up</span>Gewinn</button>
+      <button data-drawer-nav="buchhaltung" onclick="switchTab('buchhaltung');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">account_balance</span>Buchh.</button>
     </div>
   </div>
   <div class="bs-section">
@@ -6543,7 +6547,7 @@ const NAV_GROUPS = [
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm'],                mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
-  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn'], mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung'], mobile:false },
 ];
 
 function _syncNavActiveStates(tab) {
@@ -6608,7 +6612,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn','buchhaltung'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -6665,6 +6669,7 @@ function switchTab(tab) {
   if (tab === 'tagesangebote') renderTagesangeboteTab();
   if (tab === 'umsatz')        renderUmsatzTab();
   if (tab === 'gewinn')        renderGewinnTab();
+  if (tab === 'buchhaltung')   renderBuchhaltungTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -10150,8 +10155,8 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
   employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
@@ -12816,6 +12821,270 @@ function renderGewinnTab() {
       html += '<div style="font-size:14px;font-weight:800;color:' + (k.marge >= 65 ? '#1b5e20' : k.marge >= 45 ? '#e65100' : '#c62828') + '">' + margeRounded + '%</div>';
       html += '<div style="font-size:10px;color:#8d6562">VK: ' + eur(k.preis) + '</div>';
       html += '</div></div>';
+    });
+  }
+  html += '</div>';
+
+  panel.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUCHHALTUNG — IndexedDB + Tab
+// ═══════════════════════════════════════════════════════════════
+
+// ── IndexedDB Helper ──
+function _openBuchDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('BuchhaltungDB', 1);
+    req.onupgradeneeded = function(e) { e.target.result.createObjectStore('pdfs'); };
+    req.onsuccess = function(e) { resolve(e.target.result); };
+    req.onerror = function(e) { reject(e.target.error); };
+  });
+}
+function _savePdfToDB(id, blob) {
+  return _openBuchDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('pdfs', 'readwrite');
+      tx.objectStore('pdfs').put(blob, id);
+      tx.oncomplete = resolve;
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _getPdfFromDB(id) {
+  return _openBuchDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('pdfs', 'readonly');
+      var req = tx.objectStore('pdfs').get(id);
+      req.onsuccess = function() { resolve(req.result); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+function _deletePdfFromDB(id) {
+  return _openBuchDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction('pdfs', 'readwrite');
+      tx.objectStore('pdfs').delete(id);
+      tx.oncomplete = resolve;
+      tx.onerror = function(e) { reject(e.target.error); };
+    });
+  });
+}
+
+// ── Daten-Helper ──
+var BUCH_TYPEN = [
+  { id: 'lohnzettel', label: 'Lohnzettel', icon: 'badge' },
+  { id: 'lohnsteuer', label: 'Lohnsteuer', icon: 'account_balance' },
+  { id: 'sva',        label: 'SVA',        icon: 'health_and_safety' },
+  { id: 'uva',        label: 'UVA',        icon: 'receipt_long' },
+  { id: 'sonstige',   label: 'Sonstige',   icon: 'description' }
+];
+var BUCH_STATUS = [
+  { id: 'offen',    label: 'Offen',    color: '#e65100', bg: '#fff3e0' },
+  { id: 'geprueft', label: 'Geprüft',  color: '#1565c0', bg: '#e3f2fd' },
+  { id: 'gesendet', label: 'Gesendet', color: '#1b5e20', bg: '#e8f5e9' }
+];
+
+function buchLoad() {
+  try { return JSON.parse(localStorage.getItem('buch_docs') || '[]'); } catch(_) { return []; }
+}
+function buchSave(docs) {
+  localStorage.setItem('buch_docs', JSON.stringify(docs));
+}
+
+function buchAddDoc(file, typ, monat) {
+  var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  var doc = {
+    id: id, name: file.name, typ: typ, monat: monat,
+    status: 'offen', uploadDate: new Date().toISOString().slice(0, 10),
+    size: file.size
+  };
+  var docs = buchLoad();
+  docs.unshift(doc);
+  buchSave(docs);
+  _savePdfToDB(id, file).then(function() {
+    _showToast('Dokument hochgeladen ✓', 'success');
+    renderBuchhaltungTab();
+  });
+}
+
+function buchDeleteDoc(id) {
+  _showConfirm('Dokument wirklich löschen?', function() {
+    buchSave(buchLoad().filter(function(d) { return d.id !== id; }));
+    _deletePdfFromDB(id).then(function() {
+      _showToast('Gelöscht', 'info');
+      renderBuchhaltungTab();
+    });
+  });
+}
+
+function buchSetStatus(id, status) {
+  var docs = buchLoad();
+  var doc = docs.find(function(d) { return d.id === id; });
+  if (doc) { doc.status = status; buchSave(docs); renderBuchhaltungTab(); }
+}
+
+function buchDownload(id, name) {
+  _getPdfFromDB(id).then(function(blob) {
+    if (!blob) { _showToast('Datei nicht gefunden', 'error'); return; }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function buchUploadHandler() {
+  var input = document.getElementById('buch-file-input');
+  var typ = document.getElementById('buch-typ-select').value;
+  var monat = document.getElementById('buch-monat-input').value;
+  if (!input.files.length) { _showToast('Bitte Datei wählen', 'error'); return; }
+  if (!typ) { _showToast('Bitte Typ auswählen', 'error'); return; }
+  if (!monat) { _showToast('Bitte Monat angeben', 'error'); return; }
+  buchAddDoc(input.files[0], typ, monat);
+  input.value = '';
+}
+
+function buchDropHandler(e) {
+  e.preventDefault();
+  var file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf') { _showToast('Nur PDF-Dateien', 'error'); return; }
+  document.getElementById('buch-file-input').files = e.dataTransfer.files;
+  document.getElementById('buch-drop-zone').style.borderColor = '#e3beb8';
+  document.getElementById('buch-drop-zone').style.background = '#fff8f6';
+  _showToast(file.name + ' ausgewählt', 'info');
+}
+
+// ── Render ──
+function renderBuchhaltungTab() {
+  var panel = document.getElementById('panel-buchhaltung');
+  if (!panel) return;
+
+  var docs = buchLoad();
+  var filterTyp = panel.dataset.filterTyp || '';
+  var filterStatus = panel.dataset.filterStatus || '';
+  var filterMonat = panel.dataset.filterMonat || '';
+
+  var filtered = docs.filter(function(d) {
+    if (filterTyp && d.typ !== filterTyp) return false;
+    if (filterStatus && d.status !== filterStatus) return false;
+    if (filterMonat && d.monat !== filterMonat) return false;
+    return true;
+  });
+
+  var currentMonth = new Date().toISOString().slice(0, 7);
+
+  var html = _pageHdr('account_balance', 'Buchhaltung', 'Dokumente für den Steuerberater',
+    '<button onclick="renderBuchhaltungTab()" style="padding:7px 14px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">refresh</span>Aktualisieren</button>');
+
+  // ── Upload-Bereich ──
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:14px">📤 Dokument hochladen</div>';
+  html += '<input id="buch-file-input" type="file" accept=".pdf" style="display:none">';
+  html += '<div id="buch-drop-zone" onclick="document.getElementById(\'buch-file-input\').click()" ondragover="event.preventDefault();this.style.borderColor=\'#610000\';this.style.background=\'#fff0ee\'" ondragleave="this.style.borderColor=\'#e3beb8\';this.style.background=\'#fff8f6\'" ondrop="buchDropHandler(event)" style="border:2px dashed #e3beb8;border-radius:14px;padding:28px;text-align:center;cursor:pointer;background:#fff8f6;margin-bottom:14px">';
+  html += '<span class="material-symbols-outlined" style="font-size:36px;color:#610000">cloud_upload</span>';
+  html += '<p style="font-size:13px;font-weight:600;color:#261816;margin-top:8px">PDF hierher ziehen oder tippen</p>';
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">';
+  html += '<div><div style="font-size:11px;font-weight:600;color:#8d6562;margin-bottom:4px">Kategorie</div>';
+  html += '<select id="buch-typ-select" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;color:#261816;appearance:none;background-image:url(\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22><path d=%22M2 4l4 4 4-4%22 fill=%22none%22 stroke=%22%238d6562%22 stroke-width=%221.5%22/></svg>\');background-repeat:no-repeat;background-position:right 10px center">';
+  html += '<option value="">— Wählen —</option>';
+  BUCH_TYPEN.forEach(function(t) { html += '<option value="' + t.id + '">' + t.label + '</option>'; });
+  html += '</select></div>';
+  html += '<div><div style="font-size:11px;font-weight:600;color:#8d6562;margin-bottom:4px">Monat</div>';
+  html += '<input id="buch-monat-input" type="month" value="' + currentMonth + '" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;color:#261816"></div>';
+  html += '<button onclick="buchUploadHandler()" style="padding:10px 18px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">upload</span>Hochladen</button>';
+  html += '</div></div>';
+
+  // ── Filter ──
+  html += '<div style="background:#fff;border-radius:16px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">';
+  html += '<span style="font-size:12px;font-weight:700;color:#8d6562">Filter:</span>';
+  html += '<select onchange="document.getElementById(\'panel-buchhaltung\').dataset.filterTyp=this.value;renderBuchhaltungTab()" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff">';
+  html += '<option value=""' + (!filterTyp ? ' selected' : '') + '>Alle Typen</option>';
+  BUCH_TYPEN.forEach(function(t) { html += '<option value="' + t.id + '"' + (filterTyp === t.id ? ' selected' : '') + '>' + t.label + '</option>'; });
+  html += '</select>';
+  html += '<select onchange="document.getElementById(\'panel-buchhaltung\').dataset.filterStatus=this.value;renderBuchhaltungTab()" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff">';
+  html += '<option value=""' + (!filterStatus ? ' selected' : '') + '>Alle Status</option>';
+  BUCH_STATUS.forEach(function(s) { html += '<option value="' + s.id + '"' + (filterStatus === s.id ? ' selected' : '') + '>' + s.label + '</option>'; });
+  html += '</select>';
+  html += '<input type="month" value="' + filterMonat + '" onchange="document.getElementById(\'panel-buchhaltung\').dataset.filterMonat=this.value;renderBuchhaltungTab()" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff">';
+  if (filterTyp || filterStatus || filterMonat) {
+    html += '<button onclick="var p=document.getElementById(\'panel-buchhaltung\');p.dataset.filterTyp=\'\';p.dataset.filterStatus=\'\';p.dataset.filterMonat=\'\';renderBuchhaltungTab()" style="padding:5px 10px;border-radius:8px;border:1px solid #e3beb8;background:#fff;font-size:11px;color:#8B0000;cursor:pointer;font-family:inherit">✕ Reset</button>';
+  }
+  html += '<span style="margin-left:auto;font-size:11px;color:#8d6562">' + filtered.length + ' von ' + docs.length + ' Dokumente</span>';
+  html += '</div>';
+
+  // ── Monats-Ordner ──
+  var monate = {};
+  docs.forEach(function(d) { if (!monate[d.monat]) monate[d.monat] = []; monate[d.monat].push(d); });
+  var sortedMonths = Object.keys(monate).sort().reverse().slice(0, 6);
+
+  if (sortedMonths.length > 0) {
+    html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px">';
+    html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:14px">📁 Monats-Ordner</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">';
+    sortedMonths.forEach(function(m) {
+      var mDocs = monate[m];
+      var hasTyp = {};
+      mDocs.forEach(function(d) { hasTyp[d.typ] = true; });
+      var complete = BUCH_TYPEN.filter(function(t) { return t.id !== 'sonstige'; }).every(function(t) { return hasTyp[t.id]; });
+      var parts = m.split('-');
+      var label = ['', 'Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'][parseInt(parts[1])] + ' ' + parts[0];
+      html += '<div style="border:1.5px solid ' + (complete ? '#4caf50' : '#e3beb8') + ';border-radius:12px;padding:14px;cursor:pointer" onclick="document.getElementById(\'panel-buchhaltung\').dataset.filterMonat=\'' + m + '\';renderBuchhaltungTab()">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+      html += '<span style="font-size:14px;font-weight:700;color:#261816">' + label + '</span>';
+      html += '<span style="font-size:18px">' + (complete ? '✅' : '⚠️') + '</span>';
+      html += '</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+      BUCH_TYPEN.filter(function(t) { return t.id !== 'sonstige'; }).forEach(function(t) {
+        var has = hasTyp[t.id];
+        html += '<span style="font-size:10px;padding:2px 8px;border-radius:6px;background:' + (has ? '#e8f5e9' : '#fce4ec') + ';color:' + (has ? '#1b5e20' : '#c62828') + '">' + (has ? '✓' : '✕') + ' ' + t.label + '</span>';
+      });
+      html += '</div>';
+      html += '<div style="font-size:10px;color:#8d6562;margin-top:6px">' + mDocs.length + ' Dokument' + (mDocs.length !== 1 ? 'e' : '') + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // ── Dokumente-Tabelle ──
+  html += '<div style="background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;overflow:hidden">';
+  html += '<div style="padding:16px 20px;border-bottom:1px solid #e3beb844;display:flex;align-items:center;justify-content:space-between">';
+  html += '<span style="font-size:13px;font-weight:700;color:#261816">📄 Alle Dokumente</span>';
+  html += '</div>';
+
+  if (filtered.length === 0) {
+    html += '<div style="padding:40px;text-align:center;color:#8d6562">';
+    html += '<span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:10px">folder_off</span>';
+    html += '<p style="font-size:14px;font-weight:600">Keine Dokumente vorhanden</p>';
+    html += '<p style="font-size:12px;margin-top:4px">Lade oben dein erstes PDF hoch</p>';
+    html += '</div>';
+  } else {
+    filtered.forEach(function(d) {
+      var typObj = BUCH_TYPEN.find(function(t) { return t.id === d.typ; }) || BUCH_TYPEN[4];
+      var statObj = BUCH_STATUS.find(function(s) { return s.id === d.status; }) || BUCH_STATUS[0];
+      var parts = (d.monat || '').split('-');
+      var monatLabel = parts.length === 2 ? ['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][parseInt(parts[1])] + ' ' + parts[0] : d.monat;
+      var sizeKB = d.size ? Math.round(d.size / 1024) + ' KB' : '';
+
+      html += '<div style="padding:14px 20px;border-bottom:1px solid #f0e4e1;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+      html += '<span class="material-symbols-outlined" style="font-size:22px;color:#610000;flex-shrink:0">' + typObj.icon + '</span>';
+      html += '<div style="flex:1;min-width:140px">';
+      html += '<div style="font-size:13px;font-weight:700;color:#261816;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(d.name) + '</div>';
+      html += '<div style="font-size:11px;color:#8d6562;margin-top:2px">' + typObj.label + ' · ' + monatLabel + ' · ' + sizeKB + '</div>';
+      html += '</div>';
+      // Status-Badge
+      html += '<select onchange="buchSetStatus(\'' + d.id + '\',this.value)" style="padding:5px 8px;border-radius:8px;border:1px solid ' + statObj.color + '33;background:' + statObj.bg + ';color:' + statObj.color + ';font-size:11px;font-weight:700;font-family:inherit;appearance:none;cursor:pointer;text-align:center;min-width:70px">';
+      BUCH_STATUS.forEach(function(s) {
+        html += '<option value="' + s.id + '"' + (d.status === s.id ? ' selected' : '') + '>' + s.label + '</option>';
+      });
+      html += '</select>';
+      // Buttons
+      html += '<button onclick="buchDownload(\'' + d.id + '\',\'' + _esc(d.name) + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Download"><span class="material-symbols-outlined" style="font-size:16px;color:#610000">download</span></button>';
+      html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:16px;color:#9ca3af">delete</span></button>';
+      html += '</div>';
     });
   }
   html += '</div>';
