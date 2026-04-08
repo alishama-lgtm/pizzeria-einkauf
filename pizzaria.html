@@ -5000,7 +5000,7 @@ function renderBizKassabuch() {
         <th style="padding:10px 16px;text-align:center;font-weight:600;color:#5a403c;border-bottom:1px solid #e3beb8">Löschen</th>
       </tr></thead>
       <tbody>
-        ${kassa.length === 0 ? `<tr><td colspan="6" style="padding:24px;text-align:center;color:#8d6562">Noch keine Einträge</td></tr>` :
+        ${kassa.length === 0 ? `<tr><td colspan="6" style="padding:40px 24px;text-align:center"><span class="material-symbols-outlined" style="font-size:36px;color:#e3beb8;display:block;margin-bottom:8px">receipt_long</span><span style="color:#8d6562;font-size:14px;font-weight:600">Noch keine Einträge</span><br><span style="color:#b0908c;font-size:12px">Trage den ersten Kassabuch-Eintrag oben ein</span></td></tr>` :
           [...kassa].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60).map((e,i) => {
             const isToday = e.date === today;
             const isBest = bestEntry && e.date === bestEntry.date && e.gesamt > 0;
@@ -5127,7 +5127,7 @@ function renderBizKosten() {
     </button>
   </div>
   <div id="personal-list">
-    ${personal.length === 0 ? '<p style="color:#8d6562;font-size:13px;text-align:center;padding:20px 0">Noch keine Mitarbeiter eingetragen</p>' :
+    ${personal.length === 0 ? '<div style="text-align:center;padding:32px 16px"><span class="material-symbols-outlined" style="font-size:36px;color:#e3beb8;display:block;margin-bottom:8px">group_off</span><p style="color:#8d6562;font-size:14px;font-weight:600;margin:0 0 4px">Noch keine Mitarbeiter eingetragen</p><p style="color:#b0908c;font-size:12px;margin:0">Klicke auf "+ Mitarbeiter" um loszulegen</p></div>' :
       personal.map((p,i) => renderPersonalRow(p,i)).join('')}
   </div>
   <div style="background:#fff0ee;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:12px">
@@ -5227,7 +5227,7 @@ function bizDeletePersonal(i) {
   p.splice(i,1);
   bizSavePersonal(p);
   document.getElementById('personal-list').innerHTML = p.length===0
-    ? '<p style="color:#8d6562;font-size:13px;text-align:center;padding:20px 0">Noch keine Mitarbeiter eingetragen</p>'
+    ? '<div style="text-align:center;padding:32px 16px"><span class="material-symbols-outlined" style="font-size:36px;color:#e3beb8;display:block;margin-bottom:8px">group_off</span><p style="color:#8d6562;font-size:14px;font-weight:600;margin:0 0 4px">Noch keine Mitarbeiter eingetragen</p><p style="color:#b0908c;font-size:12px;margin:0">Klicke auf "+ Mitarbeiter" um loszulegen</p></div>'
     : p.map((pp,ii)=>renderPersonalRow(pp,ii)).join('');
 }
 
@@ -5495,7 +5495,7 @@ function renderBizReport() {
         <th style="padding:8px 12px;text-align:right;border-bottom:1px solid #e3beb8;color:#5a403c">MwSt 20%</th>
       </tr></thead>
       <tbody>
-        ${rows.length===0 ? '<tr><td colspan="6" style="padding:20px;text-align:center;color:#8d6562">Keine Einträge für diesen Monat</td></tr>' :
+        ${rows.length===0 ? '<tr><td colspan="6" style="padding:40px 24px;text-align:center"><span class="material-symbols-outlined" style="font-size:36px;color:#e3beb8;display:block;margin-bottom:8px">event_busy</span><span style="color:#8d6562;font-size:14px;font-weight:600">Keine Einträge für diesen Monat</span></td></tr>' :
           rows.map((r,i)=>{
             const showWeek = i===0 || Math.ceil(new Date(rows[i-1].date).getDate()/7) !== Math.ceil(new Date(r.date).getDate()/7);
             const wn = Math.ceil(new Date(r.date).getDate()/7);
@@ -6313,7 +6313,7 @@ function renderFmAuswertung() {
 
     '<div class="ws-card">' +
     '<div class="ws-section-title" style="font-size:16px;margin-bottom:16px"><span class="material-symbols-outlined">trending_up</span>Top 5 Fehlmaterialien</div>' +
-    (top5Html || '<div style="color:#9ca3af;text-align:center;padding:20px">Keine Daten</div>') +
+    (top5Html || '<div style="text-align:center;padding:32px 16px"><span class="material-symbols-outlined" style="font-size:36px;color:#e3beb8;display:block;margin-bottom:8px">analytics</span><p style="color:#8d6562;font-size:14px;font-weight:600;margin:0 0 4px">Keine Daten</p><p style="color:#b0908c;font-size:12px;margin:0">Fehlmaterial melden um Statistiken zu sehen</p></div>') +
     '</div>' +
 
     '<div class="ws-card">' +
