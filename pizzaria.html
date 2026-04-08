@@ -660,6 +660,21 @@
   .app-toast.toast-error   { background:#93000a; }
   .app-toast.toast-warning { background:#c66900; }
   .app-toast.toast-info    { background:#1e1e2e; }
+
+  /* ═══ BUSINESS SUB-NAV ═══ */
+  .biz-nav-btn {
+    display:flex; align-items:center; gap:6px; padding:9px 16px;
+    border-radius:10px; border:1.5px solid #e3beb8; background:#fff;
+    font-size:13px; font-weight:600; color:#5a403c; cursor:pointer;
+    font-family:inherit; transition:all .15s;
+  }
+  .biz-nav-btn:hover { border-color:#D4AF37; color:#D4AF37; }
+  .biz-nav-btn.biz-active {
+    background:#D4AF37; border-color:#D4AF37; color:#1a1a2e;
+  }
+  .biz-nav-btn.biz-active:hover {
+    background:#c8a032; border-color:#c8a032; color:#1a1a2e;
+  }
 </style>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
 
@@ -4770,10 +4785,7 @@ function renderBusinessTab() {
       ['biz-report','summarize','Monatsbericht'],
       ['biz-settings','settings','Einstellungen'],
     ].map(([id,icon,label]) => `
-      <button id="btn-${id}" onclick="showBizSection('${id}')"
-        style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;transition:all .15s"
-        onmouseover="this.style.borderColor='#8B0000';this.style.color='#8B0000'"
-        onmouseout="if(!this.classList.contains('biz-active')){this.style.borderColor='#e3beb8';this.style.color='#5a403c'}">
+      <button id="btn-${id}" class="biz-nav-btn" onclick="showBizSection('${id}')">
         <span class="material-symbols-outlined" style="font-size:16px">${icon}</span>${label}
       </button>`).join('')}
   </div>
@@ -4802,16 +4814,9 @@ function renderBusinessTab() {
 function showBizSection(id) {
   document.querySelectorAll('.biz-section').forEach(s => s.style.display = 'none');
   document.getElementById(id).style.display = 'block';
-  document.querySelectorAll('[id^="btn-biz-"]').forEach(b => {
-    b.classList.remove('biz-active');
-    b.style.background = '#fff'; b.style.borderColor = '#e3beb8'; b.style.color = '#5a403c';
-  });
+  document.querySelectorAll('.biz-nav-btn').forEach(b => b.classList.remove('biz-active'));
   const btn = document.getElementById('btn-' + id);
-  if (btn) {
-    btn.classList.add('biz-active');
-    btn.style.background = '#8B0000'; btn.style.borderColor = '#8B0000'; btn.style.color = '#fff';
-    btn.onmouseover = null; btn.onmouseout = null;
-  }
+  if (btn) btn.classList.add('biz-active');
 }
 
 // ── LOCKED SCREEN ──
