@@ -1210,6 +1210,7 @@
         <button data-nav-tab="verlauf" onclick="switchTab('verlauf')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">bar_chart</span>Verlauf</button>
         <button data-nav-tab="suche" onclick="switchTab('suche')" class="dd-item"><span style="font-size:14px">🔍</span>Suche</button>
         <button data-nav-tab="buchhaltung" onclick="switchTab('buchhaltung')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">account_balance</span>Buchhaltung</button>
+        <button data-nav-tab="konkurrenz" onclick="switchTab('konkurrenz')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">storefront</span>Konkurrenz</button>
       </div>
     </div>
 
@@ -1269,6 +1270,7 @@
       <button class="ts-sub-item" data-nav-tab="verlauf" onclick="switchTab('verlauf')"><span class="ts-sub-icon">📈</span>Verlauf</button>
       <button class="ts-sub-item" data-nav-tab="suche" onclick="switchTab('suche')"><span class="ts-sub-icon">🔍</span>Suche</button>
       <button class="ts-sub-item" data-nav-tab="buchhaltung" onclick="switchTab('buchhaltung')"><span class="ts-sub-icon">📑</span>Buchhaltung</button>
+      <button class="ts-sub-item" data-nav-tab="konkurrenz" onclick="switchTab('konkurrenz')"><span class="ts-sub-icon">🏪</span>Konkurrenz</button>
     </div>
   </div>
   <button class="ts-biz-btn" onclick="switchTab('business')">
@@ -1314,6 +1316,7 @@
   <div id="panel-umsatz"       style="display:none"></div>
   <div id="panel-gewinn"       style="display:none"></div>
   <div id="panel-buchhaltung"  style="display:none"></div>
+  <div id="panel-konkurrenz"   style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -1407,6 +1410,7 @@
       <button data-drawer-nav="verlauf" onclick="switchTab('verlauf');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">bar_chart</span>Verlauf</button>
       <button data-drawer-nav="gewinn" onclick="switchTab('gewinn');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">trending_up</span>Gewinn</button>
       <button data-drawer-nav="buchhaltung" onclick="switchTab('buchhaltung');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">account_balance</span>Buchh.</button>
+      <button data-drawer-nav="konkurrenz" onclick="switchTab('konkurrenz');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">storefront</span>Konkurr.</button>
     </div>
   </div>
   <div class="bs-section">
@@ -6551,7 +6555,7 @@ const NAV_GROUPS = [
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
-  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung'], mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'], mobile:false },
 ];
 
 function _syncNavActiveStates(tab) {
@@ -6616,7 +6620,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -6675,6 +6679,7 @@ function switchTab(tab) {
   if (tab === 'umsatz')        renderUmsatzTab();
   if (tab === 'gewinn')        renderGewinnTab();
   if (tab === 'buchhaltung')   renderBuchhaltungTab();
+  if (tab === 'konkurrenz')    renderKonkurrenzTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -10160,8 +10165,8 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'],
   employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
@@ -12382,6 +12387,242 @@ function lagerAlleRotBestellen() {
   });
   localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
   _showToast(added+' Artikel zur Bestellliste hinzugefügt', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KONKURRENZ-MONITOR TAB
+// ═══════════════════════════════════════════════════════════════
+var KK_KEY = 'sc_konkurrenz';
+
+function kkLoad() {
+  try { return JSON.parse(localStorage.getItem(KK_KEY)||'null')||_kkDefault(); }
+  catch(_) { return _kkDefault(); }
+}
+function kkSave(d) { try { localStorage.setItem(KK_KEY, JSON.stringify(d)); } catch(_) {} }
+function kkGenId() { return 'kk' + Date.now() + Math.random().toString(36).slice(2,5); }
+
+function _kkDefault() {
+  var d = [
+    { id:kkGenId(), name:'Pizza Mann', adresse:'Favoritenstraße 12, 1100 Wien', bewertung:3.8, preisniveau:'Mittel',
+      preise:{margherita:8.90,diavola:10.90,salami:9.90,hawaii:10.50,quattro:11.90},
+      staerken:'Schnelle Lieferung, günstig', schwaechen:'Qualität schwankt, kleine Portionen', notizen:'Hauptkonkurrent im Liefergebiet' },
+    { id:kkGenId(), name:'Domino\'s Pizza', adresse:'Reumannplatz 3, 1100 Wien', bewertung:3.5, preisniveau:'Günstig',
+      preise:{margherita:7.99,diavola:10.99,salami:9.49,hawaii:10.49,quattro:11.99},
+      staerken:'Markenbekanntheit, Aktionen', schwaechen:'Industriequalität, kein echter Holzofen', notizen:'Aggressives Marketing, 2-für-1 Aktionen' },
+    { id:kkGenId(), name:'Ristorante Bella Napoli', adresse:'Quellenstraße 28, 1100 Wien', bewertung:4.5, preisniveau:'Gehoben',
+      preise:{margherita:11.50,diavola:13.90,salami:12.90,hawaii:0,quattro:14.90},
+      staerken:'Authentisch italienisch, Holzofen, Top-Bewertung', schwaechen:'Teuer, lange Wartezeit, keine Lieferung', notizen:'Premium-Segment, andere Zielgruppe' },
+  ];
+  kkSave(d);
+  return d;
+}
+
+var KK_EIGENE_PREISE = {margherita:9.50,diavola:12.90,salami:10.90,hawaii:11.50,quattro:13.90};
+var KK_PIZZA_LABELS = {margherita:'Margherita',diavola:'Diavola',salami:'Salami',hawaii:'Hawaii',quattro:'Quattro Stagioni'};
+
+function renderKonkurrenzTab() {
+  var panel = document.getElementById('panel-konkurrenz');
+  if (!panel) return;
+  try {
+    var list = kkLoad();
+
+    var html = _pageHdr('storefront', 'Konkurrenz-Monitor', list.length + ' Mitbewerber erfasst',
+      '<button onclick="kkNeu()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
+
+    html += '<div id="kk-form-area"></div>';
+
+    // ── Überblick-Karten ──
+    var avgBew = list.length ? (list.reduce(function(s,k){ return s+k.bewertung; },0)/list.length).toFixed(1) : '–';
+    var guenstiger = 0, teurer = 0;
+    list.forEach(function(k){
+      var keys = Object.keys(k.preise||{});
+      var diff = 0, cnt = 0;
+      keys.forEach(function(p){
+        if (k.preise[p] > 0 && KK_EIGENE_PREISE[p]) { diff += KK_EIGENE_PREISE[p] - k.preise[p]; cnt++; }
+      });
+      if (cnt > 0) { if (diff/cnt > 0) teurer++; else guenstiger++; }
+    });
+
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+    html += '<div style="background:linear-gradient(135deg,#fff8f6,#fff);border:1.5px solid #f0d8d4;border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:#610000">' + list.length + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Konkurrenten</div></div>';
+    html += '<div style="background:linear-gradient(135deg,#fff8e1,#fff);border:1.5px solid #ffe082;border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:#f57f17">⭐ ' + avgBew + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">\u00D8 Bewertung</div></div>';
+    html += '<div style="background:linear-gradient(135deg,#e8f5e9,#fff);border:1.5px solid #a5d6a7;border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:#2e7d32">' + guenstiger + ' / ' + teurer + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Günstiger / Teurer</div></div>';
+    html += '</div>';
+
+    // ── Preisvergleich-Tabelle ──
+    html += '<div style="background:#fff;border:1.5px solid #f0d8d4;border-radius:14px;overflow:hidden;margin-bottom:24px">';
+    html += '<div style="padding:14px 18px;background:linear-gradient(135deg,#fff8f6,#fff);border-bottom:1.5px solid #f0d8d4;font-size:13px;font-weight:800;color:#610000">📊 Preisvergleich — Top Pizzen</div>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html += '<thead><tr style="background:#faf6f5"><th style="padding:10px 14px;text-align:left;font-weight:700;color:#5a403c;border-bottom:1px solid #f0e4e1">Pizza</th>';
+    html += '<th style="padding:10px 14px;text-align:right;font-weight:800;color:#610000;border-bottom:1px solid #f0e4e1">San Carino</th>';
+    list.forEach(function(k){
+      html += '<th style="padding:10px 14px;text-align:right;font-weight:600;color:#5a403c;border-bottom:1px solid #f0e4e1">' + escHtml(k.name) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    var pizzaKeys = Object.keys(KK_PIZZA_LABELS);
+    pizzaKeys.forEach(function(pk){
+      html += '<tr>';
+      html += '<td style="padding:8px 14px;font-weight:600;color:#261816;border-bottom:1px solid #f5efed">' + KK_PIZZA_LABELS[pk] + '</td>';
+      html += '<td style="padding:8px 14px;text-align:right;font-weight:800;color:#610000;border-bottom:1px solid #f5efed">' + eur(KK_EIGENE_PREISE[pk]) + '</td>';
+      list.forEach(function(k){
+        var kp = (k.preise||{})[pk] || 0;
+        if (kp <= 0) { html += '<td style="padding:8px 14px;text-align:right;color:#ccc;border-bottom:1px solid #f5efed">–</td>'; return; }
+        var diff = KK_EIGENE_PREISE[pk] - kp;
+        var clr = diff > 0 ? '#c62828' : diff < 0 ? '#2e7d32' : '#5a403c';
+        var arrow = diff > 0 ? '\u2191' : diff < 0 ? '\u2193' : '';
+        html += '<td style="padding:8px 14px;text-align:right;border-bottom:1px solid #f5efed">';
+        html += '<span style="font-weight:600">' + eur(kp) + '</span>';
+        if (diff !== 0) html += ' <span style="font-size:11px;font-weight:700;color:' + clr + '">' + arrow + Math.abs(diff).toFixed(2) + '</span>';
+        html += '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+
+    // ── Konkurrenten-Karten ──
+    if (list.length === 0) {
+      html += '<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Keine Konkurrenten erfasst.</div>';
+    } else {
+      for (var i = 0; i < list.length; i++) {
+        var k = list[i];
+        var sterne = '';
+        for (var s = 1; s <= 5; s++) sterne += s <= Math.round(k.bewertung) ? '⭐' : '☆';
+        var niveauClr = k.preisniveau === 'Günstig' ? '#2e7d32' : k.preisniveau === 'Gehoben' ? '#c62828' : '#e65100';
+
+        html += '<div style="background:#fff;border:1.5px solid #f0d8d4;border-radius:14px;padding:18px;margin-bottom:14px">';
+        html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">';
+        // Links: Name, Adresse, Bewertung
+        html += '<div style="flex:1;min-width:200px">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+        html += '<span style="font-size:16px;font-weight:900;color:#261816">' + escHtml(k.name) + '</span>';
+        html += '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;color:' + niveauClr + ';background:' + (k.preisniveau==='Günstig'?'#e8f5e9':k.preisniveau==='Gehoben'?'#ffebee':'#fff3e0') + '">' + escHtml(k.preisniveau) + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:12px;color:#8d6562;margin-bottom:6px">' + escHtml(k.adresse||'') + '</div>';
+        html += '<div style="font-size:13px">' + sterne + ' <span style="font-weight:700;color:#f57f17">' + k.bewertung.toFixed(1) + '</span></div>';
+        html += '</div>';
+        // Rechts: Buttons
+        html += '<div style="display:flex;gap:5px;flex-shrink:0">';
+        html += '<button onclick="kkBearbeiten(\'' + k.id + '\')" style="background:#fff0ee;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0"><span class="material-symbols-outlined" style="font-size:16px;color:#610000">edit</span></button>';
+        html += '<button onclick="kkLoeschen(\'' + k.id + '\')" style="background:#fff0ee;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0"><span class="material-symbols-outlined" style="font-size:16px;color:#b52619">delete</span></button>';
+        html += '</div></div>';
+
+        // Stärken / Schwächen
+        if (k.staerken || k.schwaechen) {
+          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">';
+          if (k.staerken) {
+            html += '<div style="background:#e8f5e9;border-radius:10px;padding:10px 12px">';
+            html += '<div style="font-size:11px;font-weight:700;color:#2e7d32;margin-bottom:4px">STÄRKEN</div>';
+            html += '<div style="font-size:12px;color:#1b5e20">' + escHtml(k.staerken) + '</div></div>';
+          }
+          if (k.schwaechen) {
+            html += '<div style="background:#ffebee;border-radius:10px;padding:10px 12px">';
+            html += '<div style="font-size:11px;font-weight:700;color:#c62828;margin-bottom:4px">SCHWÄCHEN</div>';
+            html += '<div style="font-size:12px;color:#b71c1c">' + escHtml(k.schwaechen) + '</div></div>';
+          }
+          html += '</div>';
+        }
+        // Notizen
+        if (k.notizen) {
+          html += '<div style="margin-top:10px;padding:8px 12px;background:#f9f5f4;border-radius:8px;font-size:12px;color:#5a403c">';
+          html += '<span style="font-weight:700;color:#610000">Notiz:</span> ' + escHtml(k.notizen) + '</div>';
+        }
+        html += '</div>';
+      }
+    }
+
+    panel.innerHTML = html;
+  } catch(err) {
+    console.error('Konkurrenz Fehler:', err);
+    panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
+  }
+}
+
+function kkNeu() { _kkShowForm(null); }
+function kkBearbeiten(id) { _kkShowForm(id); }
+
+function _kkShowForm(id) {
+  var list = kkLoad();
+  var item = id ? list.find(function(i){ return i.id === id; }) : null;
+  var area = document.getElementById('kk-form-area');
+  if (!area) return;
+  var preise = item ? (item.preise||{}) : {};
+  area.innerHTML = '<div style="background:#fff;border:2px solid #610000;border-radius:18px;padding:20px;margin-bottom:20px">'
+    + '<h3 style="font-size:15px;font-weight:800;color:#610000;margin:0 0 16px">' + (item ? 'Konkurrent bearbeiten' : 'Neuer Konkurrent') + '</h3>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name *</label>'
+    + '<input id="kk-f-name" type="text" value="' + escHtml(item?item.name:'') + '" placeholder="z.B. Pizza Mann" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Adresse</label>'
+    + '<input id="kk-f-adresse" type="text" value="' + escHtml(item?item.adresse:'') + '" placeholder="Straße, PLZ Ort" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Google-Bewertung (1–5)</label>'
+    + '<input id="kk-f-bew" type="number" min="1" max="5" step="0.1" value="' + (item?item.bewertung:'') + '" placeholder="4.2" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Preisniveau</label>'
+    + '<select id="kk-f-niveau" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">'
+    + '<option' + (item&&item.preisniveau==='Günstig'?' selected':'') + '>Günstig</option>'
+    + '<option' + (!item||item.preisniveau==='Mittel'?' selected':'') + '>Mittel</option>'
+    + '<option' + (item&&item.preisniveau==='Gehoben'?' selected':'') + '>Gehoben</option>'
+    + '</select></div>'
+    + '</div>'
+    + '<div style="border-top:1.5px solid #f0d8d4;padding-top:14px;margin-bottom:12px">'
+    + '<div style="font-size:12px;font-weight:800;color:#610000;margin-bottom:10px">Preisvergleich (€)</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">'
+    + Object.keys(KK_PIZZA_LABELS).map(function(pk){
+      return '<div><label style="font-size:11px;font-weight:600;color:#5a403c;display:block;margin-bottom:3px">' + KK_PIZZA_LABELS[pk] + '</label>'
+        + '<input id="kk-f-p-' + pk + '" type="number" step="0.1" min="0" value="' + (preise[pk]||'') + '" placeholder="0.00" style="width:100%;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>';
+    }).join('')
+    + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Stärken</label>'
+    + '<textarea id="kk-f-staerken" rows="2" placeholder="Was machen die gut?" style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;resize:vertical">' + escHtml(item?item.staerken||'':'') + '</textarea></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Schwächen</label>'
+    + '<textarea id="kk-f-schwaechen" rows="2" placeholder="Was machen die schlecht?" style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;resize:vertical">' + escHtml(item?item.schwaechen||'':'') + '</textarea></div>'
+    + '</div>'
+    + '<div style="margin-bottom:16px"><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Notizen</label>'
+    + '<textarea id="kk-f-notizen" rows="2" placeholder="Sonstige Beobachtungen…" style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;resize:vertical">' + escHtml(item?item.notizen||'':'') + '</textarea></div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<button onclick="_kkSpeichern(\'' + (id||'') + '\')" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>'
+    + '<button onclick="document.getElementById(\'kk-form-area\').innerHTML=\'\'" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>'
+    + '</div></div>';
+  area.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function _kkSpeichern(id) {
+  var name = (document.getElementById('kk-f-name')?.value||'').trim();
+  if (!name) { _markField('kk-f-name', true); _showToast('Bitte Namen eingeben', 'error'); return; }
+  var adresse = (document.getElementById('kk-f-adresse')?.value||'').trim();
+  var bewertung = parseFloat(document.getElementById('kk-f-bew')?.value) || 0;
+  var preisniveau = document.getElementById('kk-f-niveau')?.value || 'Mittel';
+  var staerken = (document.getElementById('kk-f-staerken')?.value||'').trim();
+  var schwaechen = (document.getElementById('kk-f-schwaechen')?.value||'').trim();
+  var notizen = (document.getElementById('kk-f-notizen')?.value||'').trim();
+  var preise = {};
+  Object.keys(KK_PIZZA_LABELS).forEach(function(pk){
+    preise[pk] = parseFloat(document.getElementById('kk-f-p-' + pk)?.value) || 0;
+  });
+  var list = kkLoad();
+  if (id) {
+    list = list.map(function(i){ return i.id === id ? { id:i.id, name:name, adresse:adresse, bewertung:bewertung, preisniveau:preisniveau, preise:preise, staerken:staerken, schwaechen:schwaechen, notizen:notizen } : i; });
+  } else {
+    list.push({ id:kkGenId(), name:name, adresse:adresse, bewertung:bewertung, preisniveau:preisniveau, preise:preise, staerken:staerken, schwaechen:schwaechen, notizen:notizen });
+  }
+  kkSave(list);
+  _showToast('Konkurrent gespeichert', 'success');
+  renderKonkurrenzTab();
+}
+
+function kkLoeschen(id) {
+  _showConfirm('Konkurrent wirklich löschen?', function() {
+    kkSave(kkLoad().filter(function(i){ return i.id !== id; }));
+    _showToast('Konkurrent gelöscht', 'success');
+    renderKonkurrenzTab();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
