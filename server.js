@@ -5,6 +5,7 @@ import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import https from 'https';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -285,5 +286,34 @@ loadHeissePreise().then(() => {
     console.log('='.repeat(56));
     console.log('   App + Preissuche in einem Server');
     console.log('   Dieses Fenster offen lassen!\n');
+
+    // HTTPS für PWA auf Mobilgeräten im LAN
+    const certPath = path.join(__dirname, 'cert.pem');
+    const keyPath = path.join(__dirname, 'key.pem');
+
+    if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+      const httpsOptions = {
+        cert: fs.readFileSync(certPath),
+        key: fs.readFileSync(keyPath)
+      };
+      https.createServer(httpsOptions, app).listen(8443, '0.0.0.0', () => {
+        console.log('🔒 HTTPS Server: https://0.0.0.0:8443');
+        const nets = os.networkInterfaces();
+        for (const name of Object.keys(nets)) {
+          for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+              console.log(`📱 PWA installieren: https://${net.address}:8443`);
+            }
+          }
+        }
+      });
+    } else {
+      console.log('⚠️  Kein HTTPS-Zertifikat gefunden.');
+      console.log('   Für PWA auf Mobilgeräten:');
+      console.log('   1. choco install mkcert (als Admin)');
+      console.log('   2. mkcert -install');
+      console.log('   3. mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 DEINE-LAN-IP');
+      console.log('   4. Server neu starten');
+    }
   });
 });

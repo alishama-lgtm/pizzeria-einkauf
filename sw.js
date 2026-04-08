@@ -1,13 +1,14 @@
 // Service Worker — Pizzeria San Carino
 // Strategie: Cache-First für App-Shell, Network-First für API
 
-const CACHE_VER   = 'pizzeria-v1';
+const CACHE_VER   = 'pizzeria-v2';
 const SHELL_CACHE = CACHE_VER + '-shell';
 const CDN_CACHE   = CACHE_VER + '-cdn';
 const API_CACHE   = CACHE_VER + '-api';
 
 const SHELL_ASSETS = [
   '/index.html',
+  '/offline.html',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
@@ -87,7 +88,8 @@ async function cacheFirst(req, cacheName) {
     }
     return res;
   } catch (_) {
-    return new Response('Offline', { status: 503 });
+    const offlinePage = await caches.match('/offline.html');
+    return offlinePage || new Response('Offline - Server nicht erreichbar', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
   }
 }
 
@@ -126,5 +128,9 @@ async function staleWhileRevalidate(req, cacheName) {
     return res;
   }).catch(() => null);
 
-  return cached || (await networkFetch) || new Response('Offline', { status: 503 });
+  if (cached) return cached;
+  const networkRes = await networkFetch;
+  if (networkRes) return networkRes;
+  const offlinePage = await caches.match('/offline.html');
+  return offlinePage || new Response('Offline - Server nicht erreichbar', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }

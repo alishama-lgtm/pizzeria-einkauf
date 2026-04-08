@@ -14,6 +14,10 @@ backups/
 !.claude/commands/
 !.claude/launch.json
 
+# TLS-Zertifikate (niemals committen!)
+cert.pem
+key.pem
+
 # Betriebssystem
 .DS_Store
 Thumbs.db
