@@ -685,6 +685,8 @@
     .login-role-btn:active{transform:scale(.96);background:#fff0ee;}
     .login-role-btn:hover{background:#fff0ee;border-color:#c9a0a0;}
     .login-role-btn .role-icon{font-size:28px;display:block;margin-bottom:6px}
+    #login-code-input:focus { border-color: #8B0000; box-shadow: 0 0 0 3px rgba(139,0,0,0.1); }
+    #login-code-input::placeholder { color: #c9a0a0; font-weight: 500; }
     /* PIN Numpad */
     .pin-key{padding:0;height:64px;border-radius:14px;border:2px solid #e3beb8;background:#fff8f6;font-size:24px;font-weight:700;color:#261816;font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .1s,transform .1s;}
     .pin-key:active{transform:scale(.93);background:#fff0ee;}
@@ -1060,6 +1062,25 @@
     <div id="login-step1">
       <div style="font-size:15px;font-weight:700;color:#261816;margin-bottom:14px">Wer bist du?</div>
       <div id="login-error" style="display:none;background:#ffdad6;color:#93000a;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:12px">❌ Falscher PIN</div>
+
+      <!-- Tastatur-Login: Code/Passwort direkt eintippen -->
+      <div id="login-keyboard" style="margin-bottom:16px">
+        <div style="position:relative">
+          <input type="password" id="login-code-input"
+                 placeholder="Code eintippen + Enter"
+                 autocomplete="off"
+                 style="width:100%;padding:14px 44px 14px 16px;border:2px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;font-weight:600;background:#fff8f6;color:#261816;outline:none;transition:border-color .2s">
+          <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9c8680;font-size:18px">⌨️</span>
+        </div>
+        <div id="login-code-error" style="display:none;color:#93000a;font-size:12px;font-weight:600;margin-top:6px;padding-left:4px">Falscher Code!</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="flex:1;height:1px;background:#e3beb8"></div>
+        <span style="font-size:11px;color:#9c8680;font-weight:600;text-transform:uppercase;letter-spacing:.05em">oder Rolle wählen</span>
+        <div style="flex:1;height:1px;background:#e3beb8"></div>
+      </div>
+
       <div id="login-role-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
     </div>
 
@@ -10064,6 +10085,49 @@ const USERS = PIZZERIA_USERS;
   });
 })();
 
+// === Tastatur-Login: Code/Passwort direkt eingeben ===
+function loginByCode(inputValue) {
+  const code = inputValue.trim();
+  if (!code) return;
+
+  // Suche User: erst per PIN, dann per Passwort
+  let foundUser = PIZZERIA_USERS.find(u => u.pin === code);
+  if (!foundUser) foundUser = PIZZERIA_USERS.find(u => u.password === code);
+
+  if (!foundUser) {
+    const errEl = document.getElementById('login-code-error');
+    const inp = document.getElementById('login-code-input');
+    errEl.style.display = 'block';
+    inp.style.borderColor = '#ba1a1a';
+    inp.value = '';
+    setTimeout(() => { errEl.style.display = 'none'; inp.style.borderColor = '#e3beb8'; }, 2500);
+    return;
+  }
+
+  // Erfolg: direkt einloggen
+  currentUser = foundUser;
+  _pinUser = foundUser;
+  try { sessionStorage.setItem('pizzeria_user', JSON.stringify(foundUser)); } catch(_) {}
+  showApp();
+}
+
+// Event-Listener
+(function initKeyboardLogin() {
+  const inp = document.getElementById('login-code-input');
+  if (!inp) return;
+
+  inp.addEventListener('keydown', function(e) {
+    document.getElementById('login-code-error').style.display = 'none';
+    inp.style.borderColor = '#e3beb8';
+    if (e.key === 'Enter') { e.preventDefault(); loginByCode(inp.value); }
+  });
+
+  // Autofokus nur auf Desktop (kein Touch)
+  if (!('ontouchstart' in window)) {
+    setTimeout(() => inp.focus(), 200);
+  }
+})();
+
 let _pinUser   = null;   // ausgewählter User-Eintrag
 let _pinBuffer = [];     // eingegebene Ziffern
 
@@ -10198,6 +10262,15 @@ function doLogout() {
   document.getElementById('logout-btn').style.display = 'none';
   document.getElementById('settings-btn').style.display = 'none';
   document.getElementById('role-badge').style.display = 'none';
+  // Tastatur-Login zurücksetzen
+  const codeInp = document.getElementById('login-code-input');
+  if (codeInp) { codeInp.value = ''; }
+  const codeErr = document.getElementById('login-code-error');
+  if (codeErr) codeErr.style.display = 'none';
+  // Fokus auf Desktop
+  if (!('ontouchstart' in window)) {
+    setTimeout(() => { const ci = document.getElementById('login-code-input'); if (ci) ci.focus(); }, 200);
+  }
 }
 
 function showApp() {
