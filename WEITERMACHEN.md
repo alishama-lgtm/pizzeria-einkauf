@@ -1,65 +1,110 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-07
+# Pizzeria San Carino — Weitermachen ab 2026-04-08
 
 ## Branch & Datei
 - **Branch:** `claude/youthful-elbakyan`
-- **Hauptdatei:** `index.html` (~13.500 Zeilen)
-- **Letzter Commit:** `7de6f65` — Neuer Tab Standardmaterial
+- **Hauptdatei:** `index.html` (~13.900 Zeilen, 29 Tabs)
+- **Letzter Commit:** `37abed8` — Phase 4 Konkurrenz-Monitor
 
-## Was heute erledigt wurde (2026-04-07)
+---
 
-### Schritt 4: Toast-Farben & Bestätigungs-Dialog ✅
-- Toasts in Rot/Grün/Orange/Blau mit CSS-Klassen + Animation
-- `_markField()` auf CSS-Klasse `.field-error` umgestellt
-- Eigener Bestätigungs-Dialog ersetzt alle nativen `confirm()`
+## Erledigte Arbeiten
 
-### Phase 1: Gewinn-Dashboard ✅ (Tab "Gewinn" unter Analyse)
-- Tages-P&L: Einnahmen vs. anteilige Kosten (Fixkosten + Personal + Einkauf)
-- Vergleich: gestern, Vorwoche gleicher Tag, Monatsdurchschnitt
-- 7-Tage Balkendiagramm (grün = Einnahmen, rot = Kosten)
-- Break-Even Fortschrittsbalken
-- Top 5 Margen-Killer mit Ampel + Preisvorschlag
-- Daten kommen aus Business-Tab (bizGetKassa, bizGetFixkosten, bizGetPersonal, bizGetPizzaCalc)
+### 2026-04-07
+- ✅ Schritt 4: Toast-Farben & Bestätigungs-Dialog
+- ✅ Phase 1: Gewinn-Dashboard
+- ✅ Phase 2: Buchhaltung Tab (PDF-Upload, IndexedDB)
+- ✅ Phase 3: Speisekarten-Optimierer (Kalkulation, Ampel, Zutaten)
+- ✅ Neuer Tab: Standardmaterial (Stammliste, 5 Kategorien)
+- ✅ Sonstige Fixes (PDF-Upload, Gewinn-Nav, Panel-Toggle)
 
-### Phase 2: Buchhaltung Tab ✅ (Tab "Buchhaltung" unter Analyse)
-- PDF-Upload mit Drag & Drop + Kategorie (Lohnzettel/Lohnsteuer/SVA/UVA/Sonstige) + Monat
-- IndexedDB für PDF-Speicherung (erstmals in der App)
-- Monats-Ordner: Vollständigkeits-Check pro Monat
-- Filter nach Typ, Status, Monat
-- Status-Workflow: offen → geprüft → gesendet
-- Download + Löschen pro Dokument
-
-### Phase 3: Speisekarten-Optimierer ✅ (Erweiterung Speisekarte-Tab)
-- Kalkulation pro Gericht: VK-Preis − Wareneinsatz − Personal − Verpackung = Marge
-- Ampel-System: 🟢 >65% | 🟡 45–65% | 🔴 <45%
-- Live-Vorschau beim Bearbeiten (Marge wird sofort berechnet)
-- Zutatenliste pro Gericht (Name, Menge, Kosten)
-- Optimierungs-Vorschlag: "Preis um €X erhöhen → 65% Marge"
-- Zusammenfassungs-Box: Ø-Marge, kalkulierte Gerichte, Ampel-Verteilung
-- Migration: bestehende Gerichte erhalten automatisch leeres `kalk`-Feld
-
-### Neuer Tab: Standardmaterial ✅ (unter Lager & Waren)
-- Stammliste aller fixen Materialien (Verpackung, Rohstoffe, Reinigung, Büro, Küche)
-- 5 Kategorien mit Farb-Coding und gruppierten Sektionen
-- Suche + Kategorie-Filter (Echtzeit)
-- CRUD: Neu / Bearbeiten / Löschen mit Bestätigungs-Dialog
-- Felder: Name, Kategorie, Einheit, Mindestbestand
-- JSON-Export (Download)
-- 15 Beispiel-Stammdaten beim ersten Start
-- LocalStorage: `sc_standardmaterial`
-- Alle 8 Nav-Stellen korrekt eingetragen (Desktop/Tablet/Mobile)
-
-### Sonstige Fixes
-- Handliste akzeptiert jetzt auch PDFs
-- Gewinn-Tab in alle 3 Nav-Systeme (Desktop/Tablet/Mobile) eingetragen
-- Panel-Toggle-Liste in switchTab() gefixt
+### 2026-04-08
+- ✅ Lager-Tab Redesign (kompakte Tabelle, Suche, Bearbeiten, Fortschrittsbalken)
+- ✅ Phase 4: Konkurrenz-Monitor (Preisvergleich, Stärken/Schwächen, CRUD)
 
 ---
 
 ## Was als Nächstes kommt
 
-### Phase 4: Konkurrenz-Monitor (neuer Tab panel-konkurrenz)
 ### Phase 5: Bewertungs-Manager (Erweiterung Dashboard)
 ### Phase 6: n8n Agenten-Workflows (Dokumentation)
+### Verbesserungen Schritt 5: Design-Konsistenz
+### Verbesserungen Schritt 6: Code-Qualität
+
+---
+
+## Komplette App-Analyse (Stand 2026-04-08)
+
+### 29 Tabs — Vollständige Funktionsliste
+
+| # | Tab | Gruppe | Funktion |
+|---|-----|--------|----------|
+| 1 | **Dashboard** | Analyse | Start-Übersicht: Alerts, Checkliste, Aufgaben, Umsatz, Schnellzugriff |
+| 2 | **Kombis** | Kombis | Warenkorb-System: Produkte + Shops kombinieren, Preise berechnen |
+| 3 | **Angebote** | Einkauf | Aktuelle Angebote der Shops verwalten |
+| 4 | **Einkaufsliste** | Einkauf | Einkaufsliste erstellen und abhaken |
+| 5 | **Suche** | Einkauf | Produkte über alle Shops suchen |
+| 6 | **Upload** | Lager | Fotos/PDFs hochladen (Handliste, Rechnungen) |
+| 7 | **Verlauf** | Einkauf | Bestellverlauf und Preishistorie |
+| 8 | **Mitarbeiter** | Team | Mitarbeiter-Verwaltung mit Rollen und Kontakt |
+| 9 | **Fehlmaterial** | Betrieb | Fehlmaterial melden und tracken |
+| 10 | **Checkliste** | Betrieb | Schicht-Checkliste Öffnung & Schließung |
+| 11 | **Produkte** | Lager | Produkt-Datenbank mit Preishistorie |
+| 12 | **Geschäfte** | Lager | Shop-Verwaltung (Metro, Billa, Lidl, Spar) |
+| 13 | **Lieferanten** | Lager | Lieferanten-Datenbank mit Kontakt & Bewertung |
+| 14 | **Speisekarte** | Analyse | Komplette Speisekarte + Kalkulation pro Gericht |
+| 15 | **Business** | Business | Geschäftsdaten: Kassa, Fixkosten, Personal, Pizzakalkulation |
+| 16 | **Dienstplan** | Team | Wochenplan Mo–So, 3 Schichten, 5 Mitarbeiter |
+| 17 | **Aufgaben** | Team | Aufgaben pro Mitarbeiter (Priorität, Status, Kategorien) |
+| 18 | **Schichtcheck** | Betrieb | Schicht-Übergabe Checkliste |
+| 19 | **Bestellung** | Betrieb | Bestellliste (dringend, Kategorie, erledigt) |
+| 20 | **Lager** | Lager | Lagerbestand mit Ampel, Suche, Kategorien, Fortschrittsbalken |
+| 21 | **Wareneinsatz** | Lager | Wareneinsatz pro Gericht (Zutaten, Marge) |
+| 22 | **Preisalarm** | Lager | Preishistorie & Alarm bei Preisänderungen |
+| 23 | **Standardmaterial** | Lager | Stammliste aller fixen Materialien (5 Kategorien) |
+| 24 | **Statistik** | Analyse | Umsatz-Statistiken: Top 10, Wochenvergleich |
+| 25 | **Tagesangebote** | Analyse | Tagesangebote mit Countdown, Rabatt, Marge-Warnung |
+| 26 | **Umsatz** | Analyse | Umsatz-Dashboard: Kasse, Lieferdienst, Monatsziel |
+| 27 | **Gewinn** | Analyse | Tages-P&L, Break-Even, Margen-Killer |
+| 28 | **Buchhaltung** | Analyse | PDF-Upload für Steuerberater (IndexedDB) |
+| 29 | **Konkurrenz** | Analyse | Konkurrenz-Monitor: Preisvergleich, Stärken/Schwächen |
+
+### Technologie & Stabilität
+
+| Aspekt | Status |
+|--------|--------|
+| **Architektur** | Single-File App (index.html, ~13.900 Zeilen) |
+| **Framework** | Vanilla JS — keine Abhängigkeiten |
+| **Speicherung** | LocalStorage (Hauptdaten) + IndexedDB (PDFs) |
+| **Datenbank** | pizzeria.db (SQLite via better-sqlite3 für Preishistorie) |
+| **Navigation** | 3 responsive Layouts (Desktop/Tablet/Mobile) |
+| **Rollen** | 7 Rollen (admin, manager, kueche, pizza, fahrer, reinigung, service) |
+| **Sicherheit** | Passwörter in users.js (gitignored), PIN-Login |
+| **Syntax** | Alle 6 Script-Blöcke: ✅ fehlerfrei |
+| **Browser** | Getestet in Chrome, sollte in allen modernen Browsern laufen |
+
+### LocalStorage Keys (Datenpersistenz)
+
+| Key | Tab | Inhalt |
+|-----|-----|--------|
+| `pizzeria_speisekarte` | Speisekarte | Komplette Speisekarte + Kalkulation |
+| `pizzeria_lager` | Lager | Lagerbestand aller Artikel |
+| `pizzeria_bestellung` | Bestellung | Offene Bestellungen |
+| `pizzeria_wareneinsatz` | Wareneinsatz | Wareneinsatz pro Gericht |
+| `pizzeria_lieferanten` | Lieferanten | Lieferanten-Stammdaten |
+| `sc_standardmaterial` | Standardmaterial | Stammliste Materialien |
+| `sc_konkurrenz` | Konkurrenz | Konkurrenten + Preise |
+| `pizzeria_checkliste_*` | Checkliste | Tages-Checklisten |
+| `pizzeria_aufgaben` | Aufgaben | Mitarbeiter-Aufgaben |
+| `pizzeria_dienstplan` | Dienstplan | Wochenplan |
+| `biz_*` | Business | Kassa, Fixkosten, Personal etc. |
+
+### Bekannte Einschränkungen
+
+- Keine Echtzeit-Sync (alles lokal im Browser)
+- Kein HTTPS / externer Zugriff (bewusst aufgeschoben)
+- Kein automatisches Backup der LocalStorage-Daten
+- QuickLogin-Buttons noch aktiv (Komfort für Entwicklung)
+- Große Datei (~13.900 Zeilen) — könnte in Zukunft aufgeteilt werden
 
 ---
 
@@ -70,7 +115,7 @@ Bei jedem neuen Tab **alle 8 Stellen** ändern:
 3. `ROLE_TABS` → admin + manager
 4. `switchTab()` → Panel-Toggle-Array (forEach-Liste!)
 5. `switchTab()` → `if (tab === 'xxx') renderXxxTab();`
-6. Desktop Nav → Analyse-Dropdown `dd-item`
+6. Desktop Nav → Dropdown `dd-item`
 7. Tablet Sidebar → `ts-sub-item`
 8. Mobile Drawer → `data-drawer-nav`
 
@@ -78,5 +123,5 @@ Bei jedem neuen Tab **alle 8 Stellen** ändern:
 ```bash
 cd "C:/Users/shama/Claude/Pizzaria/.claude/San Carino/worktrees/Pizzaria-vs-3"
 git pull
-# Dann /pizzeria eingeben und sagen: "Lies WEITERMACHEN.md und mach Phase 4"
+# Dann /pizzeria eingeben und sagen: "Lies WEITERMACHEN.md und mach Phase 5"
 ```
