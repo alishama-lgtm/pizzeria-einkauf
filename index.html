@@ -12106,102 +12106,236 @@ function bestellungFilter(type, val) {
 // PHASE 3 — LAGERBESTAND
 // ═══════════════════════════════════════════════════════════════
 function renderLagerTab() {
-  const p = document.getElementById('panel-lager');
-  let lager = [];
+  var p = document.getElementById('panel-lager');
+  var lager = [];
   try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
 
-  const KATS = ['Küche','Bar','Reinigung','Verpackung','Sonstiges'];
-  const KAT_STYLE = { 'Küche':'#fff3e0;#e65100','Bar':'#e3f2fd;#0d47a1','Reinigung':'#e8f5e9;#2e7d32','Verpackung':'#f3e5f5;#6a1b9a','Sonstiges':'#f5f5f5;#616161' };
-  const filterKat = p.dataset.filterKat||'';
-  const filterAmpel = p.dataset.filterAmpel||'';
+  var KATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Küche','Bar','Reinigung','Verpackung','Sonstiges'];
+  var KAT_STYLE = {
+    'Grundzutaten':'#b52619;#ffdad6', 'Käse':'#e65100;#fff3e0', 'Belag':'#2e7d32;#e8f5e9',
+    'Fleisch & Fisch':'#5d4037;#efebe9', 'Getränke':'#6a1b9a;#f3e5f5',
+    'Küche':'#e65100;#fff3e0', 'Bar':'#0d47a1;#e3f2fd', 'Reinigung':'#2e7d32;#e8f5e9',
+    'Verpackung':'#6a1b9a;#f3e5f5', 'Sonstiges':'#616161;#f5f5f5'
+  };
+  var filterKat = p.dataset.filterKat||'';
+  var filterAmpel = p.dataset.filterAmpel||'';
+  var searchQ = (p.dataset.searchQ||'').toLowerCase();
 
-  // Ampel berechnen
-  const ampel = a => {
+  var ampel = function(a) {
     if (a.menge <= 0) return 'rot';
     if (a.menge <= a.mindest) return 'rot';
     if (a.menge <= a.mindest * 1.5) return 'gelb';
     return 'gruen';
   };
-  const AMPEL_STYLE = { gruen:{bg:'#e8f5e9',clr:'#1b5e20',bc:'#a5d6a7',icon:'🟢'}, gelb:{bg:'#fff8e1',clr:'#f57f17',bc:'#ffe082',icon:'🟡'}, rot:{bg:'#ffebee',clr:'#c62828',bc:'#ef9a9a',icon:'🔴'} };
 
-  const visible = lager.filter(a => {
+  var visible = lager.filter(function(a) {
     if (filterKat && a.kategorie !== filterKat) return false;
     if (filterAmpel && ampel(a) !== filterAmpel) return false;
+    if (searchQ && !a.name.toLowerCase().includes(searchQ)) return false;
     return true;
   });
 
-  const rotCount = lager.filter(a=>ampel(a)==='rot').length;
-  const gelbCount = lager.filter(a=>ampel(a)==='gelb').length;
+  var rotCount = lager.filter(function(a){ return ampel(a)==='rot'; }).length;
+  var gelbCount = lager.filter(function(a){ return ampel(a)==='gelb'; }).length;
+  var gruenCount = lager.length - rotCount - gelbCount;
 
-  const rows = visible.length ? visible.map(a => {
-    const am = ampel(a);
-    const st = AMPEL_STYLE[am];
-    const ks = (KAT_STYLE[a.kategorie]||KAT_STYLE['Sonstiges']).split(';');
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:1.5px solid ${st.bc};background:${st.bg};margin-bottom:8px">
-      <div style="font-size:20px">${st.icon}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;color:#261816">${_esc(a.name)}</div>
-        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:12px;font-weight:700;color:${st.clr}">${a.menge} ${_esc(a.einheit)}</span>
-          <span style="font-size:11px;color:#9e9e9e">Min: ${a.mindest} ${_esc(a.einheit)}</span>
-          <span style="font-size:11px;padding:1px 7px;border-radius:6px;background:${ks[0]};color:${ks[1]};font-weight:600">${a.kategorie}</span>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="lagerAnpassen(${a.id},-1)" style="width:30px;height:30px;border-radius:8px;border:1.5px solid ${st.bc};background:#fff;color:${st.clr};font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
-        <button onclick="lagerAnpassen(${a.id},1)" style="width:30px;height:30px;border-radius:8px;border:1.5px solid ${st.bc};background:#fff;color:${st.clr};font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
-        <button onclick="lagerDelete(${a.id})" style="width:30px;height:30px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑️</button>
-      </div>
-    </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Keine Artikel gefunden</div>`;
+  // ── Status-Dashboard ──
+  var html = _pageHdr('warehouse', 'Lagerbestand', lager.length + ' Artikel verwaltet',
+    (rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;margin-right:8px"><span class="material-symbols-outlined">shopping_cart</span>Kritische bestellen</button>' : '')
+    + '<button onclick="lagerFormToggle()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
 
-  const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton','Beutel'];
-  p.innerHTML = `
-    ${_pageHdr('warehouse', 'Lagerbestand',
-      lager.length + ' Artikel · <span style="color:#c62828">🔴 ' + rotCount + ' kritisch</span> · <span style="color:#e65100">🟡 ' + gelbCount + ' niedrig</span>',
-      rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a"><span class="material-symbols-outlined">shopping_cart</span>Alle kritischen bestellen</button>' : '')}
-    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
-      <div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-          <select onchange="lagerFilter('kat',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
-            <option value="">📦 Alle Kategorien</option>
-            ${KATS.map(k=>`<option value="${k}" ${filterKat===k?'selected':''}>${k}</option>`).join('')}
-          </select>
-          <select onchange="lagerFilter('ampel',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
-            <option value="" ${filterAmpel===''?'selected':''}>🚦 Alle Status</option>
-            <option value="rot" ${filterAmpel==='rot'?'selected':''}>🔴 Kritisch</option>
-            <option value="gelb" ${filterAmpel==='gelb'?'selected':''}>🟡 Niedrig</option>
-            <option value="gruen" ${filterAmpel==='gruen'?'selected':''}>🟢 OK</option>
-          </select>
-        </div>
-        ${rows}
-      </div>
-      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
-        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Artikel hinzufügen</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <input id="lag-name" placeholder="Artikelname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-          <select id="lag-kat" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6;appearance:none;-webkit-appearance:none;">
-            ${KATS.map(k=>`<option>${k}</option>`).join('')}
-          </select>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <input id="lag-menge" type="number" placeholder="Menge" min="0" value="0" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-            <select id="lag-einheit" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6;appearance:none;-webkit-appearance:none;">
-              ${EINHEITEN.map(e=>`<option>${e}</option>`).join('')}
-            </select>
-          </div>
-          <input id="lag-mindest" type="number" placeholder="Mindestbestand (für Alarm)" min="0" value="5" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-          <button onclick="lagerHinzufuegen()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
-        </div>
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0e4e1">
-          <div style="font-size:12px;font-weight:700;color:#5a403c;margin-bottom:8px">AMPEL-LEGENDE</div>
-          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
-            <span>🟢 <b>OK</b> — über 150% Mindestbestand</span>
-            <span>🟡 <b>Niedrig</b> — 100–150% Mindestbestand</span>
-            <span>🔴 <b>Kritisch</b> — unter Mindestbestand</span>
-          </div>
-        </div>
-      </div>
-    </div>`;
+  html += '<div id="lag-form-area"></div>';
+
+  // 3 Status-Karten
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">';
+  html += '<div onclick="lagerFilter(\'ampel\',\'rot\')" style="cursor:pointer;background:linear-gradient(135deg,#ffebee,#fff);border:1.5px solid ' + (filterAmpel==='rot'?'#c62828':'#ef9a9a') + ';border-radius:14px;padding:16px;text-align:center;transition:all .2s">';
+  html += '<div style="font-size:28px;font-weight:900;color:#c62828">' + rotCount + '</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:#c62828;text-transform:uppercase;letter-spacing:.05em">Kritisch</div>';
+  html += '<div style="height:4px;border-radius:2px;background:#fce4ec;margin-top:8px"><div style="height:100%;border-radius:2px;background:#c62828;width:' + (lager.length ? Math.round(rotCount/lager.length*100) : 0) + '%;transition:width .3s"></div></div>';
+  html += '</div>';
+  html += '<div onclick="lagerFilter(\'ampel\',\'gelb\')" style="cursor:pointer;background:linear-gradient(135deg,#fff8e1,#fff);border:1.5px solid ' + (filterAmpel==='gelb'?'#f57f17':'#ffe082') + ';border-radius:14px;padding:16px;text-align:center;transition:all .2s">';
+  html += '<div style="font-size:28px;font-weight:900;color:#f57f17">' + gelbCount + '</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:#f57f17;text-transform:uppercase;letter-spacing:.05em">Niedrig</div>';
+  html += '<div style="height:4px;border-radius:2px;background:#fff3e0;margin-top:8px"><div style="height:100%;border-radius:2px;background:#f57f17;width:' + (lager.length ? Math.round(gelbCount/lager.length*100) : 0) + '%;transition:width .3s"></div></div>';
+  html += '</div>';
+  html += '<div onclick="lagerFilter(\'ampel\',\'gruen\')" style="cursor:pointer;background:linear-gradient(135deg,#e8f5e9,#fff);border:1.5px solid ' + (filterAmpel==='gruen'?'#2e7d32':'#a5d6a7') + ';border-radius:14px;padding:16px;text-align:center;transition:all .2s">';
+  html += '<div style="font-size:28px;font-weight:900;color:#2e7d32">' + gruenCount + '</div>';
+  html += '<div style="font-size:11px;font-weight:700;color:#2e7d32;text-transform:uppercase;letter-spacing:.05em">OK</div>';
+  html += '<div style="height:4px;border-radius:2px;background:#e8f5e9;margin-top:8px"><div style="height:100%;border-radius:2px;background:#2e7d32;width:' + (lager.length ? Math.round(gruenCount/lager.length*100) : 0) + '%;transition:width .3s"></div></div>';
+  html += '</div></div>';
+
+  // ── Suche + Filter ──
+  html += '<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">';
+  html += '<div style="flex:1;min-width:200px"><input type="text" placeholder="Artikel suchen…" value="' + escHtml(p.dataset.searchQ||'') + '" oninput="var p=document.getElementById(\'panel-lager\');p.dataset.searchQ=this.value;renderLagerTab()" style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:12px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>';
+  html += '<select onchange="lagerFilter(\'kat\',this.value)" style="padding:10px 14px;border-radius:12px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">';
+  html += '<option value="">Alle Kategorien</option>';
+  for (var ki = 0; ki < KATS.length; ki++) {
+    var hasItems = lager.some(function(a){ return a.kategorie === KATS[ki]; });
+    if (!hasItems) continue;
+    html += '<option value="' + KATS[ki] + '"' + (filterKat===KATS[ki]?' selected':'') + '>' + KATS[ki] + '</option>';
+  }
+  html += '</select>';
+  if (filterKat || filterAmpel || searchQ) {
+    html += '<button onclick="var p=document.getElementById(\'panel-lager\');p.dataset.filterKat=\'\';p.dataset.filterAmpel=\'\';p.dataset.searchQ=\'\';renderLagerTab()" style="padding:8px 14px;border-radius:12px;border:1.5px solid #e3beb8;background:#fff0ee;color:#610000;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Filter zurücksetzen</button>';
+  }
+  html += '</div>';
+
+  // ── Artikel nach Kategorie gruppiert ──
+  if (visible.length === 0) {
+    html += '<div style="text-align:center;padding:40px;color:#8d6562;font-size:14px">Keine Artikel gefunden.</div>';
+  } else {
+    // Kategorien sammeln die Artikel haben
+    var usedKats = [];
+    for (var ui = 0; ui < KATS.length; ui++) {
+      if (visible.some(function(a){ return a.kategorie === KATS[ui]; })) usedKats.push(KATS[ui]);
+    }
+    // Artikel ohne bekannte Kategorie
+    var otherItems = visible.filter(function(a){ return KATS.indexOf(a.kategorie) === -1; });
+    if (otherItems.length) usedKats.push('_andere');
+
+    for (var ci = 0; ci < usedKats.length; ci++) {
+      var cat = usedKats[ci];
+      var catLabel = cat === '_andere' ? 'Sonstiges' : cat;
+      var items = cat === '_andere' ? otherItems : visible.filter(function(a){ return a.kategorie === cat; });
+      var cs = (KAT_STYLE[cat]||KAT_STYLE['Sonstiges']).split(';');
+      var catFarbe = cs[0], catBg = cs[1];
+
+      // Kategorie-Überschrift
+      html += '<div style="margin-bottom:20px">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+      html += '<div style="width:4px;height:20px;border-radius:2px;background:' + catFarbe + '"></div>';
+      html += '<h3 style="font-size:13px;font-weight:800;color:' + catFarbe + ';text-transform:uppercase;letter-spacing:.08em;margin:0">' + catLabel + '</h3>';
+      html += '<span style="font-size:11px;color:#8d6562;font-weight:600">' + items.length + ' Artikel</span>';
+      html += '</div>';
+
+      // Tabelle
+      html += '<div style="background:#fff;border:1.5px solid #f0e4e1;border-radius:14px;overflow:hidden">';
+      for (var mi = 0; mi < items.length; mi++) {
+        var a = items[mi];
+        var am = ampel(a);
+        var pct = a.mindest > 0 ? Math.min(Math.round(a.menge / a.mindest * 100), 200) : 100;
+        var barW = Math.min(pct, 100);
+        var barClr = am === 'rot' ? '#c62828' : am === 'gelb' ? '#f57f17' : '#2e7d32';
+        var barBg = am === 'rot' ? '#ffcdd2' : am === 'gelb' ? '#ffe082' : '#c8e6c9';
+        var amIcon = am === 'rot' ? '🔴' : am === 'gelb' ? '🟡' : '🟢';
+        var mengeClr = am === 'rot' ? '#c62828' : am === 'gelb' ? '#e65100' : '#2e7d32';
+
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;' + (mi < items.length-1 ? 'border-bottom:1px solid #f5efed;' : '') + '">';
+        // Ampel
+        html += '<span style="font-size:14px;flex-shrink:0">' + amIcon + '</span>';
+        // Name + Fortschrittsbalken
+        html += '<div style="flex:1;min-width:0">';
+        html += '<div style="font-weight:700;font-size:13px;color:#261816;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(a.name) + '</div>';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px">';
+        html += '<div style="flex:1;height:5px;border-radius:3px;background:' + barBg + ';max-width:120px"><div style="height:100%;border-radius:3px;background:' + barClr + ';width:' + barW + '%;transition:width .3s"></div></div>';
+        html += '<span style="font-size:11px;color:#9e9e9e;flex-shrink:0">Min: ' + a.mindest + '</span>';
+        html += '</div></div>';
+        // Bestand
+        html += '<div style="text-align:right;min-width:70px;flex-shrink:0">';
+        html += '<span style="font-size:14px;font-weight:800;color:' + mengeClr + '">' + a.menge + '</span>';
+        html += '<span style="font-size:11px;color:#8d6562;margin-left:3px">' + _esc(a.einheit) + '</span>';
+        html += '</div>';
+        // Eingang/Abfluss Buttons
+        html += '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
+        html += '<button onclick="lagerEingabe(' + a.id + ')" title="Menge eingeben" style="padding:5px 8px;border-radius:8px;border:1.5px solid #a5d6a7;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">+ Eingang</button>';
+        html += '<button onclick="lagerAnpassen(' + a.id + ',-1)" title="−1" style="width:28px;height:28px;border-radius:8px;border:1.5px solid #ef9a9a;background:#ffebee;color:#c62828;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>';
+        html += '<button onclick="lagerBearbeiten(' + a.id + ')" title="Bearbeiten" style="width:28px;height:28px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#610000;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:15px">edit</span></button>';
+        html += '<button onclick="lagerDelete(' + a.id + ')" title="Löschen" style="width:28px;height:28px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#b52619;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:15px">delete</span></button>';
+        html += '</div></div>';
+      }
+      html += '</div></div>';
+    }
+  }
+
+  p.innerHTML = html;
+}
+
+// Formular zum Hinzufügen (toggle)
+function lagerFormToggle() {
+  var area = document.getElementById('lag-form-area');
+  if (!area) return;
+  if (area.innerHTML.trim()) { area.innerHTML = ''; return; }
+  var KATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Küche','Bar','Reinigung','Verpackung','Sonstiges'];
+  var EINHEITEN = ['kg','g','L','ml','Stück','Packung','Päck.','Dose','Dosen','Flasche','Karton','Ktn','Pkg','Beutel','Rolle'];
+  area.innerHTML = '<div style="background:#fff;border:2px solid #610000;border-radius:18px;padding:20px;margin-bottom:20px">'
+    + '<h3 style="font-size:15px;font-weight:800;color:#610000;margin:0 0 16px">Neuer Lagerartikel</h3>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name *</label>'
+    + '<input id="lag-name" type="text" placeholder="z.B. Pizzamehl Tipo 00" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie *</label>'
+    + '<select id="lag-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">'
+    + KATS.map(function(k){ return '<option>' + k + '</option>'; }).join('') + '</select></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Bestand</label>'
+    + '<input id="lag-menge" type="number" min="0" value="0" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Einheit *</label>'
+    + '<select id="lag-einheit" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">'
+    + EINHEITEN.map(function(e){ return '<option>' + e + '</option>'; }).join('') + '</select></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Mindestbestand</label>'
+    + '<input id="lag-mindest" type="number" min="0" value="5" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<button onclick="lagerHinzufuegen()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Hinzufügen</button>'
+    + '<button onclick="document.getElementById(\'lag-form-area\').innerHTML=\'\'" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>'
+    + '</div></div>';
+  area.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// Eingang mit Mengen-Dialog
+function lagerEingabe(id) {
+  var menge = prompt('Eingang — wie viel hinzufügen?');
+  if (menge === null) return;
+  var n = parseFloat(menge);
+  if (isNaN(n) || n <= 0) { _showToast('Bitte gültige Menge eingeben', 'error'); return; }
+  lagerAnpassen(id, n);
+}
+
+// Bearbeiten
+function lagerBearbeiten(id) {
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  var a = lager.find(function(x){ return x.id === id; });
+  if (!a) return;
+  var KATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Küche','Bar','Reinigung','Verpackung','Sonstiges'];
+  var EINHEITEN = ['kg','g','L','ml','Stück','Packung','Päck.','Dose','Dosen','Flasche','Karton','Ktn','Pkg','Beutel','Rolle'];
+  var area = document.getElementById('lag-form-area');
+  if (!area) return;
+  area.innerHTML = '<div style="background:#fff;border:2px solid #610000;border-radius:18px;padding:20px;margin-bottom:20px">'
+    + '<h3 style="font-size:15px;font-weight:800;color:#610000;margin:0 0 16px">Artikel bearbeiten</h3>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Name *</label>'
+    + '<input id="lag-edit-name" type="text" value="' + escHtml(a.name) + '" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie *</label>'
+    + '<select id="lag-edit-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">'
+    + KATS.map(function(k){ return '<option' + (a.kategorie===k?' selected':'') + '>' + k + '</option>'; }).join('') + '</select></div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Bestand</label>'
+    + '<input id="lag-edit-menge" type="number" min="0" value="' + a.menge + '" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Einheit *</label>'
+    + '<select id="lag-edit-einheit" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">'
+    + EINHEITEN.map(function(e){ return '<option' + (a.einheit===e?' selected':'') + '>' + e + '</option>'; }).join('') + '</select></div>'
+    + '<div><label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Mindestbestand</label>'
+    + '<input id="lag-edit-mindest" type="number" min="0" value="' + a.mindest + '" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/></div>'
+    + '</div>'
+    + '<div style="display:flex;gap:10px">'
+    + '<button onclick="lagerSpeichern(' + id + ')" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>'
+    + '<button onclick="document.getElementById(\'lag-form-area\').innerHTML=\'\'" style="padding:13px 20px;background:#f3ebe9;color:#5a403c;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Abbrechen</button>'
+    + '</div></div>';
+  area.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function lagerSpeichern(id) {
+  var name = (document.getElementById('lag-edit-name')?.value||'').trim();
+  if (!name) { _markField('lag-edit-name', true); _showToast('Bitte Namen eingeben', 'error'); return; }
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  lager = lager.map(function(a) {
+    if (a.id !== id) return a;
+    return { id:a.id, name:name, kategorie:document.getElementById('lag-edit-kat')?.value||a.kategorie, menge:parseFloat(document.getElementById('lag-edit-menge')?.value)||0, einheit:document.getElementById('lag-edit-einheit')?.value||a.einheit, mindest:parseFloat(document.getElementById('lag-edit-mindest')?.value)||0 };
+  });
+  localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
+  _showToast('Artikel gespeichert', 'success');
+  renderLagerTab();
 }
 function lagerHinzufuegen() {
   const name = document.getElementById('lag-name')?.value.trim();
