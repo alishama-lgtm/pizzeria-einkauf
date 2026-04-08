@@ -675,6 +675,11 @@
   .biz-nav-btn.biz-active:hover {
     background:#c8a032; border-color:#c8a032; color:#1a1a2e;
   }
+
+  /* ═══ TABLE RESPONSIVE ═══ */
+  .table-responsive {
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+  }
 </style>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
 
@@ -1242,7 +1247,7 @@ function renderShopsTab() {
   const tableSection = `
     <div style="margin-bottom:24px">
       <p style="font-size:11px;font-weight:700;color:#261816;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Preisvergleich</p>
-      <div style="overflow-x:auto;border-radius:10px;border:1px solid #e3beb8;background:#fff">
+      <div class="table-responsive" style="border-radius:10px;border:1px solid #e3beb8;background:#fff">
         <table style="width:100%;border-collapse:collapse;min-width:480px">
           <thead><tr style="background:#fafafa">
             <th style="padding:8px 14px;font-size:11px;font-weight:700;color:#5a403c;text-align:left;border-bottom:2px solid #e3beb8;white-space:nowrap">Produkt</th>
@@ -2700,7 +2705,7 @@ function renderUploadTab() {
             </button>
           </div>
           <!-- Table -->
-          <div style="overflow-x:auto">
+          <div class="table-responsive">
             <table style="width:100%;border-collapse:collapse">
               <thead>
                 <tr style="background:#fff0ee">
@@ -3412,7 +3417,7 @@ function renderHandlistSection() {
         </div>
 
         <!-- Table -->
-        <div style="overflow-x:auto">
+        <div class="table-responsive">
           <table id="handlist-results-table" style="width:100%;border-collapse:collapse">
             <thead>
               <tr style="background:#fffdf0">
@@ -3845,7 +3850,7 @@ function renderPricelistSection() {
           <p style="font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">
             Vorschau — erste ${Math.min(5, preview.length)} Datenzeilen
           </p>
-          <div style="overflow-x:auto;border-radius:10px;border:1px solid #bee3f8">
+          <div class="table-responsive" style="border-radius:10px;border:1px solid #bee3f8">
             <table style="width:100%;border-collapse:collapse;min-width:300px">
               <thead>
                 <tr style="background:#e8f4fd">
@@ -4323,7 +4328,7 @@ function renderVerlaufTab() {
           <span style="font-size:15px;font-weight:700;color:#261816">Verbrauch pro Woche</span>
           <span style="font-size:11px;color:#5a403c">(letzte 4 Wochen)</span>
         </div>
-        <div style="overflow-x:auto">
+        <div class="table-responsive">
           <table style="width:100%;border-collapse:collapse;min-width:380px">
             <thead>
               <tr style="background:#f0fdf4">
@@ -4393,7 +4398,7 @@ function renderVerlaufTab() {
   } else {
     const shown = filtered.slice(0, 100);
     html += `
-      <div style="overflow-x:auto">
+      <div class="table-responsive">
         <table style="width:100%;border-collapse:collapse;min-width:380px">
           <thead>
             <tr style="background:#fff8f6">
@@ -4994,7 +4999,7 @@ function renderBizKassabuch() {
     <span style="font-weight:700;font-size:14px;color:#261816">Alle Einträge</span>
     <span style="font-size:12px;color:#5a403c">${kassa.length} Einträge</span>
   </div>
-  <div style="overflow-x:auto">
+  <div class="table-responsive">
     <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:540px">
       <thead><tr style="background:#fff8f6">
         <th style="padding:10px 16px;text-align:left;font-weight:600;color:#5a403c;border-bottom:1px solid #e3beb8">Datum</th>
@@ -5327,7 +5332,7 @@ function renderBizCockpit() {
       Speichern
     </button>
   </div>
-  <div style="overflow-x:auto">
+  <div class="table-responsive">
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr style="background:#fff8f6">
         <th style="padding:10px 14px;text-align:left;font-weight:600;color:#5a403c;border-bottom:1px solid #e3beb8">Pizza</th>
@@ -5489,7 +5494,7 @@ function renderBizReport() {
   <div style="padding:14px 20px;background:#fff0ee;border-bottom:1px solid #e3beb8;font-weight:700;font-size:14px;color:#8B0000">
     EINNAHMEN — ${bizMonthName(m)} ${y}
   </div>
-  <div style="overflow-x:auto">
+  <div class="table-responsive">
     <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:540px">
       <thead><tr style="background:#fff8f6">
         <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e3beb8;color:#5a403c">Datum</th>
@@ -6585,7 +6590,7 @@ function renderPortionskontrolleSection() {
         </div>
         <div id="portion-result" style="flex:1"></div>
       </div>
-      <div style="overflow-x:auto" class="hide-scrollbar">
+      <div class="table-responsive hide-scrollbar">
         <table class="ws-table" style="min-width:500px">
           <thead><tr>
             <th>Produkt</th><th>Portion</th><th>Einheit</th>
