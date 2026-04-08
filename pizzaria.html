@@ -642,6 +642,24 @@
 <style>
   #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#fff8f6,#ffe4e0);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
   #login-screen.hide{display:none;}
+
+  /* ═══ TOAST-SYSTEM ═══ */
+  @keyframes fadeToast {
+    from { opacity:0; transform:translateX(-50%) translateY(8px); }
+    to   { opacity:1; transform:translateX(-50%) translateY(0); }
+  }
+  .app-toast {
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%);
+    color:#fff; padding:12px 24px; border-radius:12px;
+    font-size:14px; font-weight:600; z-index:9999;
+    white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,.25);
+    animation: fadeToast .3s ease;
+    pointer-events:none;
+  }
+  .app-toast.toast-success { background:#1b5e20; }
+  .app-toast.toast-error   { background:#93000a; }
+  .app-toast.toast-warning { background:#c66900; }
+  .app-toast.toast-info    { background:#1e1e2e; }
 </style>
 <body style="background-color:#fff8f6;color:#1e1e2e;min-height:100vh;">
 
@@ -5715,19 +5733,28 @@ function bizClearAll() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BUSINESS TOAST
+// EINHEITLICHES TOAST-SYSTEM
 // ═══════════════════════════════════════════════════════════════
 
-function bizShowToast(msg) {
+function _showToast(msg, type) {
+  if (!type) {
+    // Auto-Erkennung anhand Emoji
+    if (msg.includes('✅') || msg.includes('💾')) type = 'success';
+    else if (msg.includes('❌')) type = 'error';
+    else if (msg.includes('⚠️')) type = 'warning';
+    else type = 'info';
+  }
   const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#261816;color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:fadeToast .3s ease';
+  t.className = 'app-toast toast-' + type;
   t.textContent = msg;
-  const style = document.createElement('style');
-  style.textContent = '@keyframes fadeToast{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
-  document.head.appendChild(style);
   document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 2500);
   setTimeout(() => t.remove(), 2800);
 }
+
+// Rückwärtskompatibilität
+function bizShowToast(msg) { _showToast(msg); }
+function fmShowToast(msg) { _showToast(msg); }
 
 // ═══════════════════════════════════════════════════════════════
 // FEHLMATERIAL
@@ -6322,14 +6349,7 @@ function renderFmAuswertung() {
     '</div>';
 }
 
-// ════ FM TOAST ════
-function fmShowToast(msg) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:#1e1e2e;color:#fff;padding:12px 24px;border-radius:12px;font-size:15px;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2600);
-}
+// ════ FM TOAST (nutzt jetzt einheitliches Toast-System) ════
 
 // ═══════════════════════════════════════════════════════════════
 // ABFALL-TRACKING
