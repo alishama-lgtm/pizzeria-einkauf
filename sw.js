@@ -134,3 +134,21 @@ async function staleWhileRevalidate(req, cacheName) {
   const offlinePage = await caches.match('/offline.html');
   return offlinePage || new Response('Offline - Server nicht erreichbar', { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
 }
+
+// Notification-Klick: App öffnen und zum Tab navigieren
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const tab = event.notification.data?.tab || 'dashboard';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          client.postMessage({ type: 'navigate', tab: tab });
+          return;
+        }
+      }
+      return clients.openWindow('/index.html');
+    })
+  );
+});

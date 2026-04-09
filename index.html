@@ -266,6 +266,61 @@
       transition: background .15s; color: #8B0000;
     }
     .header-bell-btn:hover { background: #fff0ee; }
+    .header-bell-btn { position: relative; }
+
+    /* === Notification Center === */
+    .notif-panel {
+      position: fixed; top: 56px; right: 8px; width: 360px; max-width: calc(100vw - 16px);
+      max-height: 70vh; background: #fff; border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18); z-index: 9999;
+      display: none; flex-direction: column; overflow: hidden;
+      border: 1px solid #ecdad6;
+    }
+    .notif-panel.open { display: flex; }
+    .notif-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid #f0e0dc;
+      font-weight: 700; font-size: 15px; color: #261816;
+    }
+    .notif-panel-header button {
+      background: none; border: none; color: #8B0000; font-size: 12px;
+      font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px;
+    }
+    .notif-panel-header button:hover { background: #fff0ee; }
+    .notif-panel-body { overflow-y: auto; flex: 1; padding: 4px 0; }
+    .notif-item {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px;
+      cursor: pointer; transition: background .15s; border-bottom: 1px solid #f8eeec;
+    }
+    .notif-item:hover { background: #fff8f6; }
+    .notif-item.unread { background: #fef3f0; }
+    .notif-item.unread:hover { background: #fde8e3; }
+    .notif-icon {
+      width: 36px; height: 36px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .notif-icon.critical { background: #ffdad6; color: #93000a; }
+    .notif-icon.warning { background: #fff3e0; color: #b45309; }
+    .notif-icon.info { background: #e3f2fd; color: #1565c0; }
+    .notif-icon.success { background: #e8f5e9; color: #2e7d32; }
+    .notif-content { flex: 1; min-width: 0; }
+    .notif-title { font-size: 13px; font-weight: 600; color: #261816; margin-bottom: 2px; }
+    .notif-body { font-size: 12px; color: #6d5550; line-height: 1.4; }
+    .notif-time { font-size: 11px; color: #b09a96; margin-top: 4px; }
+    .notif-empty {
+      padding: 40px 16px; text-align: center; color: #b09a96; font-size: 14px;
+    }
+    .notif-badge {
+      position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px;
+      border-radius: 9px; background: #d32f2f; color: white; font-size: 10px;
+      font-weight: 700; display: flex; align-items: center; justify-content: center;
+      padding: 0 4px; border: 2px solid white;
+    }
+    .notif-badge:empty, .notif-badge[data-count="0"] { display: none; }
+    .notif-group-label {
+      padding: 8px 16px 4px; font-size: 11px; font-weight: 700;
+      color: #9c8680; text-transform: uppercase; letter-spacing: .03em;
+    }
     #biz-header-btn {
       display: flex; align-items: center; gap: 8px;
       background: #1a1a2e; color: #D4AF37;
@@ -1159,8 +1214,9 @@
         <span class="material-symbols-outlined" style="font-size:22px;color:#5a403c">settings</span>
       </button>
       <!-- Bell -->
-      <button id="notif-bell-btn" class="header-bell-btn" onclick="showLowStockPopup()">
+      <button id="notif-bell-btn" class="header-bell-btn" onclick="notifTogglePanel()">
         <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
+        <span class="notif-badge" id="notif-badge"></span>
       </button>
       <!-- Business Button -->
       <button id="biz-header-btn" onclick="switchTab('business')">
@@ -1170,6 +1226,15 @@
     </div>
   </div>
 </header>
+
+<!-- Notification Center Panel -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-panel-header">
+    <span>🔔 Benachrichtigungen</span>
+    <button onclick="notifDismissAll()">Alle gelesen</button>
+  </div>
+  <div class="notif-panel-body" id="notif-panel-body"></div>
+</div>
 
 <!-- ═══ DESKTOP NAV ≥1200px ═══ -->
 <nav id="staff-tab-bar">
@@ -1849,6 +1914,12 @@ function editStock(productId) {
       fmUpdateBadge();
       _showToast(product.name + ' automatisch in Fehlmaterial eingetragen', 'warning');
     }
+    // Notification bei leerem Lager
+    if (val <= 0 && typeof notifAdd === 'function') {
+      notifAdd('lager_leer', product.name + ' ist leer!', 'Sofort nachbestellen', 'critical', 'lager');
+    } else if (typeof notifAdd === 'function') {
+      notifAdd('lager_alarm', product.name + ' unter Mindestbestand!', 'Nur noch ' + val + ' ' + product.unit + ' — Minimum: ' + product.minStock, 'critical', 'lager');
+    }
   }
 
   updateHeaderBadge();
@@ -2004,6 +2075,176 @@ function checkAndNotify() {
 if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
   scheduleNotificationCheck();
 }
+
+// ========== NOTIFICATION CENTER ==========
+
+// Notifications laden/speichern
+function notifLoad() {
+  try { return JSON.parse(localStorage.getItem('pizzeria_notifications') || '[]'); } catch(_) { return []; }
+}
+function notifSave(list) {
+  // Max 100, älter als 7 Tage löschen
+  var week = Date.now() - 7*24*60*60*1000;
+  list = list.filter(function(n) { return n.timestamp > week; }).slice(-100);
+  try { localStorage.setItem('pizzeria_notifications', JSON.stringify(list)); } catch(_) {}
+}
+
+// Notification erstellen
+function notifAdd(type, title, body, severity, tab) {
+  severity = severity || 'info';
+  tab = tab || 'dashboard';
+  var list = notifLoad();
+
+  // Deduplizierung: gleiche Meldung nicht innerhalb 1 Stunde
+  var oneHour = 60*60*1000;
+  var dup = list.find(function(n) { return n.type === type && n.title === title && (Date.now() - n.timestamp) < oneHour; });
+  if (dup) return;
+
+  var notif = {
+    id: Date.now() + Math.random(),
+    type: type,
+    title: title,
+    body: body || '',
+    severity: severity,
+    tab: tab,
+    timestamp: Date.now(),
+    read: false
+  };
+  list.push(notif);
+  notifSave(list);
+  notifUpdateBadge();
+
+  // Browser Notification wenn App im Hintergrund
+  if (document.hidden && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try {
+      var icon = severity === 'critical' ? '🔴' : severity === 'warning' ? '🟡' : 'ℹ️';
+      var n = new Notification(icon + ' ' + title, {
+        body: body || '',
+        tag: type + '_' + title,
+        icon: '/icons/icon-192.png',
+        data: { tab: tab }
+      });
+      n.onclick = function() { window.focus(); switchTab(tab); notifMarkRead(notif.id); };
+    } catch(_) {}
+  }
+
+  return notif;
+}
+
+// Als gelesen markieren
+function notifMarkRead(id) {
+  var list = notifLoad();
+  var n = list.find(function(x) { return x.id === id; });
+  if (n) { n.read = true; notifSave(list); notifUpdateBadge(); }
+}
+
+// Alle gelesen
+function notifDismissAll() {
+  var list = notifLoad();
+  list.forEach(function(n) { n.read = true; });
+  notifSave(list);
+  notifUpdateBadge();
+  notifRenderPanel();
+}
+
+// Badge aktualisieren
+function notifUpdateBadge() {
+  var count = notifLoad().filter(function(n) { return !n.read; }).length;
+  var badge = document.getElementById('notif-badge');
+  if (badge) {
+    badge.textContent = count > 9 ? '9+' : (count || '');
+    badge.setAttribute('data-count', count);
+  }
+}
+
+// Panel öffnen/schließen
+function notifTogglePanel() {
+  var panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  var isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    panel.classList.remove('open');
+  } else {
+    notifRenderPanel();
+    panel.classList.add('open');
+  }
+}
+
+// Panel rendern
+function notifRenderPanel() {
+  var body = document.getElementById('notif-panel-body');
+  if (!body) return;
+  var list = notifLoad().sort(function(a,b) { return b.timestamp - a.timestamp; });
+
+  if (list.length === 0) {
+    body.innerHTML = '<div class="notif-empty">🔔 Keine Benachrichtigungen</div>';
+    return;
+  }
+
+  // Gruppierung: Heute, Gestern, Älter
+  var now = new Date();
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  var yesterday = today - 24*60*60*1000;
+
+  var html = '';
+  var lastGroup = '';
+
+  list.forEach(function(n) {
+    var group = n.timestamp >= today ? 'Heute' : n.timestamp >= yesterday ? 'Gestern' : 'Älter';
+    if (group !== lastGroup) {
+      html += '<div class="notif-group-label">' + group + '</div>';
+      lastGroup = group;
+    }
+
+    var iconMap = {
+      critical: '⚠️', warning: '⚡', info: 'ℹ️', success: '✅'
+    };
+    var icon = iconMap[n.severity] || 'ℹ️';
+    var timeStr = _notifTimeAgo(n.timestamp);
+
+    html += '<div class="notif-item ' + (n.read ? '' : 'unread') + '" onclick="notifClickItem(\'' + n.id + '\',\'' + _esc(n.tab || 'dashboard') + '\')">';
+    html += '<div class="notif-icon ' + (n.severity || 'info') + '">' + icon + '</div>';
+    html += '<div class="notif-content">';
+    html += '<div class="notif-title">' + _esc(n.title) + '</div>';
+    if (n.body) html += '<div class="notif-body">' + _esc(n.body) + '</div>';
+    html += '<div class="notif-time">' + timeStr + '</div>';
+    html += '</div></div>';
+  });
+
+  body.innerHTML = html;
+}
+
+// Klick auf Notification
+function notifClickItem(id, tab) {
+  notifMarkRead(parseFloat(id));
+  notifRenderPanel();
+  document.getElementById('notif-panel').classList.remove('open');
+  if (tab && typeof switchTab === 'function') switchTab(tab);
+}
+
+// Zeitangabe formatieren
+function _notifTimeAgo(ts) {
+  var diff = Date.now() - ts;
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Gerade eben';
+  if (mins < 60) return mins + ' Min.';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' Std.';
+  var days = Math.floor(hrs / 24);
+  return days + (days === 1 ? ' Tag' : ' Tage');
+}
+
+// Panel schließen bei Klick außerhalb
+document.addEventListener('click', function(e) {
+  var panel = document.getElementById('notif-panel');
+  if (!panel || !panel.classList.contains('open')) return;
+  var bellBtn = document.getElementById('notif-bell-btn');
+  if (panel.contains(e.target) || (bellBtn && bellBtn.contains(e.target))) return;
+  panel.classList.remove('open');
+});
+
+// Badge beim Seitenstart aktualisieren
+notifUpdateBadge();
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -2394,6 +2635,8 @@ function fmSubmitForm() {
   const matchProd = PRODUCTS.find(p => p.name.toLowerCase() === produktName.toLowerCase());
   fmAdd({ produktName, produktId: matchProd?.id||null, menge, einheit, kategorie, prioritaet, bemerkung, eingetragenVon });
   _safeLocalSet('fm_last_person', eingetragenVon);
+  // Notification auslösen
+  if (typeof notifAdd === 'function') notifAdd('fehlmaterial', 'Fehlmaterial: ' + produktName, kategorie ? 'Kategorie: ' + kategorie : '', prioritaet === 'dringend' ? 'critical' : 'warning', 'fehlmaterial');
   _showToast('Fehlmaterial gemeldet', 'success');
   document.getElementById('fm-produktname').value = '';
   document.getElementById('fm-menge').value        = '';
@@ -10481,6 +10724,15 @@ function renderDashboardTab() {
       html += `</div></div>`;
     }
 
+    // Notification Permission Hinweis
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      html += '<div style="background:#e3f2fd;border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="requestNotificationPermission();this.style.display=\'none\'">';
+      html += '<span style="font-size:22px">🔔</span>';
+      html += '<div><div style="font-weight:600;font-size:13px;color:#1565c0">Benachrichtigungen aktivieren</div>';
+      html += '<div style="font-size:12px;color:#5a7fa0;margin-top:2px">Erhalte Alarme bei leerem Lager, neuen Aufgaben etc.</div></div>';
+      html += '</div>';
+    }
+
     // ── BEREICHE 3 & 4: 2-Spalten-Grid ──
     html += `<div class="dashboard-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">`;
 
@@ -11972,6 +12224,8 @@ function aufgabeAdd() {
   try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
   aufgabenSelectedPrio = 'mittel';
   _showToast('Aufgabe erstellt', 'success');
+  // Notification auslösen
+  if (typeof notifAdd === 'function') notifAdd('aufgabe_neu', 'Neue Aufgabe: ' + titel, '', 'info', 'aufgaben');
   renderAufgabenTab();
   _aufDashRefresh();
 }
@@ -12446,6 +12700,14 @@ function lagerCheckAlarm(a) {
       best.unshift({ id:Date.now(), name:a.name, menge:a.mindest*2, einheit:a.einheit, kategorie:a.kategorie||'Küche', dringlich:a.menge<=0, erledigt:false });
       localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
       _showToast(a.name+' → Bestellliste hinzugefügt!', 'warning');
+    }
+    // Notification auslösen
+    if (typeof notifAdd === 'function') {
+      if (a.menge <= 0) {
+        notifAdd('lager_leer', a.name + ' ist leer!', 'Sofort nachbestellen', 'critical', 'lager');
+      } else {
+        notifAdd('lager_alarm', a.name + ' unter Mindestbestand!', 'Nur noch ' + a.menge + ' ' + a.einheit + ' — Minimum: ' + a.mindest, 'critical', 'lager');
+      }
     }
   }
 }
@@ -13964,6 +14226,14 @@ if ('serviceWorker' in navigator) {
         });
       })
       .catch(err => console.warn('[SW] Registrierung fehlgeschlagen:', err));
+  });
+}
+// SW-Nachrichten empfangen (z.B. Notification-Klick)
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'navigate') {
+      switchTab(event.data.tab);
+    }
   });
 }
 </script>
