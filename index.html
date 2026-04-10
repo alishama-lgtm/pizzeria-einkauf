@@ -1302,6 +1302,7 @@
         <button data-nav-tab="suche" onclick="switchTab('suche')" class="dd-item"><span style="font-size:14px">🔍</span>Suche</button>
         <button data-nav-tab="buchhaltung" onclick="switchTab('buchhaltung')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">account_balance</span>Buchhaltung</button>
         <button data-nav-tab="konkurrenz" onclick="switchTab('konkurrenz')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">storefront</span>Konkurrenz</button>
+        <button data-nav-tab="bewertungen" onclick="switchTab('bewertungen')" class="dd-item"><span class="material-symbols-outlined" style="font-size:16px">reviews</span>Bewertungen</button>
       </div>
     </div>
 
@@ -1362,6 +1363,7 @@
       <button class="ts-sub-item" data-nav-tab="suche" onclick="switchTab('suche')"><span class="ts-sub-icon">🔍</span>Suche</button>
       <button class="ts-sub-item" data-nav-tab="buchhaltung" onclick="switchTab('buchhaltung')"><span class="ts-sub-icon">📑</span>Buchhaltung</button>
       <button class="ts-sub-item" data-nav-tab="konkurrenz" onclick="switchTab('konkurrenz')"><span class="ts-sub-icon">🏪</span>Konkurrenz</button>
+      <button class="ts-sub-item" data-nav-tab="bewertungen" onclick="switchTab('bewertungen')"><span class="ts-sub-icon">⭐</span>Bewertungen</button>
     </div>
   </div>
   <button class="ts-biz-btn" onclick="switchTab('business')">
@@ -1408,6 +1410,7 @@
   <div id="panel-gewinn"       style="display:none"></div>
   <div id="panel-buchhaltung"  style="display:none"></div>
   <div id="panel-konkurrenz"   style="display:none"></div>
+  <div id="panel-bewertungen"  style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -1502,6 +1505,7 @@
       <button data-drawer-nav="gewinn" onclick="switchTab('gewinn');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">trending_up</span>Gewinn</button>
       <button data-drawer-nav="buchhaltung" onclick="switchTab('buchhaltung');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">account_balance</span>Buchh.</button>
       <button data-drawer-nav="konkurrenz" onclick="switchTab('konkurrenz');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">storefront</span>Konkurr.</button>
+      <button data-drawer-nav="bewertungen" onclick="switchTab('bewertungen');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">reviews</span>Bewertung.</button>
     </div>
   </div>
   <div class="bs-section">
@@ -6986,7 +6990,7 @@ const NAV_GROUPS = [
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
-  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'], mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'], mobile:false },
 ];
 
 function _syncNavActiveStates(tab) {
@@ -7051,7 +7055,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -7111,6 +7115,7 @@ function switchTab(tab) {
   if (tab === 'gewinn')        renderGewinnTab();
   if (tab === 'buchhaltung')   renderBuchhaltungTab();
   if (tab === 'konkurrenz')    renderKonkurrenzTab();
+  if (tab === 'bewertungen')   renderBewertungenTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -10639,8 +10644,8 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz'],
+  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
+  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
   employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
   kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
@@ -13129,6 +13134,274 @@ function kkLoeschen(id) {
     kkSave(kkLoad().filter(function(i){ return i.id !== id; }));
     _showToast('Konkurrent gelöscht', 'success');
     renderKonkurrenzTab();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 5 — BEWERTUNGS-MANAGER
+// ═══════════════════════════════════════════════════════════════
+var BW_KEY = 'sc_bewertungen';
+var BW_PLATTFORMEN = [
+  { id:'google',      label:'Google',      icon:'🔵' },
+  { id:'tripadvisor', label:'TripAdvisor', icon:'🟢' },
+  { id:'facebook',    label:'Facebook',    icon:'🔷' },
+  { id:'instagram',   label:'Instagram',   icon:'🟣' },
+  { id:'sonstige',    label:'Sonstige',    icon:'⚪' }
+];
+var bwFilter = { plattform:'', nurUnbeantwortet:false };
+
+function bwLoad() {
+  try { return JSON.parse(localStorage.getItem(BW_KEY) || '[]'); } catch(_) { return []; }
+}
+function bwSave(list) {
+  try { localStorage.setItem(BW_KEY, JSON.stringify(list)); } catch(_) {}
+}
+function bwGenId() { return 'bw-' + Date.now() + '-' + Math.random().toString(36).slice(2,7); }
+function bwPlattformLabel(id) {
+  var p = BW_PLATTFORMEN.find(function(x){ return x.id === id; });
+  return p ? (p.icon + ' ' + p.label) : id;
+}
+function bwStars(n) {
+  var s = '';
+  for (var i=1; i<=5; i++) s += (i<=n ? '★' : '☆');
+  return s;
+}
+
+function renderBewertungenTab() {
+  var panel = document.getElementById('panel-bewertungen');
+  if (!panel) return;
+  try {
+    var list = bwLoad();
+
+    // Filter anwenden
+    var filtered = list.slice();
+    if (bwFilter.plattform) filtered = filtered.filter(function(b){ return b.plattform === bwFilter.plattform; });
+    if (bwFilter.nurUnbeantwortet) filtered = filtered.filter(function(b){ return !b.geantwortet; });
+    // Sortierung: Datum DESC
+    filtered.sort(function(a,b){ return (b.datum||'').localeCompare(a.datum||''); });
+
+    // Statistiken
+    var total = list.length;
+    var avg = total ? (list.reduce(function(s,b){ return s + (b.sterne||0); },0)/total).toFixed(1) : '–';
+    var unbeantwortet = list.filter(function(b){ return !b.geantwortet; }).length;
+    var verteilung = [0,0,0,0,0]; // idx 0 = 1⭐
+    list.forEach(function(b){ if (b.sterne>=1 && b.sterne<=5) verteilung[b.sterne-1]++; });
+
+    // Trend: letzte 30 Tage
+    var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+    var cutoffStr = cutoff.toISOString().slice(0,10);
+    var last30 = list.filter(function(b){ return (b.datum||'') >= cutoffStr; });
+    var avg30 = last30.length ? (last30.reduce(function(s,b){ return s + (b.sterne||0); },0)/last30.length).toFixed(1) : '–';
+
+    var html = _pageHdr('reviews', 'Bewertungs-Manager', total + ' Bewertungen · Ø ' + avg + ' ⭐',
+      '<button onclick="bwNeu()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
+
+    html += '<div id="bw-form-area"></div>';
+
+    // ── Überblick-Karten ──
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px">';
+    html += '<div style="background:linear-gradient(135deg,#fff8f6,#fff);border:1.5px solid #f0d8d4;border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:#610000">' + total + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Gesamt</div></div>';
+    html += '<div style="background:linear-gradient(135deg,#fff8e1,#fff);border:1.5px solid #ffe082;border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:#f57f17">⭐ ' + avg + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Durchschnitt</div></div>';
+    html += '<div style="background:linear-gradient(135deg,#e8f5e9,#fff);border:1.5px solid #a5d6a7;border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:#2e7d32">⭐ ' + avg30 + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Letzte 30 Tage</div></div>';
+    html += '<div style="background:linear-gradient(135deg,' + (unbeantwortet>0?'#fde8e8,#fff':'#e8f5e9,#fff') + ');border:1.5px solid ' + (unbeantwortet>0?'#f5c6c6':'#a5d6a7') + ';border-radius:14px;padding:16px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:900;color:' + (unbeantwortet>0?'#c62828':'#2e7d32') + '">' + unbeantwortet + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Unbeantwortet</div></div>';
+    html += '</div>';
+
+    // ── Sterne-Verteilung ──
+    if (total > 0) {
+      html += '<div style="background:#fff;border:1.5px solid #f0d8d4;border-radius:14px;padding:16px 18px;margin-bottom:20px">';
+      html += '<div style="font-size:13px;font-weight:800;color:#610000;margin-bottom:12px">📊 Sterne-Verteilung</div>';
+      for (var s=5; s>=1; s--) {
+        var cnt = verteilung[s-1];
+        var pct = total ? Math.round(cnt/total*100) : 0;
+        var color = s>=4 ? '#2e7d32' : (s===3 ? '#f57f17' : '#c62828');
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:12px">';
+        html += '<div style="width:40px;color:#f57f17;font-weight:700">' + s + ' ⭐</div>';
+        html += '<div style="flex:1;height:14px;background:#f5efed;border-radius:7px;overflow:hidden">';
+        html += '<div style="width:' + pct + '%;height:100%;background:' + color + '"></div></div>';
+        html += '<div style="width:60px;text-align:right;color:#5a403c;font-weight:600">' + cnt + ' (' + pct + '%)</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // ── Filter ──
+    html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">';
+    html += '<select class="ws-input" style="width:auto;font-size:13px;padding:7px 12px" onchange="bwFilter.plattform=this.value;renderBewertungenTab()">';
+    html += '<option value="">Alle Plattformen</option>';
+    BW_PLATTFORMEN.forEach(function(p){
+      html += '<option value="' + p.id + '"' + (bwFilter.plattform===p.id?' selected':'') + '>' + p.icon + ' ' + p.label + '</option>';
+    });
+    html += '</select>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#5a403c;cursor:pointer">';
+    html += '<input type="checkbox"' + (bwFilter.nurUnbeantwortet?' checked':'') + ' onchange="bwFilter.nurUnbeantwortet=this.checked;renderBewertungenTab()">';
+    html += 'Nur unbeantwortete</label>';
+    html += '<div style="flex:1"></div>';
+    html += '<div style="font-size:12px;color:#9c8680">' + filtered.length + ' angezeigt</div>';
+    html += '</div>';
+
+    // ── Liste ──
+    if (filtered.length === 0) {
+      html += '<div style="text-align:center;padding:40px 20px;background:#fff;border:1.5px dashed #e3beb8;border-radius:14px">';
+      html += '<span class="material-symbols-outlined" style="font-size:48px;color:#d4b5b0">reviews</span>';
+      html += '<div style="margin-top:8px;font-size:14px;color:#9c8680">' + (total===0 ? 'Noch keine Bewertungen erfasst' : 'Keine Bewertungen passen zum Filter') + '</div>';
+      if (total===0) html += '<button onclick="bwNeu()" class="ws-btn ws-btn-primary ws-btn-sm" style="margin-top:12px"><span class="material-symbols-outlined">add</span>Erste Bewertung</button>';
+      html += '</div>';
+    } else {
+      html += '<div style="display:grid;gap:12px">';
+      filtered.forEach(function(b){
+        var starColor = b.sterne>=4 ? '#2e7d32' : (b.sterne===3 ? '#f57f17' : '#c62828');
+        var borderColor = b.sterne>=4 ? '#a5d6a7' : (b.sterne===3 ? '#ffe082' : '#f5c6c6');
+        var bgColor = b.sterne>=4 ? '#f1f8f2' : (b.sterne===3 ? '#fffdf5' : '#fdf5f5');
+        html += '<div style="background:' + bgColor + ';border:1.5px solid ' + borderColor + ';border-radius:14px;padding:14px 16px">';
+        html += '<div style="display:flex;align-items:start;gap:12px;flex-wrap:wrap">';
+        html += '<div style="flex:1;min-width:200px">';
+        html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">';
+        html += '<div style="font-size:18px;color:' + starColor + ';letter-spacing:2px">' + bwStars(b.sterne||0) + '</div>';
+        html += '<div style="font-size:12px;color:#9c8680">' + bwPlattformLabel(b.plattform) + '</div>';
+        html += '<div style="font-size:12px;color:#9c8680">· ' + (b.datum||'') + '</div>';
+        if (b.geantwortet) {
+          html += '<span style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700">✓ BEANTWORTET</span>';
+        } else {
+          html += '<span style="background:#fde8e8;color:#c62828;border:1px solid #f5c6c6;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:700">OFFEN</span>';
+        }
+        html += '</div>';
+        if (b.autor) html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:4px">' + escHtml(b.autor) + '</div>';
+        if (b.titel) html += '<div style="font-size:13px;font-weight:600;color:#5a403c;margin-bottom:4px">' + escHtml(b.titel) + '</div>';
+        if (b.text)  html += '<div style="font-size:13px;color:#5a403c;line-height:1.5;white-space:pre-wrap">' + escHtml(b.text) + '</div>';
+        if (b.antwortText) {
+          html += '<div style="margin-top:10px;padding:10px 12px;background:#fff;border-left:3px solid #610000;border-radius:6px">';
+          html += '<div style="font-size:11px;font-weight:700;color:#610000;text-transform:uppercase;margin-bottom:4px">↪ Unsere Antwort</div>';
+          html += '<div style="font-size:12px;color:#5a403c;line-height:1.5;white-space:pre-wrap">' + escHtml(b.antwortText) + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:6px">';
+        html += '<button onclick="bwEdit(\'' + b.id + '\')" class="ws-btn ws-btn-sm" title="Bearbeiten"><span class="material-symbols-outlined" style="font-size:16px">edit</span></button>';
+        html += '<button onclick="bwToggleAntwort(\'' + b.id + '\')" class="ws-btn ws-btn-sm" title="Antwort-Status">' + (b.geantwortet ? '↺' : '✓') + '</button>';
+        html += '<button onclick="bwLoeschen(\'' + b.id + '\')" class="ws-btn ws-btn-sm" style="color:#c62828" title="Löschen"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    panel.innerHTML = html;
+  } catch(e) {
+    console.error('renderBewertungenTab error:', e);
+    panel.innerHTML = '<div style="padding:20px;color:#c62828">Fehler beim Laden: ' + escHtml(String(e.message||e)) + '</div>';
+  }
+}
+
+function bwNeu() { bwFormular(null); }
+function bwEdit(id) {
+  var item = bwLoad().find(function(i){ return i.id === id; });
+  if (item) bwFormular(item);
+}
+
+function bwFormular(item) {
+  var area = document.getElementById('bw-form-area');
+  if (!area) return;
+  var isEdit = !!item;
+  var b = item || { id:'', datum:new Date().toISOString().slice(0,10), plattform:'google', sterne:5, autor:'', titel:'', text:'', geantwortet:false, antwortText:'' };
+
+  var html = '<div style="background:#fff;border:1.5px solid #f0d8d4;border-radius:14px;padding:18px;margin-bottom:20px">';
+  html += '<div style="font-size:14px;font-weight:800;color:#610000;margin-bottom:14px">' + (isEdit ? '✏️ Bewertung bearbeiten' : '➕ Neue Bewertung') + '</div>';
+  html += '<input type="hidden" id="bw-f-id" value="' + escHtml(b.id) + '">';
+
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px">';
+  html += '<div><label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Datum</label>';
+  html += '<input type="date" id="bw-f-datum" class="ws-input" value="' + escHtml(b.datum) + '"></div>';
+  html += '<div><label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Plattform</label>';
+  html += '<select id="bw-f-plattform" class="ws-input">';
+  BW_PLATTFORMEN.forEach(function(p){
+    html += '<option value="' + p.id + '"' + (b.plattform===p.id?' selected':'') + '>' + p.icon + ' ' + p.label + '</option>';
+  });
+  html += '</select></div>';
+  html += '<div><label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Sterne</label>';
+  html += '<select id="bw-f-sterne" class="ws-input">';
+  for (var s=5; s>=1; s--) html += '<option value="' + s + '"' + (b.sterne===s?' selected':'') + '>' + bwStars(s) + ' (' + s + ')</option>';
+  html += '</select></div>';
+  html += '<div><label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Autor / Gast</label>';
+  html += '<input type="text" id="bw-f-autor" class="ws-input" placeholder="z.B. Maria K." value="' + escHtml(b.autor||'') + '"></div>';
+  html += '</div>';
+
+  html += '<div style="margin-bottom:12px"><label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Titel (optional)</label>';
+  html += '<input type="text" id="bw-f-titel" class="ws-input" placeholder="z.B. Beste Pizza der Stadt!" value="' + escHtml(b.titel||'') + '"></div>';
+
+  html += '<div style="margin-bottom:12px"><label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Bewertungs-Text</label>';
+  html += '<textarea id="bw-f-text" class="ws-input" rows="3" placeholder="Was der Gast geschrieben hat...">' + escHtml(b.text||'') + '</textarea></div>';
+
+  html += '<div style="margin-bottom:12px;padding:12px;background:#faf6f5;border-radius:10px">';
+  html += '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#5a403c;cursor:pointer;margin-bottom:8px">';
+  html += '<input type="checkbox" id="bw-f-geantwortet"' + (b.geantwortet?' checked':'') + '> Beantwortet</label>';
+  html += '<label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Unsere Antwort (optional)</label>';
+  html += '<textarea id="bw-f-antwortText" class="ws-input" rows="2" placeholder="Was wir zurück geschrieben haben...">' + escHtml(b.antwortText||'') + '</textarea>';
+  html += '</div>';
+
+  html += '<div style="display:flex;gap:10px;justify-content:flex-end">';
+  html += '<button onclick="bwAbbrechen()" class="ws-btn ws-btn-sm">Abbrechen</button>';
+  html += '<button onclick="bwSpeichern()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">save</span>Speichern</button>';
+  html += '</div>';
+  html += '</div>';
+
+  area.innerHTML = html;
+  area.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function bwAbbrechen() {
+  var area = document.getElementById('bw-form-area');
+  if (area) area.innerHTML = '';
+}
+
+function bwSpeichern() {
+  var id          = document.getElementById('bw-f-id')?.value || '';
+  var datum       = (document.getElementById('bw-f-datum')?.value || '').trim();
+  var plattform   = document.getElementById('bw-f-plattform')?.value || 'google';
+  var sterne      = parseInt(document.getElementById('bw-f-sterne')?.value || '5', 10);
+  var autor       = (document.getElementById('bw-f-autor')?.value || '').trim();
+  var titel       = (document.getElementById('bw-f-titel')?.value || '').trim();
+  var text        = (document.getElementById('bw-f-text')?.value || '').trim();
+  var geantwortet = !!document.getElementById('bw-f-geantwortet')?.checked;
+  var antwortText = (document.getElementById('bw-f-antwortText')?.value || '').trim();
+
+  if (!datum) { _showToast('Datum fehlt', 'error'); return; }
+  if (!sterne || sterne<1 || sterne>5) { _showToast('Ungültige Sterne-Anzahl', 'error'); return; }
+
+  var list = bwLoad();
+  var entry = { id:id, datum:datum, plattform:plattform, sterne:sterne, autor:autor, titel:titel, text:text, geantwortet:geantwortet, antwortText:antwortText };
+  if (id) {
+    list = list.map(function(i){ return i.id === id ? Object.assign({}, i, entry) : i; });
+  } else {
+    entry.id = bwGenId();
+    list.push(entry);
+  }
+  bwSave(list);
+  _showToast('Bewertung gespeichert', 'success');
+  bwAbbrechen();
+  renderBewertungenTab();
+}
+
+function bwToggleAntwort(id) {
+  var list = bwLoad();
+  list = list.map(function(i){ return i.id === id ? Object.assign({}, i, { geantwortet: !i.geantwortet }) : i; });
+  bwSave(list);
+  renderBewertungenTab();
+}
+
+function bwLoeschen(id) {
+  _showConfirm('Bewertung wirklich löschen?', function() {
+    bwSave(bwLoad().filter(function(i){ return i.id !== id; }));
+    _showToast('Bewertung gelöscht', 'success');
+    renderBewertungenTab();
   });
 }
 
