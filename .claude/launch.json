@@ -2,22 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "index.html (Hauptapp)",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "8080", "."],
-      "port": 8080
-    },
-    {
-      "name": "Preisserver (API)",
+      "name": "Pizzeria Server",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server/server.js"],
-      "port": 3001
-    },
-    {
-      "name": "Vite Dev Server",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "--port", "5173"],
-      "port": 5173
+      "runtimeArgs": ["server.js"],
+      "port": 8080
     }
   ]
 }

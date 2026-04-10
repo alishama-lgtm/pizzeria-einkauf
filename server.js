@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import https from 'https';
+import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -262,6 +263,171 @@ app.get('/api/status', (_req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════
+// WebSocket Sync — Keys & Store
+// ════════════════════════════════════════════════════════════════════
+const SYNC_KEYS = [
+  'pizzeria_lager', 'pizzeria_bestellung', 'pizzeria_fehlmaterial',
+  'pizzeria_aufgaben', 'pizzeria_mitarbeiter', 'pizzeria_wochenplan',
+  'pizzeria_dienstplan', 'pizzeria_schichtcheck', 'pizzeria_notifications'
+];
+
+const syncStore = new Map();
+const syncClients = new Set();
+
+const wss = new WebSocketServer({ noServer: true });
+
+function handleUpgrade(server) {
+  server.on('upgrade', (request, socket, head) => {
+    if (request.url === '/ws/sync') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+}
+
+wss.on('connection', (ws, request) => {
+  syncClients.add(ws);
+  console.log('🔗 Sync-Client verbunden (' + syncClients.size + ' aktiv)');
+
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
+  ws.on('message', (raw) => {
+    try {
+      const msg = JSON.parse(raw.toString());
+
+      switch (msg.action) {
+        case 'sync_request': {
+          const allData = {};
+          for (const [key, val] of syncStore) {
+            allData[key] = val;
+          }
+          ws.send(JSON.stringify({ action: 'sync_response', data: allData }));
+          break;
+        }
+
+        case 'update':
+          if (SYNC_KEYS.includes(msg.key)) {
+            syncStore.set(msg.key, {
+              data: msg.data,
+              timestamp: msg.timestamp || Date.now(),
+              updatedBy: msg.user || 'unknown'
+            });
+            const broadcast = JSON.stringify({
+              action: 'remote_update',
+              key: msg.key,
+              data: msg.data,
+              timestamp: msg.timestamp || Date.now(),
+              updatedBy: msg.user || 'unknown'
+            });
+            for (const client of syncClients) {
+              if (client !== ws && client.readyState === 1) {
+                client.send(broadcast);
+              }
+            }
+          }
+          break;
+
+        case 'bulk_update':
+          if (Array.isArray(msg.updates)) {
+            msg.updates.forEach(u => {
+              if (SYNC_KEYS.includes(u.key)) {
+                const existing = syncStore.get(u.key);
+                if (!existing || u.timestamp > existing.timestamp) {
+                  syncStore.set(u.key, {
+                    data: u.data,
+                    timestamp: u.timestamp,
+                    updatedBy: u.user || 'unknown'
+                  });
+                }
+              }
+            });
+            const fullState = {};
+            for (const [key, val] of syncStore) {
+              fullState[key] = val;
+            }
+            for (const client of syncClients) {
+              if (client !== ws && client.readyState === 1) {
+                client.send(JSON.stringify({ action: 'sync_response', data: fullState }));
+              }
+            }
+          }
+          break;
+      }
+    } catch (e) {
+      console.error('WS Parse-Fehler:', e.message);
+    }
+  });
+
+  ws.on('close', () => {
+    syncClients.delete(ws);
+    console.log('🔌 Sync-Client getrennt (' + syncClients.size + ' aktiv)');
+  });
+
+  ws.on('error', (err) => {
+    console.error('WS Fehler:', err.message);
+    syncClients.delete(ws);
+  });
+});
+
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) { ws.terminate(); return; }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+// ════════════════════════════════════════════════════════════════════
+// Sync REST-API (Fallback)
+// ════════════════════════════════════════════════════════════════════
+app.use(express.json({ limit: '1mb' }));
+
+app.get('/api/sync', (req, res) => {
+  const data = {};
+  for (const [key, val] of syncStore) {
+    data[key] = val;
+  }
+  res.json(data);
+});
+
+app.get('/api/sync/:key', (req, res) => {
+  const entry = syncStore.get(req.params.key);
+  if (entry) {
+    res.json(entry);
+  } else {
+    res.status(404).json({ error: 'Key nicht gefunden' });
+  }
+});
+
+app.put('/api/sync/:key', (req, res) => {
+  const key = req.params.key;
+  if (!SYNC_KEYS.includes(key)) {
+    return res.status(400).json({ error: 'Key nicht synchronisierbar' });
+  }
+  syncStore.set(key, {
+    data: req.body.data,
+    timestamp: Date.now(),
+    updatedBy: req.body.user || 'unknown'
+  });
+  const broadcast = JSON.stringify({
+    action: 'remote_update',
+    key: key,
+    data: req.body.data,
+    timestamp: Date.now()
+  });
+  for (const client of syncClients) {
+    if (client.readyState === 1) {
+      client.send(broadcast);
+    }
+  }
+  res.json({ success: true });
+});
+
+// ════════════════════════════════════════════════════════════════════
 // Start
 // ════════════════════════════════════════════════════════════════════
 function getLocalIP() {
@@ -276,7 +442,8 @@ function getLocalIP() {
 
 console.log('\n  Lade Preisdaten ...');
 loadHeissePreise().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
+  const httpServer = app.listen(PORT, '0.0.0.0', () => {
+    handleUpgrade(httpServer);
     const ip = getLocalIP();
     console.log('\n' + '='.repeat(56));
     console.log('   Pizzeria San Carino — Server BEREIT');
@@ -296,7 +463,9 @@ loadHeissePreise().then(() => {
         cert: fs.readFileSync(certPath),
         key: fs.readFileSync(keyPath)
       };
-      https.createServer(httpsOptions, app).listen(8443, '0.0.0.0', () => {
+      const httpsServer = https.createServer(httpsOptions, app);
+      httpsServer.listen(8443, '0.0.0.0', () => {
+        handleUpgrade(httpsServer);
         console.log('🔒 HTTPS Server: https://0.0.0.0:8443');
         const nets = os.networkInterfaces();
         for (const name of Object.keys(nets)) {

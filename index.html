@@ -317,6 +317,9 @@
       padding: 0 4px; border: 2px solid white;
     }
     .notif-badge:empty, .notif-badge[data-count="0"] { display: none; }
+    .sync-ok { color: #2e7d32; }
+    .sync-connecting { color: #f57f17; }
+    .sync-offline { color: #c62828; }
     .notif-group-label {
       padding: 8px 16px 4px; font-size: 11px; font-weight: 700;
       color: #9c8680; text-transform: uppercase; letter-spacing: .03em;
@@ -1213,6 +1216,8 @@
       <button id="settings-btn" onclick="openSettings()" style="display:none;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;line-height:0" title="Einstellungen">
         <span class="material-symbols-outlined" style="font-size:22px;color:#5a403c">settings</span>
       </button>
+      <!-- Sync Status -->
+      <span id="sync-status" style="font-size:11px;margin-right:8px;opacity:0.8" title="Echtzeit-Sync Status"></span>
       <!-- Bell -->
       <button id="notif-bell-btn" class="header-bell-btn" onclick="notifTogglePanel()">
         <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
@@ -1520,6 +1525,167 @@ function _safeLocalGet(key, defaultVal) {
 function _safeLocalSet(key, val) {
   try { localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(_) {}
 }
+
+// Sync-fähiges localStorage schreiben
+const SYNC_KEYS = [
+  'pizzeria_lager', 'pizzeria_bestellung', 'pizzeria_fehlmaterial',
+  'pizzeria_aufgaben', 'pizzeria_mitarbeiter', 'pizzeria_wochenplan',
+  'pizzeria_dienstplan', 'pizzeria_schichtcheck', 'pizzeria_notifications'
+];
+
+function _syncedLocalSet(key, val) {
+  const json = typeof val === 'string' ? val : JSON.stringify(val);
+  try { localStorage.setItem(key, json); } catch(_) {}
+  if (typeof syncManager !== 'undefined' && SYNC_KEYS && SYNC_KEYS.includes(key)) {
+    var data = typeof val === 'string' ? JSON.parse(val) : val;
+    syncManager.send(key, data);
+  }
+}
+
+// ========== SYNC MANAGER ==========
+const syncManager = {
+  ws: null,
+  connected: false,
+  reconnectDelay: 1000,
+  maxReconnectDelay: 30000,
+  pendingQueue: [],
+
+  init: function() {
+    this.connect();
+    window.addEventListener('online', () => this.connect());
+    window.addEventListener('offline', () => this.updateStatus('offline'));
+  },
+
+  connect: function() {
+    try {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = protocol + '//' + location.host + '/ws/sync';
+      this.ws = new WebSocket(url);
+      this.updateStatus('connecting');
+
+      this.ws.onopen = () => {
+        this.connected = true;
+        this.reconnectDelay = 1000;
+        this.updateStatus('connected');
+        console.log('🔗 Sync verbunden');
+        this.ws.send(JSON.stringify({ action: 'sync_request' }));
+
+        if (this.pendingQueue.length > 0) {
+          this.ws.send(JSON.stringify({
+            action: 'bulk_update',
+            updates: this.pendingQueue,
+            user: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : 'unknown'
+          }));
+          this.pendingQueue = [];
+          try { localStorage.removeItem('pizzeria_sync_queue'); } catch(_) {}
+        }
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+
+          if (msg.action === 'sync_response') {
+            let count = 0;
+            for (const key of Object.keys(msg.data)) {
+              const entry = msg.data[key];
+              if (SYNC_KEYS.includes(key) && entry.data !== undefined) {
+                const localRaw = localStorage.getItem(key);
+                const serverJson = JSON.stringify(entry.data);
+                if (localRaw !== serverJson) {
+                  localStorage.setItem(key, serverJson);
+                  this.refreshUI(key);
+                  count++;
+                }
+              }
+            }
+            if (count > 0) {
+              console.log('📥 ' + count + ' Keys synchronisiert');
+              if (typeof _showToast === 'function') _showToast(count + ' Bereiche synchronisiert');
+            }
+          }
+
+          if (msg.action === 'remote_update') {
+            if (SYNC_KEYS.includes(msg.key) && msg.data !== undefined) {
+              localStorage.setItem(msg.key, JSON.stringify(msg.data));
+              this.refreshUI(msg.key);
+              console.log('📥 Remote: ' + msg.key + ' (von ' + (msg.updatedBy || '?') + ')');
+            }
+          }
+        } catch (e) {
+          console.error('Sync Parse-Fehler:', e);
+        }
+      };
+
+      this.ws.onclose = () => {
+        this.connected = false;
+        this.updateStatus('offline');
+        setTimeout(() => {
+          this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
+          this.connect();
+        }, this.reconnectDelay);
+      };
+
+      this.ws.onerror = () => { this.connected = false; };
+    } catch (e) {
+      console.error('Sync fehlgeschlagen:', e);
+      this.updateStatus('offline');
+    }
+  },
+
+  send: function(key, data) {
+    const msg = {
+      action: 'update', key: key, data: data,
+      timestamp: Date.now(),
+      user: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : 'unknown'
+    };
+    if (this.connected && this.ws && this.ws.readyState === 1) {
+      this.ws.send(JSON.stringify(msg));
+    } else {
+      this.pendingQueue.push(msg);
+      try { localStorage.setItem('pizzeria_sync_queue', JSON.stringify(this.pendingQueue)); } catch(_) {}
+    }
+  },
+
+  refreshUI: function(key) {
+    const map = {
+      'pizzeria_lager': 'renderLagerTab',
+      'pizzeria_bestellung': 'renderBestellTab',
+      'pizzeria_fehlmaterial': 'renderFMTab',
+      'pizzeria_aufgaben': 'renderAufgabenListe',
+      'pizzeria_mitarbeiter': 'renderPersonalTab',
+      'pizzeria_wochenplan': 'renderDienstplanTab',
+      'pizzeria_dienstplan': 'renderDienstplanTab',
+      'pizzeria_schichtcheck': 'renderChecklistTab',
+      'pizzeria_notifications': 'notifUpdateBadge'
+    };
+    const fnName = map[key];
+    if (fnName && typeof window[fnName] === 'function') {
+      try { window[fnName](); } catch(e) { console.warn('Refresh-Fehler ' + key + ':', e); }
+    }
+    if (typeof renderDashboardTab === 'function') {
+      try { renderDashboardTab(); } catch(_) {}
+    }
+  },
+
+  updateStatus: function(status) {
+    const el = document.getElementById('sync-status');
+    if (!el) return;
+    const m = {
+      connected: { icon: '🟢', text: 'Live' },
+      connecting: { icon: '🟡', text: '...' },
+      offline: { icon: '🔴', text: 'Offline' }
+    };
+    const s = m[status] || m.offline;
+    el.textContent = s.icon + ' ' + s.text;
+  }
+};
+
+// Offline-Queue wiederherstellen
+try {
+  const sq = localStorage.getItem('pizzeria_sync_queue');
+  if (sq) syncManager.pendingQueue = JSON.parse(sq);
+} catch(_) {}
 
 function _pageHdr(icon, title, sub, actionHtml) {
   return '<div class="page-hdr">' +
@@ -2086,7 +2252,7 @@ function notifSave(list) {
   // Max 100, älter als 7 Tage löschen
   var week = Date.now() - 7*24*60*60*1000;
   list = list.filter(function(n) { return n.timestamp > week; }).slice(-100);
-  try { localStorage.setItem('pizzeria_notifications', JSON.stringify(list)); } catch(_) {}
+  try { _syncedLocalSet('pizzeria_notifications', JSON.stringify(list)); } catch(_) {}
 }
 
 // Notification erstellen
@@ -2259,7 +2425,7 @@ let FM_DATA = [];
 try { FM_DATA = JSON.parse(localStorage.getItem(FM_KEY) || '[]'); } catch(_) { FM_DATA = []; }
 
 function fmSave() {
-  try { localStorage.setItem(FM_KEY, JSON.stringify(FM_DATA)); } catch(_) {}
+  try { _syncedLocalSet(FM_KEY, JSON.stringify(FM_DATA)); } catch(_) {}
 }
 
 function fmGenId() {
@@ -10519,6 +10685,11 @@ function doLogout() {
 function showApp() {
   document.getElementById('login-screen').classList.add('hide');
 
+  // Sync starten
+  if (typeof syncManager !== 'undefined' && !syncManager.connected) {
+    syncManager.init();
+  }
+
   // Role badge
   const rb = document.getElementById('role-badge');
   rb.textContent = currentUser.label;
@@ -10868,7 +11039,7 @@ function dashboardSchichtToggle(typ, index) {
   if (!checks[typ]) checks[typ] = {};
   if (checks[typ][index]) { delete checks[typ][index]; delete checks[typ][index+'_z']; }
   else { checks[typ][index]=true; checks[typ][index+'_z']=new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}); }
-  _safeLocalSet('pizzeria_schichtcheck', checks);
+  _syncedLocalSet('pizzeria_schichtcheck', checks);
   renderDashboardTab();
 }
 
@@ -12038,7 +12209,7 @@ function aufgabenMigriere() {
     if (typeof a.notiz === 'undefined')         { a.notiz = ''; changed = true; }
     if (typeof a.zugewiesen_von === 'undefined'){ a.zugewiesen_von = ''; changed = true; }
   });
-  if (changed) try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
+  if (changed) try { _syncedLocalSet(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
   return aufgaben;
 }
 
@@ -12221,7 +12392,7 @@ function aufgabeAdd() {
     erstellt: new Date().toISOString(),
     zugewiesen_von: currentUser?.username || '',
   });
-  try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
+  try { _syncedLocalSet(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
   aufgabenSelectedPrio = 'mittel';
   _showToast('Aufgabe erstellt', 'success');
   // Notification auslösen
@@ -12234,7 +12405,7 @@ function aufgabeStatusChange(id, neuerStatus) {
   const aufgaben = aufgabenMigriere();
   const a = aufgaben.find(x => x.id === id);
   if (a) { a.status = neuerStatus; a.erledigt = (neuerStatus === 'erledigt'); }
-  try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
+  try { _syncedLocalSet(AUF_KEY, JSON.stringify(aufgaben)); } catch(e) {}
   renderAufgabenTab();
   _aufDashRefresh();
 }
@@ -12242,7 +12413,7 @@ function aufgabeStatusChange(id, neuerStatus) {
 function aufgabeDelete(id) {
   let aufgaben = [];
   try { aufgaben = JSON.parse(localStorage.getItem(AUF_KEY)||'[]'); } catch(e) {}
-  try { localStorage.setItem(AUF_KEY, JSON.stringify(aufgaben.filter(x => x.id !== id))); } catch(e) {}
+  try { _syncedLocalSet(AUF_KEY, JSON.stringify(aufgaben.filter(x => x.id !== id))); } catch(e) {}
   _showToast('Aufgabe gelöscht', 'info');
   renderAufgabenTab();
   _aufDashRefresh();
@@ -12269,7 +12440,7 @@ function renderSchichtCheckTab() {
   const today = new Date().toISOString().slice(0,10);
   let checks = {};
   try { checks = JSON.parse(localStorage.getItem('pizzeria_schichtcheck')||'{}'); } catch(e) {}
-  if (checks.datum !== today) { checks = {datum:today, oeffnung:{}, schliessung:{}}; localStorage.setItem('pizzeria_schichtcheck', JSON.stringify(checks)); }
+  if (checks.datum !== today) { checks = {datum:today, oeffnung:{}, schliessung:{}}; _syncedLocalSet('pizzeria_schichtcheck', JSON.stringify(checks)); }
 
   const renderListe = (liste, typ) => liste.map((item,i) => {
     const done = !!(checks[typ]||{})[i];
@@ -12316,7 +12487,7 @@ function schichtCheckToggle(typ, index) {
   if (!checks[typ]) checks[typ] = {};
   if (checks[typ][index]) { delete checks[typ][index]; delete checks[typ][index+'_z']; }
   else { checks[typ][index]=true; checks[typ][index+'_z']=new Date().toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}); }
-  _safeLocalSet('pizzeria_schichtcheck', checks);
+  _syncedLocalSet('pizzeria_schichtcheck', checks);
   renderSchichtCheckTab();
 }
 
@@ -12406,27 +12577,27 @@ function bestellungHinzufuegen() {
   let artikel = [];
   try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   artikel.unshift({ id:Date.now(), name, menge:document.getElementById('best-menge')?.value||'1', einheit:document.getElementById('best-einheit')?.value||'Stück', kategorie:document.getElementById('best-kat')?.value||'Küche', dringlich:document.getElementById('best-dringend')?.checked||false, erledigt:false });
-  localStorage.setItem('pizzeria_bestellung', JSON.stringify(artikel));
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(artikel));
   _showToast('Artikel hinzugefügt', 'success'); renderBestellungTab();
 }
 function bestellungToggle(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   const x = a.find(i=>i.id===id); if(x) x.erledigt=!x.erledigt;
-  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
 }
 function bestellungDringlich(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   const x = a.find(i=>i.id===id); if(x) x.dringlich=!x.dringlich;
-  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
 }
 function bestellungDelete(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
-  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a.filter(i=>i.id!==id)));
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(a.filter(i=>i.id!==id)));
   _showToast('Artikel gelöscht', 'info'); renderBestellungTab();
 }
 function bestellungErledigtLoeschen() {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
-  localStorage.setItem('pizzeria_bestellung', JSON.stringify(a.filter(i=>!i.erledigt)));
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(a.filter(i=>!i.erledigt)));
   _showToast('Erledigte gelöscht', 'info'); renderBestellungTab();
 }
 function bestellungFilter(type, val) {
@@ -12666,7 +12837,7 @@ function lagerSpeichern(id) {
     if (a.id !== id) return a;
     return { id:a.id, name:name, kategorie:document.getElementById('lag-edit-kat')?.value||a.kategorie, menge:parseFloat(document.getElementById('lag-edit-menge')?.value)||0, einheit:document.getElementById('lag-edit-einheit')?.value||a.einheit, mindest:parseFloat(document.getElementById('lag-edit-mindest')?.value)||0 };
   });
-  localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
+  _syncedLocalSet('pizzeria_lager', JSON.stringify(lager));
   _showToast('Artikel gespeichert', 'success');
   renderLagerTab();
 }
@@ -12675,17 +12846,17 @@ function lagerHinzufuegen() {
   if (!name) { _markField('lag-name', true); _showToast('Bitte Artikelname eingeben', 'error'); return; }
   let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
   lager.push({ id:Date.now(), name, kategorie:document.getElementById('lag-kat')?.value||'Küche', menge:parseFloat(document.getElementById('lag-menge')?.value)||0, einheit:document.getElementById('lag-einheit')?.value||'Stück', mindest:parseFloat(document.getElementById('lag-mindest')?.value)||5 });
-  localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
+  _syncedLocalSet('pizzeria_lager', JSON.stringify(lager));
   _showToast('Artikel hinzugefügt', 'success'); renderLagerTab();
 }
 function lagerAnpassen(id, delta) {
   let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
   const a = lager.find(x=>x.id===id);
-  if (a) { a.menge = Math.max(0, a.menge + delta); localStorage.setItem('pizzeria_lager', JSON.stringify(lager)); lagerCheckAlarm(a); renderLagerTab(); }
+  if (a) { a.menge = Math.max(0, a.menge + delta); _syncedLocalSet('pizzeria_lager', JSON.stringify(lager)); lagerCheckAlarm(a); renderLagerTab(); }
 }
 function lagerDelete(id) {
   let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
-  localStorage.setItem('pizzeria_lager', JSON.stringify(lager.filter(x=>x.id!==id)));
+  _syncedLocalSet('pizzeria_lager', JSON.stringify(lager.filter(x=>x.id!==id)));
   _showToast('Artikel gelöscht', 'info'); renderLagerTab();
 }
 function lagerFilter(type, val) {
@@ -12698,7 +12869,7 @@ function lagerCheckAlarm(a) {
     let best = []; try { best = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
     if (!best.find(x=>x.name===a.name&&!x.erledigt)) {
       best.unshift({ id:Date.now(), name:a.name, menge:a.mindest*2, einheit:a.einheit, kategorie:a.kategorie||'Küche', dringlich:a.menge<=0, erledigt:false });
-      localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
+      _syncedLocalSet('pizzeria_bestellung', JSON.stringify(best));
       _showToast(a.name+' → Bestellliste hinzugefügt!', 'warning');
     }
     // Notification auslösen
@@ -12721,7 +12892,7 @@ function lagerAlleRotBestellen() {
       added++;
     }
   });
-  localStorage.setItem('pizzeria_bestellung', JSON.stringify(best));
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(best));
   _showToast(added+' Artikel zur Bestellliste hinzugefügt', 'success');
 }
 
