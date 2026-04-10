@@ -3716,7 +3716,7 @@ function renderUploadTab() {
   const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
   const panel = document.getElementById('panel-upload');
 
-  let inner = '';
+  let inner = _pageHdr('upload_file', 'Upload', 'Kassenbon, Handliste, Rechnung hochladen', '');
 
   // ─── API key hint ───
   if (!hasKey) {
@@ -3727,8 +3727,8 @@ function renderUploadTab() {
           <div>
             <p style="font-size:14px;font-weight:700;color:#261816;margin-bottom:8px">🔑 Bitte API Key einfügen um das Auslesen zu nutzen</p>
             <p style="font-size:13px;color:#5a403c;line-height:1.7">
-              Öffne <code style="background:#ffe9e6;padding:2px 7px;border-radius:6px;font-size:12px;color:#610000">pizzaria.html</code> und trage deinen Anthropic API Key ganz oben ein:<br>
-              <code style="background:#ffe9e6;padding:2px 7px;border-radius:6px;font-size:12px;color:#610000">const ANTHROPIC_API_KEY = "sk-ant-...";</code>
+              Öffne die Einstellungen (⚙️ oben rechts) und trage deinen Anthropic API Key ein.
+              Der Key wird sicher im Browser (localStorage) gespeichert.
             </p>
           </div>
         </div>
@@ -6407,7 +6407,8 @@ function renderProductsTab() {
   const low = getLowStockProducts();
   const categories = [...new Set(PRODUCTS.map(p => p.category))];
 
-  let html = `
+  let html = _pageHdr('inventory_2', 'Produkte', PRODUCTS.length + ' Artikel · ' + low.length + ' niedriger Bestand', '');
+  html += `
     <div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px;background:#fff0ee;border:1px solid #e3beb8;border-radius:16px;padding:16px 20px">
         <div style="font-size:28px;font-weight:800;color:#261816">${PRODUCTS.length}</div>
@@ -6506,6 +6507,7 @@ function daysUntilMonday() {
 
 function renderShopsTab() {
   const lowIds = new Set(getLowStockProducts().map(p => p.id));
+  const _shopHdr = _pageHdr('store', 'Geschäfte', SHOPS.length + ' Shops · Preisvergleich', '');
 
   // ── 1. PREISVERGLEICH TABELLE ────────────────────────────────
   // Per product: find min and max price across all shops
@@ -6517,7 +6519,7 @@ function renderShopsTab() {
   const productsWithPrices = PRODUCTS.filter(p => priceStats[p.id]);
 
   if (productsWithPrices.length === 0) {
-    document.getElementById('panel-geschaefte').innerHTML = '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">store</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Noch keine Preise vorhanden</div><div style="font-size:13px;color:#9ca3af">Lade Preise über den Preisserver oder trage sie manuell ein.</div></div>';
+    document.getElementById('panel-geschaefte').innerHTML = _shopHdr + '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">store</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Noch keine Preise vorhanden</div><div style="font-size:13px;color:#9ca3af">Lade Preise über den Preisserver oder trage sie manuell ein.</div></div>';
     return;
   }
 
@@ -6655,7 +6657,7 @@ function renderShopsTab() {
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:8px">${shopCards}</div>
     </div>`;
 
-  document.getElementById('panel-geschaefte').innerHTML = tableSection + dealsSection + shopsSection;
+  document.getElementById('panel-geschaefte').innerHTML = _shopHdr + tableSection + dealsSection + shopsSection;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -8026,9 +8028,10 @@ function renderVerlaufTab() {
   const now = new Date();
   const todayYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   if (!VERLAUF_FILTER.monat) VERLAUF_FILTER.monat = todayYM;
+  const _verlHdr = _pageHdr('history', 'Verlauf', HISTORY.length + ' Einkäufe gesamt', '');
 
   if (HISTORY.length === 0) {
-    panel.innerHTML = `
+    panel.innerHTML = _verlHdr + `
       <div style="text-align:center;padding:60px 20px">
         <span class="material-symbols-outlined" style="font-size:64px;color:#e3beb8;display:block;margin-bottom:16px">bar_chart</span>
         <h3 style="font-size:20px;font-weight:700;color:#261816;margin-bottom:8px">Noch keine Einkaufshistorie</h3>
@@ -8318,7 +8321,7 @@ function renderVerlaufTab() {
   }
 
   html += `</div>`;
-  panel.innerHTML = html;
+  panel.innerHTML = _verlHdr + html;
 }
 
 // ═══════════════════════════════════════════════════════════════
