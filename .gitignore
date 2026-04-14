@@ -1,0 +1,29 @@
+# Node
+node_modules/
+dist/
+.env
+
+# Login-Daten (niemals committen!)
+users.js
+
+# Datenbank-Backups
+backups/
+
+# Claude Code intern
+.claude/*
+!.claude/commands/
+!.claude/launch.json
+
+# TLS-Zertifikate (niemals committen!)
+cert.pem
+key.pem
+
+# Große Cache-Dateien
+hp-cache.json
+
+# Datenbank
+pizzeria.db
+
+# Betriebssystem
+.DS_Store
+Thumbs.db
