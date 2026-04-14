@@ -185,6 +185,10 @@ function showBizSection(id) {
     btn.style.background = '#8B0000'; btn.style.borderColor = '#8B0000'; btn.style.color = '#fff';
     btn.onmouseover = null; btn.onmouseout = null;
   }
+  // Charts neu initialisieren wenn Cockpit-Tab aktiv wird
+  if (id === 'biz-cockpit') {
+    setTimeout(() => { _bizInitCharts(); }, 80);
+  }
 }
 
 // ── LOCKED SCREEN ──
@@ -555,8 +559,12 @@ function renderPersonalRow(p, i) {
           oninput="bizPersonalUpdate(${i},'stunden',this.value)"
           style="width:100%;padding:8px;border-radius:8px;border:1px solid #e3beb8;font-size:13px;font-family:inherit;outline:none">
       </div>
-      <button onclick="bizDeletePersonal(${i})"
-        style="border:none;background:#ffdad6;color:#ba1a1a;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px">✕</button>
+      <div style="display:flex;gap:4px">
+        <button onclick="exportLohnPDF(${JSON.stringify(p).replace(/"/g, '&quot;')})"
+          style="border:1.5px solid #8B0000;background:#fff0ee;color:#8B0000;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;white-space:nowrap">PDF</button>
+        <button onclick="bizDeletePersonal(${i})"
+          style="border:none;background:#ffdad6;color:#ba1a1a;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px">✕</button>
+      </div>
     </div>
     <div style="font-size:11px;color:#5a403c;padding:4px 0 8px;border-bottom:2px solid #e3beb8">
       Wochenlohn: <strong>${bizEur(wochenlohn)}</strong> · Monatslohn: <strong>${bizEur(monatslohn)}</strong>
@@ -684,6 +692,38 @@ function renderBizCockpit() {
   </p>
 </div>
 
+<!-- Charts -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:20px">
+
+  <!-- Chart A: Umsatz letzte 7 Tage -->
+  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px">
+    <div style="font-weight:700;font-size:14px;color:#261816;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:16px;color:#8B0000">bar_chart</span>
+      Umsatz letzte 7 Tage
+    </div>
+    <canvas id="bizChartUmsatz" height="200" style="width:100%;max-height:220px"></canvas>
+  </div>
+
+  <!-- Chart B: Kostenaufschlüsselung -->
+  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px">
+    <div style="font-weight:700;font-size:14px;color:#261816;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:16px;color:#8B0000">donut_large</span>
+      Kostenaufschlüsselung
+    </div>
+    <canvas id="bizChartKosten" height="200" style="width:100%;max-height:220px"></canvas>
+  </div>
+
+  <!-- Chart C: Mitarbeiter Stunden/Woche -->
+  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px">
+    <div style="font-weight:700;font-size:14px;color:#261816;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:16px;color:#8B0000">badge</span>
+      Mitarbeiter Std/Woche
+    </div>
+    <canvas id="bizChartPersonal" height="200" style="width:100%;max-height:220px"></canvas>
+  </div>
+
+</div>
+
 <!-- Pizza-Kalkulation -->
 <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;overflow:hidden;margin-bottom:8px">
   <div style="padding:16px 20px;border-bottom:1px solid #e3beb8;display:flex;align-items:center;justify-content:space-between">
@@ -732,6 +772,154 @@ function renderBizCockpit() {
     </table>
   </div>
 </div>`;
+
+  // Charts nach DOM-Bereitschaft initialisieren
+  setTimeout(() => {
+    _bizInitCharts();
+  }, 50);
+}
+
+// ── Chart-Initialisierung ──
+function _bizInitCharts() {
+  if (typeof Chart === 'undefined') return;
+
+  // ── Chart A: Umsatz letzte 7 Tage (Bar) ──
+  const kassa = bizGetKassa();
+  const last7Labels = [];
+  const last7Data = [];
+  const dayShort = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const entry = kassa.find(e => e.date === ds);
+    last7Labels.push(dayShort[d.getDay()]);
+    last7Data.push(entry ? (entry.gesamt||0) : 0);
+  }
+  if (window._bizChart_Umsatz) window._bizChart_Umsatz.destroy();
+  const ctxU = document.getElementById('bizChartUmsatz');
+  if (ctxU) {
+    window._bizChart_Umsatz = new Chart(ctxU, {
+      type: 'bar',
+      data: {
+        labels: last7Labels,
+        datasets: [{
+          label: 'Umsatz (€)',
+          data: last7Data,
+          backgroundColor: '#8B0000',
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => '€ ' + ctx.parsed.y.toFixed(2)
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              font: { size: 11 },
+              callback: v => '€' + v
+            },
+            grid: { color: '#f0e0dc' }
+          }
+        }
+      }
+    });
+  }
+
+  // ── Chart B: Kostenaufschlüsselung (Doughnut) ──
+  const fix = bizGetFixkosten();
+  const kostenLabels = ['Miete','Strom','Versicherung','Buchhaltung','Sonstiges'];
+  const kostenKeys   = ['miete','strom','versicherung','buchhaltung','sonstige'];
+  const kostenData   = kostenKeys.map(k => +(fix[k]||0));
+  const kostenColors = ['#8B0000','#c0392b','#e07b6a','#c8860a','#5a403c'];
+  if (window._bizChart_Kosten) window._bizChart_Kosten.destroy();
+  const ctxK = document.getElementById('bizChartKosten');
+  if (ctxK) {
+    const hasKosten = kostenData.some(v => v > 0);
+    window._bizChart_Kosten = new Chart(ctxK, {
+      type: 'doughnut',
+      data: {
+        labels: kostenLabels,
+        datasets: [{
+          data: hasKosten ? kostenData : [1],
+          backgroundColor: hasKosten ? kostenColors : ['#e3beb8'],
+          borderWidth: 2,
+          borderColor: '#fff',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => hasKosten ? (ctx.label + ': € ' + ctx.parsed.toFixed(2)) : 'Keine Daten'
+            }
+          }
+        }
+      }
+    });
+    if (!hasKosten) {
+      const noDataNote = document.createElement('p');
+      noDataNote.style.cssText = 'text-align:center;font-size:11px;color:#8d6562;margin-top:8px';
+      noDataNote.textContent = 'Noch keine Fixkosten eingetragen';
+      ctxK.parentNode.appendChild(noDataNote);
+    }
+  }
+
+  // ── Chart C: Mitarbeiter Stunden/Woche (Horizontal Bar) ──
+  const personal = bizGetPersonal();
+  const maNames = personal.length > 0 ? personal.map(p => p.name||'(ohne Name)') : ['Kein Personal'];
+  const maStunden = personal.length > 0 ? personal.map(p => +(p.stunden||0)) : [0];
+  if (window._bizChart_Personal) window._bizChart_Personal.destroy();
+  const ctxP = document.getElementById('bizChartPersonal');
+  if (ctxP) {
+    window._bizChart_Personal = new Chart(ctxP, {
+      type: 'bar',
+      data: {
+        labels: maNames,
+        datasets: [{
+          label: 'Std/Woche',
+          data: maStunden,
+          backgroundColor: '#610000',
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.parsed.x + ' Std/Woche'
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { font: { size: 11 }, callback: v => v + 'h' },
+            grid: { color: '#f0e0dc' }
+          },
+          y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
 }
 
 function bizPizzaCalcChange(i, field, val) {
@@ -1118,4 +1306,141 @@ function bizShowToast(msg) {
   document.head.appendChild(style);
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2800);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOHNABRECHNUNG PDF EXPORT
+// ═══════════════════════════════════════════════════════════════
+
+function exportLohnPDF(ma) {
+  if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+    bizShowToast('⚠️ PDF-Bibliothek nicht geladen');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const stunden  = +(ma.stunden||0);
+  const lohn     = +(ma.lohn||0);
+  const wochen   = 4.33;
+  const monatsgehalt = stunden * lohn * wochen;
+
+  const heute    = new Date();
+  const monatNamen = ['Jänner','Februar','März','April','Mai','Juni',
+                      'Juli','August','September','Oktober','November','Dezember'];
+  const monatStr = monatNamen[heute.getMonth()] + ' ' + heute.getFullYear();
+  const datumStr = heute.toLocaleDateString('de-AT');
+
+  // Dateiname
+  const nameSafe  = (ma.name||'mitarbeiter').replace(/\s+/g,'_').toLowerCase();
+  const monatFile = monatNamen[heute.getMonth()].toLowerCase() + '_' + heute.getFullYear();
+  const filename  = `lohnabrechnung_${nameSafe}_${monatFile}.pdf`;
+
+  // ── Hintergrund-Header ──
+  doc.setFillColor(139, 0, 0);
+  doc.rect(0, 0, 210, 42, 'F');
+
+  // Firmenname
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pizzeria San Carino', 20, 18);
+
+  // Untertitel
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Lohnabrechnung', 20, 27);
+
+  // Monat rechts oben
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text(monatStr, 190, 18, { align: 'right' });
+
+  // ── Mitarbeiter-Block ──
+  doc.setTextColor(38, 24, 22);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Mitarbeiter', 20, 58);
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Name:', 20, 68);
+  doc.setFont('helvetica', 'bold');
+  doc.text(ma.name || '—', 70, 68);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text('Rolle:', 20, 76);
+  doc.setFont('helvetica', 'bold');
+  doc.text(ma.rolle || '—', 70, 76);
+
+  // ── Trennlinie ──
+  doc.setDrawColor(227, 190, 184);
+  doc.setLineWidth(0.5);
+  doc.line(20, 84, 190, 84);
+
+  // ── Abrechnungs-Tabelle ──
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(38, 24, 22);
+  doc.text('Abrechnung', 20, 94);
+
+  const tableTop = 100;
+  const rowH = 10;
+  const col1 = 20, col2 = 120, col3 = 190;
+
+  // Tabellen-Header
+  doc.setFillColor(255, 240, 238);
+  doc.rect(col1, tableTop - 2, 170, rowH, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(90, 64, 60);
+  doc.text('Position', col1 + 2, tableTop + 5);
+  doc.text('Wert', col3 - 2, tableTop + 5, { align: 'right' });
+
+  const rows = [
+    ['Stunden pro Woche',       stunden.toFixed(0) + ' Std'],
+    ['Stundenlohn',             '€ ' + lohn.toFixed(2)],
+    ['Wochen pro Monat (Ø)',    wochen.toFixed(2)],
+  ];
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(38, 24, 22);
+  rows.forEach((row, idx) => {
+    const y = tableTop + rowH + (idx * rowH) + 2;
+    if (idx % 2 === 1) {
+      doc.setFillColor(255, 248, 246);
+      doc.rect(col1, y - 6, 170, rowH, 'F');
+    }
+    doc.setFontSize(10);
+    doc.text(row[0], col1 + 2, y);
+    doc.text(row[1], col3 - 2, y, { align: 'right' });
+  });
+
+  // Bruttogehalt-Zeile (hervorgehoben)
+  const bruttoY = tableTop + rowH + (rows.length * rowH) + 4;
+  doc.setFillColor(139, 0, 0);
+  doc.rect(col1, bruttoY - 6, 170, 12, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Bruttogehalt (Monat)', col1 + 2, bruttoY + 1);
+  doc.text('€ ' + monatsgehalt.toFixed(2), col3 - 2, bruttoY + 1, { align: 'right' });
+
+  // ── Hinweis ──
+  doc.setTextColor(141, 101, 98);
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(9);
+  doc.text('Diese Abrechnung ist ein interner Kostenvoranschlag. Brutto vor Abzügen.', 20, bruttoY + 18);
+
+  // ── Footer ──
+  doc.setDrawColor(227, 190, 184);
+  doc.line(20, 270, 190, 270);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(90, 64, 60);
+  doc.text('Erstellt am ' + datumStr + ' | Pizzeria San Carino', 20, 276);
+  doc.text('Seite 1', 190, 276, { align: 'right' });
+
+  doc.save(filename);
+  bizShowToast('✅ PDF gespeichert: ' + filename);
 }

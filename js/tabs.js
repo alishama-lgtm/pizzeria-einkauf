@@ -2324,4 +2324,654 @@ function renderMAWochenplan(mitarbeiter, weekKey) {
   return html;
 }
 
+// ============================================================
+// HEUTE-TAB
+// ============================================================
 
+function renderHeuteTab() {
+  const panel = document.getElementById('panel-heute');
+  if (!panel) return;
+
+  // ── Daten laden ──────────────────────────────────────────────
+  let dienstplan = {};
+  let aufgaben   = [];
+  let schichtcheck = {};
+  let mitarbeiter  = [];
+  try { dienstplan   = JSON.parse(localStorage.getItem('pizzeria_dienstplan')   || '{}'); } catch(_) {}
+  try { aufgaben     = JSON.parse(localStorage.getItem('pizzeria_aufgaben')     || '[]'); } catch(_) {}
+  try { schichtcheck = JSON.parse(localStorage.getItem('pizzeria_schichtcheck') || '{}'); } catch(_) {}
+  try { mitarbeiter  = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')  || '[]'); } catch(_) {}
+
+  // ── Datum / Woche ────────────────────────────────────────────
+  const today    = new Date();
+  const weekKey  = weekKeyFromDate(today);             // weekKeyFromDate existiert in tabs.js (Zeile 1928)
+  const dayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1; // 0=Mo…6=So
+  const DAYS     = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const dayKey   = DAYS[dayIndex];
+
+  const wochentagDE = today.toLocaleDateString('de-DE', { weekday: 'long' });
+  const datumDE     = today.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // ── Dienstplan auslesen ──────────────────────────────────────
+  const SCHICHT_ZEITEN = {
+    'Früh (08-16)':  { label: 'Frühschicht',  von: '08:00', bis: '16:00', farbe: '#2e7d32', bg: '#f0fdf4', dot: '#22c55e' },
+    'Spät (14-22)':  { label: 'Spätschicht',  von: '14:00', bis: '22:00', farbe: '#b45309', bg: '#fffbeb', dot: '#f59e0b' },
+    'Nacht (20-04)': { label: 'Nachtschicht', von: '20:00', bis: '04:00', farbe: '#1e40af', bg: '#eff6ff', dot: '#3b82f6' },
+    'Frei':          { label: 'Frei',          von: null,    bis: null,    farbe: '#6b7280', bg: '#f9fafb', dot: '#9ca3af' },
+  };
+
+  // Welche Mitarbeiter haben heute Dienst?
+  const wochenplanRaw = {};
+  try { Object.assign(wochenplanRaw, JSON.parse(localStorage.getItem('pizzeria_wochenplan') || '{}')); } catch(_) {}
+  const weekPlanRaw = wochenplanRaw[weekKey] || {};
+
+  // Dienstplan-Objekt (aus pizzeria_dienstplan, falls vorhanden)
+  const tagPlan = (dienstplan[weekKey] || {})[dayKey] || {};
+
+  // Mitarbeiter mit heutiger Schicht aus dem alten Format
+  const heutigeTeam = [];
+  for (const ma of mitarbeiter) {
+    const schichtName = tagPlan[ma.id];
+    if (schichtName && schichtName !== 'Frei') {
+      heutigeTeam.push({ ma, schichtName, info: SCHICHT_ZEITEN[schichtName] || null });
+    }
+  }
+
+  // Alternativ: aus Wochenplan (Von/Bis-Format)
+  const wochenplanTeam = [];
+  for (const ma of mitarbeiter) {
+    const shift = (weekPlanRaw[ma.id] || {})[dayIndex];
+    if (shift && shift.von && shift.bis) {
+      wochenplanTeam.push({ ma, von: shift.von, bis: shift.bis });
+    }
+  }
+
+  // Eigene Schicht: erste Schicht aus Dienstplan oder Wochenplan
+  const ersteSchicht = heutigeTeam[0] || null;
+  const ersteWpSchicht = wochenplanTeam[0] || null;
+
+  // ── Aufgaben auswerten ───────────────────────────────────────
+  const offeneAufgaben  = aufgaben.filter(a => !a.erledigt);
+  const dringendCount   = offeneAufgaben.filter(a => a.prioritaet === 'dringend' || a.dringend).length;
+  const normalCount     = offeneAufgaben.filter(a => !a.prioritaet || a.prioritaet === 'normal' || (!a.dringend && a.prioritaet !== 'dringend')).length;
+  const top3Aufgaben    = offeneAufgaben.slice(0, 3);
+
+  // ── Schicht-Checkliste auswerten ─────────────────────────────
+  const ckOeffnung  = schichtcheck['oeffnung']  || {};
+  const ckSchliessung = schichtcheck['schliessung'] || {};
+  const ckItems     = schichtcheck['items']     || { oeffnung: [], schliessung: [] };
+
+  // Standard-Checklisten wenn keine Items definiert
+  const defaultOeffnung  = ['Kasse öffnen', 'Herd vorheizen', 'Zutaten prüfen', 'Teig vorbereiten', 'Getränke auffüllen', 'Sauberkeit prüfen', 'Beleuchtung', 'Öffnungszeit eintragen'];
+  const defaultSchliessung = ['Kasse abrechnen', 'Reste einräumen', 'Herd ausschalten', 'Reinigung', 'Abfall entsorgen', 'Kühlschrank prüfen', 'Türen schließen', 'Schichtübergabe'];
+
+  const oeffItems = (ckItems.oeffnung  && ckItems.oeffnung.length)  ? ckItems.oeffnung  : defaultOeffnung;
+  const schlItems = (ckItems.schliessung && ckItems.schliessung.length) ? ckItems.schliessung : defaultSchliessung;
+
+  const oeffTotal = oeffItems.length;
+  const schlTotal = schlItems.length;
+  const oeffDone  = oeffItems.filter((_, i) => ckOeffnung[i]).length;
+  const schlDone  = schlItems.filter((_, i) => ckSchliessung[i]).length;
+
+  const oeffPct = oeffTotal > 0 ? Math.round((oeffDone / oeffTotal) * 100) : 0;
+  const schlPct = schlTotal > 0 ? Math.round((schlDone / schlTotal) * 100) : 0;
+
+  function progressStatus(done, total) {
+    if (total === 0) return { label: '—', farbe: '#9ca3af', bg: '#f3f4f6' };
+    const pct = done / total;
+    if (pct === 1)   return { label: '✅ Fertig',      farbe: '#16a34a', bg: '#f0fdf4' };
+    if (pct >= 0.5)  return { label: '🟡 In Arbeit',   farbe: '#d97706', bg: '#fffbeb' };
+    if (pct > 0)     return { label: '🟠 Begonnen',    farbe: '#ea580c', bg: '#fff7ed' };
+    return             { label: '⚪ Noch nicht',     farbe: '#6b7280', bg: '#f9fafb' };
+  }
+
+  const oeffStatus = progressStatus(oeffDone, oeffTotal);
+  const schlStatus = progressStatus(schlDone, schlTotal);
+
+  function progressBar(done, total, farbe) {
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    const filled  = Math.round(pct / 10);
+    const empty   = 10 - filled;
+    return `<div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden;margin:6px 0">
+      <div style="height:100%;width:${pct}%;background:${farbe};border-radius:5px;transition:width .3s"></div>
+    </div>`;
+  }
+
+  // ── HTML bauen ───────────────────────────────────────────────
+
+  // HEADER
+  let html = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px">
+        Guten Tag — ${wochentagDE}, ${datumDE}
+      </h2>
+      <p style="font-size:15px;color:#5a403c;margin:0">Übersicht für heute</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">`;
+
+  // ── KACHEL 1: MEINE SCHICHT HEUTE ───────────────────────────
+  let kachel1Html = '';
+
+  if (ersteSchicht) {
+    const info = ersteSchicht.info || {};
+    const farbe = info.farbe || '#8B0000';
+    const bg    = info.bg    || '#fff0ee';
+    const dot   = info.dot   || '#8B0000';
+    kachel1Html = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span style="width:14px;height:14px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>
+        <span style="font-size:20px;font-weight:800;color:${farbe}">${info.label || ersteSchicht.schichtName}</span>
+      </div>
+      ${info.von ? `<p style="font-size:18px;font-weight:700;color:#261816;margin:0 0 14px">${info.von} – ${info.bis} Uhr</p>` : ''}`;
+  } else if (ersteWpSchicht) {
+    kachel1Html = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span style="width:14px;height:14px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0"></span>
+        <span style="font-size:20px;font-weight:800;color:#2e7d32">Schicht heute</span>
+      </div>
+      <p style="font-size:18px;font-weight:700;color:#261816;margin:0 0 14px">${ersteWpSchicht.von} – ${ersteWpSchicht.bis} Uhr</p>`;
+  } else {
+    kachel1Html = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span style="width:14px;height:14px;border-radius:50%;background:#9ca3af;display:inline-block;flex-shrink:0"></span>
+        <span style="font-size:18px;font-weight:700;color:#6b7280">Kein Schichtplan eingetragen</span>
+      </div>
+      <p style="font-size:14px;color:#9ca3af;margin:0 0 14px">Dienstplan im Mitarbeiter-Tab pflegen</p>`;
+  }
+
+  // Team heute (aus beiden Quellen)
+  const teamAnzeige = wochenplanTeam.length > 0 ? wochenplanTeam : heutigeTeam.map(h => ({ ma: h.ma }));
+  const teamCount   = teamAnzeige.length;
+  kachel1Html += `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:14px;color:#5a403c;font-weight:600">Team heute:</span>
+      ${teamCount === 0
+        ? '<span style="font-size:14px;color:#9ca3af">Noch nicht geplant</span>'
+        : teamAnzeige.map(t => `
+            <span style="background:${t.ma.farbe || '#8B0000'}22;color:${t.ma.farbe || '#8B0000'};border:1px solid ${t.ma.farbe || '#8B0000'}44;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600">
+              ${escHtml(t.ma.name)}
+            </span>`).join('')
+      }
+    </div>`;
+
+  html += `
+    <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:24px">👤</span>
+        <h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Meine Schicht heute</h3>
+      </div>
+      ${kachel1Html}
+    </div>`;
+
+  // ── KACHEL 2: AUFGABEN ───────────────────────────────────────
+  let aufgabenBody = '';
+
+  if (offeneAufgaben.length === 0) {
+    aufgabenBody = `
+      <div style="text-align:center;padding:16px 0">
+        <span style="font-size:32px">✅</span>
+        <p style="font-size:15px;font-weight:700;color:#16a34a;margin:8px 0 4px">Alle Aufgaben erledigt!</p>
+        <p style="font-size:13px;color:#6b7280;margin:0">Keine offenen Aufgaben vorhanden</p>
+      </div>`;
+  } else {
+    aufgabenBody = `
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        ${dringendCount > 0 ? `<span style="background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#dc2626">🔴 ${dringendCount} dringend</span>` : ''}
+        ${normalCount   > 0 ? `<span style="background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#d97706">🟡 ${normalCount} normal</span>` : ''}
+      </div>
+      <p style="font-size:13px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px">Top ${Math.min(3, top3Aufgaben.length)} offene Aufgaben:</p>
+      <ul style="margin:0 0 16px;padding:0;list-style:none">
+        ${top3Aufgaben.map(a => {
+          const isDring = a.prioritaet === 'dringend' || a.dringend;
+          return `<li style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6">
+            <span style="flex-shrink:0;margin-top:1px">${isDring ? '🔴' : '🟡'}</span>
+            <span style="font-size:15px;color:#261816;font-weight:600">${escHtml(a.titel || a.name || 'Aufgabe')}${isDring ? ' <span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px">DRINGEND</span>' : ''}</span>
+          </li>`;
+        }).join('')}
+      </ul>`;
+  }
+
+  html += `
+    <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:24px">📋</span>
+        <h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Aufgaben</h3>
+      </div>
+      ${aufgabenBody}
+      <button onclick="switchTab('aufgaben')"
+        style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px"
+        onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'">
+        <span style="font-size:18px">→</span> Alle Aufgaben anzeigen
+      </button>
+    </div>`;
+
+  // ── KACHEL 3: SCHICHT-CHECKLISTE ────────────────────────────
+  html += `
+    <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:24px">☑️</span>
+        <h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Schicht-Checkliste</h3>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px">
+        <div style="background:${oeffStatus.bg};border-radius:12px;padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:16px;font-weight:700;color:#261816">Öffnung</span>
+            <span style="font-size:15px;font-weight:700;color:${oeffStatus.farbe}">${oeffStatus.label}</span>
+          </div>
+          <div style="font-size:14px;color:#5a403c;margin-bottom:6px">${oeffDone} / ${oeffTotal} erledigt</div>
+          ${progressBar(oeffDone, oeffTotal, oeffStatus.farbe)}
+        </div>
+
+        <div style="background:${schlStatus.bg};border-radius:12px;padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:16px;font-weight:700;color:#261816">Schließung</span>
+            <span style="font-size:15px;font-weight:700;color:${schlStatus.farbe}">${schlStatus.label}</span>
+          </div>
+          <div style="font-size:14px;color:#5a403c;margin-bottom:6px">${schlDone} / ${schlTotal} erledigt</div>
+          ${progressBar(schlDone, schlTotal, schlStatus.farbe)}
+        </div>
+      </div>
+
+      <button onclick="switchTab('schichtcheck')"
+        style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px"
+        onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'">
+        <span style="font-size:18px">→</span> Zur Checkliste
+      </button>
+    </div>`;
+
+  html += `</div>`; // Ende des Kachel-Containers
+
+  panel.innerHTML = html;
+}
+
+// ============================================================
+// BEWERTUNGEN-TAB
+// ============================================================
+
+function _bwLoad() {
+  try { return JSON.parse(localStorage.getItem('sc_bewertungen') || '[]'); } catch(_) { return []; }
+}
+function _bwSave(list) {
+  try { localStorage.setItem('sc_bewertungen', JSON.stringify(list)); } catch(_) {}
+}
+
+function bwSaveBewertung(data) {
+  const list = _bwLoad();
+  const idx  = list.findIndex(b => b.id === data.id);
+  if (idx >= 0) { list[idx] = data; }
+  else          { list.unshift(data); }
+  _bwSave(list);
+  renderBewertungenTab();
+}
+
+function bwDeleteBewertung(id) {
+  if (!confirm('Bewertung wirklich löschen?')) return;
+  _bwSave(_bwLoad().filter(b => b.id !== id));
+  renderBewertungenTab();
+}
+
+function bwSetAntwort(id, text) {
+  const list = _bwLoad();
+  const b = list.find(b => b.id === id);
+  if (!b) return;
+  b.antwort    = text;
+  b.beantwortet = true;
+  _bwSave(list);
+  renderBewertungenTab();
+}
+
+function bwCopyVorlage(text) {
+  const copy = () => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        const el = document.getElementById('bw-kopiert-hint');
+        if (el) { el.style.display = 'inline'; setTimeout(() => { el.style.display = 'none'; }, 2000); }
+      })
+      .catch(() => prompt('Text kopieren (Strg+C):', text));
+  };
+  copy();
+}
+
+function bwAddBewertung() {
+  const formId = 'bw-neu-form';
+  const existing = document.getElementById(formId);
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.getElementById('panel-bewertungen');
+  if (!panel) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const formHtml = `
+    <div id="${formId}" style="background:#fff8f6;border:2px solid #8B0000;border-radius:16px;padding:20px;margin-bottom:20px">
+      <h3 style="font-size:18px;font-weight:800;color:#261816;margin:0 0 16px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:22px">⭐</span> Neue Bewertung erfassen
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:13px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Plattform</label>
+            <select id="bw-neu-plattform" style="width:100%;padding:12px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:15px;font-family:inherit;background:#fff;color:#261816">
+              <option value="google">Google</option>
+              <option value="lieferando">Lieferando</option>
+              <option value="tripadvisor">TripAdvisor</option>
+              <option value="sonstige">Sonstige</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Sterne</label>
+            <select id="bw-neu-sterne" style="width:100%;padding:12px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:15px;font-family:inherit;background:#fff;color:#261816">
+              <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+              <option value="4">⭐⭐⭐⭐ (4)</option>
+              <option value="3">⭐⭐⭐ (3)</option>
+              <option value="2">⭐⭐ (2)</option>
+              <option value="1">⭐ (1)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Datum</label>
+          <input id="bw-neu-datum" type="date" value="${today}"
+            style="width:100%;padding:12px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:15px;font-family:inherit;color:#261816;box-sizing:border-box"/>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Bewertungstext</label>
+          <textarea id="bw-neu-text" rows="3" placeholder="Bewertungstext des Kunden..."
+            style="width:100%;padding:12px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:15px;font-family:inherit;color:#261816;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button onclick="bwNeuSpeichern()"
+            style="flex:1;min-height:48px;padding:12px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
+            Speichern
+          </button>
+          <button onclick="document.getElementById('${formId}').remove()"
+            style="min-height:48px;padding:12px 20px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  panel.insertAdjacentHTML('afterbegin', formHtml);
+  const el = document.getElementById('bw-neu-text');
+  if (el) el.focus();
+}
+
+function bwNeuSpeichern() {
+  const plattform = (document.getElementById('bw-neu-plattform') || {}).value || 'sonstige';
+  const sterne    = parseInt((document.getElementById('bw-neu-sterne')    || {}).value || '5');
+  const datum     = (document.getElementById('bw-neu-datum')     || {}).value || new Date().toISOString().slice(0,10);
+  const text      = ((document.getElementById('bw-neu-text')     || {}).value || '').trim();
+
+  bwSaveBewertung({
+    id: Date.now(),
+    plattform,
+    sterne,
+    text,
+    antwort: '',
+    datum,
+    beantwortet: false,
+  });
+}
+
+function bwEditBewertung(id) {
+  const list = _bwLoad();
+  const b = list.find(x => x.id === id);
+  if (!b) return;
+
+  const existingId = 'bw-edit-' + id;
+  const existing = document.getElementById(existingId);
+  if (existing) { existing.remove(); return; }
+
+  const card = document.getElementById('bw-card-' + id);
+  if (!card) return;
+
+  const PLATTFORM_OPTS = ['google','lieferando','tripadvisor','sonstige'];
+  const sterneOpts = [5,4,3,2,1].map(s =>
+    `<option value="${s}" ${b.sterne === s ? 'selected' : ''}>${'⭐'.repeat(s)} (${s})</option>`
+  ).join('');
+  const plattOpts = PLATTFORM_OPTS.map(p =>
+    `<option value="${p}" ${b.plattform === p ? 'selected' : ''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`
+  ).join('');
+
+  const editHtml = `
+    <div id="${existingId}" style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:16px;margin-top:12px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Plattform</label>
+            <select id="bw-edit-plattform-${id}" style="width:100%;padding:10px 12px;border:1px solid #e3beb8;border-radius:8px;font-family:inherit;font-size:14px">${plattOpts}</select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Sterne</label>
+            <select id="bw-edit-sterne-${id}" style="width:100%;padding:10px 12px;border:1px solid #e3beb8;border-radius:8px;font-family:inherit;font-size:14px">${sterneOpts}</select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Datum</label>
+            <input id="bw-edit-datum-${id}" type="date" value="${b.datum || ''}"
+              style="width:100%;padding:10px 12px;border:1px solid #e3beb8;border-radius:8px;font-family:inherit;font-size:14px;box-sizing:border-box"/>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Bewertungstext</label>
+          <textarea id="bw-edit-text-${id}" rows="3"
+            style="width:100%;padding:10px 12px;border:1px solid #e3beb8;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box">${escHtml(b.text || '')}</textarea>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Antwort</label>
+          <textarea id="bw-edit-antwort-${id}" rows="3"
+            style="width:100%;padding:10px 12px;border:1px solid #e3beb8;border-radius:8px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box">${escHtml(b.antwort || '')}</textarea>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="bwEditSpeichern(${id})"
+            style="flex:1;min-height:44px;padding:10px;background:#8B0000;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
+            Speichern
+          </button>
+          <button onclick="document.getElementById('${existingId}').remove()"
+            style="min-height:44px;padding:10px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit">
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  card.insertAdjacentHTML('beforeend', editHtml);
+}
+
+function bwEditSpeichern(id) {
+  const list = _bwLoad();
+  const b = list.find(x => x.id === id);
+  if (!b) return;
+  b.plattform   = (document.getElementById('bw-edit-plattform-' + id) || {}).value || b.plattform;
+  b.sterne      = parseInt((document.getElementById('bw-edit-sterne-' + id)   || {}).value || b.sterne);
+  b.datum       = (document.getElementById('bw-edit-datum-' + id)     || {}).value || b.datum;
+  b.text        = ((document.getElementById('bw-edit-text-' + id)     || {}).value || '').trim();
+  const antwort = ((document.getElementById('bw-edit-antwort-' + id)  || {}).value || '').trim();
+  b.antwort     = antwort;
+  b.beantwortet = antwort.length > 0;
+  _bwSave(list);
+  renderBewertungenTab();
+}
+
+function renderBewertungenTab() {
+  const panel = document.getElementById('panel-bewertungen');
+  if (!panel) return;
+
+  const bewertungen = _bwLoad();
+
+  // ── Statistik je Plattform ───────────────────────────────────
+  const PLATTFORMEN = ['google', 'lieferando', 'tripadvisor', 'sonstige'];
+  const PLATT_LABEL = { google: 'Google', lieferando: 'Lieferando', tripadvisor: 'TripAdvisor', sonstige: 'Sonstige' };
+  const PLATT_ICON  = { google: '🔵', lieferando: '🟠', tripadvisor: '🟢', sonstige: '⚪' };
+
+  const stats = {};
+  for (const p of PLATTFORMEN) {
+    const gruppe = bewertungen.filter(b => b.plattform === p);
+    const avg    = gruppe.length ? (gruppe.reduce((s, b) => s + b.sterne, 0) / gruppe.length) : null;
+    stats[p]     = { count: gruppe.length, avg };
+  }
+
+  // ── Filter-State ─────────────────────────────────────────────
+  if (!window._bwFilter) window._bwFilter = 'alle';
+
+  const filteredBw = window._bwFilter === 'alle'
+    ? bewertungen
+    : window._bwFilter === 'unbeantwortet'
+      ? bewertungen.filter(b => !b.beantwortet)
+      : bewertungen.filter(b => b.plattform === window._bwFilter);
+
+  // ── HTML aufbauen ────────────────────────────────────────────
+  let html = '';
+
+  // HEADER: Plattform-Statistiken
+  const plattWithData = PLATTFORMEN.filter(p => stats[p].count > 0);
+  if (plattWithData.length > 0) {
+    html += `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+        ${plattWithData.map(p => `
+          <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:14px 16px;text-align:center;cursor:pointer;transition:border-color .15s"
+               onclick="window._bwFilter='${p}';renderBewertungenTab()"
+               onmouseover="this.style.borderColor='#8B0000'" onmouseout="this.style.borderColor='${window._bwFilter===p?'#8B0000':'#e3beb8'}'">
+            <div style="font-size:20px;margin-bottom:4px">${PLATT_ICON[p]}</div>
+            <div style="font-size:22px;font-weight:800;color:#261816">
+              ${stats[p].avg !== null ? ('⭐ ' + stats[p].avg.toFixed(1)) : '—'}
+            </div>
+            <div style="font-size:13px;font-weight:700;color:#5a403c;margin-top:2px">${PLATT_LABEL[p]}</div>
+            <div style="font-size:12px;color:#8d6562;margin-top:2px">${stats[p].count} Bewertung${stats[p].count !== 1 ? 'en' : ''}</div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // AKTIONS-BEREICH
+  html += `
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+      <button onclick="bwAddBewertung()"
+        style="min-height:48px;padding:12px 20px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px"
+        onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'">
+        <span style="font-size:20px">+</span> Neue Bewertung erfassen
+      </button>
+      <select onchange="window._bwFilter=this.value;renderBewertungenTab()"
+        style="min-height:48px;padding:12px 16px;border:1.5px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;background:#fff;color:#261816;cursor:pointer">
+        <option value="alle"         ${window._bwFilter==='alle'?'selected':''}>Alle Plattformen</option>
+        <option value="google"       ${window._bwFilter==='google'?'selected':''}>Google</option>
+        <option value="lieferando"   ${window._bwFilter==='lieferando'?'selected':''}>Lieferando</option>
+        <option value="tripadvisor"  ${window._bwFilter==='tripadvisor'?'selected':''}>TripAdvisor</option>
+        <option value="sonstige"     ${window._bwFilter==='sonstige'?'selected':''}>Sonstige</option>
+        <option value="unbeantwortet" ${window._bwFilter==='unbeantwortet'?'selected':''}>Unbeantwortet</option>
+      </select>
+      <span style="font-size:13px;color:#8d6562">${filteredBw.length} Bewertung${filteredBw.length !== 1 ? 'en' : ''}</span>
+    </div>`;
+
+  // SCHNELL-ANTWORT VORLAGEN
+  const VORLAGEN = [
+    { label: '👍 Positiv (5⭐)',  text: 'Vielen Dank für Ihre tolle Bewertung! Es freut uns sehr, dass Ihnen bei uns alles gefallen hat. Wir freuen uns auf Ihren nächsten Besuch! 🍕' },
+    { label: '🙂 Gut (4⭐)',      text: 'Herzlichen Dank für Ihre positive Bewertung! Ihr Feedback motiviert uns täglich, unser Bestes zu geben. Bis bald in der Pizzeria San Carino!' },
+    { label: '😐 Neutral (3⭐)',  text: 'Danke für Ihr ehrliches Feedback! Wir nehmen Ihre Anmerkungen ernst und arbeiten kontinuierlich daran, unser Angebot zu verbessern. Gerne laden wir Sie ein, uns erneut zu besuchen.' },
+    { label: '😟 Kritisch (1-2⭐)', text: 'Wir entschuldigen uns aufrichtig für Ihre schlechte Erfahrung. Ihr Feedback ist uns sehr wichtig. Bitte kontaktieren Sie uns direkt, damit wir das Problem lösen können.' },
+    { label: '🛵 Lieferando',     text: 'Vielen Dank für Ihre Bewertung auf Lieferando! Wir sind stets bemüht, Ihnen die beste Pizza pünktlich zu liefern. Wir freuen uns auf Ihre nächste Bestellung!' },
+  ];
+
+  html += `
+    <div style="background:#fff;border:1px solid #e3beb8;border-radius:16px;padding:16px 18px;margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="font-size:16px;font-weight:800;color:#261816;margin:0">Schnell-Antwort Vorlagen</h3>
+        <span id="bw-kopiert-hint" style="display:none;font-size:12px;font-weight:700;color:#16a34a;background:#f0fdf4;padding:4px 10px;border-radius:8px">✓ Kopiert!</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+        ${VORLAGEN.map(v => `
+          <button onclick="bwCopyVorlage(${JSON.stringify(v.text)})"
+            style="min-height:48px;padding:10px 12px;background:#fff8f6;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-weight:600;color:#261816;cursor:pointer;font-family:inherit;text-align:left;transition:border-color .15s"
+            onmouseover="this.style.borderColor='#8B0000'" onmouseout="this.style.borderColor='#e3beb8'">
+            ${escHtml(v.label)}
+          </button>`).join('')}
+      </div>
+    </div>`;
+
+  // BEWERTUNGS-LISTE
+  if (bewertungen.length === 0) {
+    html += `
+      <div style="text-align:center;padding:60px 20px;background:#fff;border-radius:16px;border:1.5px dashed #e3beb8">
+        <span style="font-size:48px;display:block;margin-bottom:16px">⭐</span>
+        <h3 style="font-size:20px;font-weight:700;color:#261816;margin:0 0 8px">Noch keine Bewertungen erfasst</h3>
+        <p style="font-size:15px;color:#5a403c;max-width:360px;margin:0 auto 20px;line-height:1.6">
+          Erfasse Google-, Lieferando- oder TripAdvisor-Bewertungen, um den Überblick zu behalten.
+        </p>
+        <button onclick="bwAddBewertung()"
+          style="min-height:48px;padding:12px 24px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
+          + Erste Bewertung erfassen
+        </button>
+      </div>`;
+  } else if (filteredBw.length === 0) {
+    html += `
+      <div style="text-align:center;padding:40px 20px;background:#fff;border-radius:16px;border:1px solid #e3beb8">
+        <p style="font-size:15px;color:#8d6562">Keine Bewertungen für diesen Filter</p>
+        <button onclick="window._bwFilter='alle';renderBewertungenTab()"
+          style="margin-top:12px;padding:10px 20px;background:#8B0000;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">
+          Alle anzeigen
+        </button>
+      </div>`;
+  } else {
+    html += `<div style="display:flex;flex-direction:column;gap:14px">`;
+    for (const b of filteredBw) {
+      const sterne   = Math.min(5, Math.max(1, b.sterne || 1));
+      const sterneHtml = '⭐'.repeat(sterne) + (5 - sterne > 0 ? '<span style="opacity:.3">' + '⭐'.repeat(5 - sterne) + '</span>' : '');
+      const datumStr = b.datum ? fmtDate(b.datum) : '—';
+      const plattfarbe = { google: '#4285f4', lieferando: '#ff6000', tripadvisor: '#00af87', sonstige: '#6b7280' };
+      const pfarbe = plattfarbe[b.plattform] || '#6b7280';
+
+      html += `
+        <div id="bw-card-${b.id}" style="background:#fff;border-radius:16px;border:1px solid #e3beb8;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)">
+          <div style="padding:16px 18px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span style="font-size:20px">${sterneHtml}</span>
+                <span style="background:${pfarbe}22;color:${pfarbe};border:1px solid ${pfarbe}44;border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700">
+                  ${PLATT_LABEL[b.plattform] || b.plattform}
+                </span>
+                <span style="font-size:13px;color:#8d6562">${datumStr}</span>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onclick="bwEditBewertung(${b.id})"
+                  style="min-height:40px;padding:8px 14px;background:#fff8f6;border:1px solid #e3beb8;border-radius:8px;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit"
+                  onmouseover="this.style.borderColor='#8B0000'" onmouseout="this.style.borderColor='#e3beb8'">
+                  Bearbeiten
+                </button>
+                <button onclick="bwDeleteBewertung(${b.id})"
+                  style="min-height:40px;padding:8px 12px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;font-size:13px;font-weight:600;color:#dc2626;cursor:pointer;font-family:inherit"
+                  onmouseover="this.style.borderColor='#dc2626'" onmouseout="this.style.borderColor='#fecaca'">
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            ${b.text ? `
+              <p style="font-size:15px;color:#261816;line-height:1.6;margin:0 0 12px;font-style:italic">
+                „${escHtml(b.text)}"
+              </p>` : ''}
+
+            ${b.beantwortet && b.antwort ? `
+              <div style="background:#f0fdf4;border-left:3px solid #16a34a;border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:12px">
+                <p style="font-size:12px;font-weight:700;color:#16a34a;margin:0 0 4px">✅ Unsere Antwort:</p>
+                <p style="font-size:14px;color:#374151;margin:0;line-height:1.5">${escHtml(b.antwort)}</p>
+              </div>` : `
+              <div style="background:#fff8f6;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;padding:8px 14px;margin-bottom:12px">
+                <p style="font-size:12px;font-weight:700;color:#d97706;margin:0">⏳ Noch nicht beantwortet</p>
+              </div>`}
+
+            ${!b.beantwortet ? `
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <textarea id="bw-antwort-inp-${b.id}" rows="2" placeholder="Antwort eingeben oder Vorlage kopieren..."
+                  style="flex:1;min-width:200px;padding:10px 12px;border:1px solid #e3beb8;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+                <button onclick="bwSetAntwort(${b.id},(document.getElementById('bw-antwort-inp-${b.id}')||{}).value||'')"
+                  style="min-height:48px;padding:10px 16px;background:#8B0000;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">
+                  Antwort speichern
+                </button>
+              </div>` : ''}
+          </div>
+        </div>`;
+    }
+    html += `</div>`;
+  }
+
+  panel.innerHTML = html;
+}

@@ -156,6 +156,8 @@ function _buildEinkaufslisteHTML() {
   if (total > 0) {
     html += '<button onclick="printEinkaufsliste()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#fff;color:#5a403c;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">';
     html += '<span class="material-symbols-outlined" style="font-size:16px">print</span>Drucken</button>';
+    html += '<button onclick="exportEinkaufslistePDF()" style="background:#8B0000;color:white;padding:10px 16px;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px">';
+    html += '<span class="material-symbols-outlined" style="font-size:16px">picture_as_pdf</span>PDF exportieren</button>';
     html += '<button onclick="elClearAll()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;background:#fff;color:#93000a;border:1.5px solid #ffdad6;border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600">';
     html += '<span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>Leeren</button>';
   }
@@ -343,6 +345,239 @@ function _buildEinkaufslisteHTML() {
   }
 
   return html;
+}
+
+// ═══ PDF EXPORT ══════════════════════════════════════════════════
+
+function exportEinkaufslistePDF() {
+  try {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      alert('PDF-Export wird geladen, bitte erneut versuchen');
+      return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const list = getEinkaufsliste();
+    const now  = new Date();
+    const dateStr = now.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' });
+    const fileDate = now.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\./g, '-');
+
+    const pageW  = doc.internal.pageSize.getWidth();
+    const pageH  = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    const colW   = pageW - margin * 2;
+
+    // ── Farben & Hilfsfunktionen ──────────────────────────────────
+    function setRGB(r, g, b)      { doc.setTextColor(r, g, b); }
+    function setFillRGB(r, g, b)  { doc.setFillColor(r, g, b); }
+    function setDrawRGB(r, g, b)  { doc.setDrawColor(r, g, b); }
+
+    // ── Header-Hintergrund ────────────────────────────────────────
+    setFillRGB(97, 0, 0);
+    doc.rect(0, 0, pageW, 36, 'F');
+
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    setRGB(255, 255, 255);
+    doc.text('PIZZERIA SAN CARINO', margin, 16);
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    setRGB(255, 200, 200);
+    doc.text('Einkaufsliste  \u2014  ' + dateStr, margin, 26);
+
+    // ── Trennlinie unter Header ───────────────────────────────────
+    setDrawRGB(139, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 38, pageW - margin, 38);
+
+    let y = 46;
+
+    // ── Leer-State ────────────────────────────────────────────────
+    if (list.length === 0) {
+      doc.setFontSize(13);
+      doc.setFont(undefined, 'italic');
+      setRGB(100, 100, 100);
+      doc.text('Einkaufsliste ist leer.', margin, y);
+      doc.setFontSize(9);
+      setRGB(150, 150, 150);
+      doc.text('Erstellt: ' + dateStr + ' ' + timeStr, margin, pageH - 12);
+      doc.save('einkaufsliste_' + fileDate + '.pdf');
+      return;
+    }
+
+    // ── Gruppierung nach Shop ─────────────────────────────────────
+    const SHOP_ORDER = ['metro', 'billa', 'lidl', 'spar'];
+    var groupMap  = {};
+    var groupKeys = [];
+
+    for (var i = 0; i < list.length; i++) {
+      var it  = list[i];
+      var key = (it.shopId || '').toLowerCase() || 'sonstige';
+      if (!groupMap[key]) {
+        groupMap[key] = { label: it.shop || 'Sonstige', items: [] };
+        groupKeys.push(key);
+      }
+      groupMap[key].items.push(it);
+    }
+
+    // Sortierung: bekannte Shops zuerst, dann Rest
+    groupKeys.sort(function(a, b) {
+      var ia = SHOP_ORDER.indexOf(a);
+      var ib = SHOP_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+
+    // ── Seitenumbruch-Hilfsfunktion ───────────────────────────────
+    function checkPageBreak(needed) {
+      if (y + needed > pageH - 20) {
+        doc.addPage();
+        y = 16;
+        // Kopfzeile auf Folgeseiten
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        setRGB(150, 150, 150);
+        doc.text('Pizzeria San Carino  \u2014  Einkaufsliste ' + dateStr, margin, y);
+        setDrawRGB(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y + 3, pageW - margin, y + 3);
+        y += 10;
+      }
+    }
+
+    var grandTotal = 0;
+
+    for (var gi = 0; gi < groupKeys.length; gi++) {
+      var gk    = groupKeys[gi];
+      var group = groupMap[gk];
+
+      checkPageBreak(20);
+
+      // Shop-Header Hintergrund
+      setFillRGB(240, 240, 240);
+      doc.rect(margin, y - 5, colW, 10, 'F');
+
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      setRGB(38, 24, 22);
+      doc.text(group.label.toUpperCase(), margin + 3, y + 1);
+
+      y += 9;
+
+      // Trennlinie unter Shop-Header
+      setDrawRGB(180, 180, 180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageW - margin, y);
+      y += 5;
+
+      var shopTotal = 0;
+
+      for (var ii = 0; ii < group.items.length; ii++) {
+        var item     = group.items[ii];
+        var isDone   = !!item.done;
+        var itemCost = (item.preis && item.menge) ? parseFloat(item.preis) * parseFloat(item.menge) : 0;
+
+        checkPageBreak(8);
+
+        if (isDone) {
+          setRGB(170, 170, 170);
+        } else {
+          setRGB(38, 24, 22);
+        }
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, isDone ? 'normal' : 'normal');
+
+        // Checkbox-Symbol
+        var checkMark = isDone ? '\u2713' : '\u25A1';
+        doc.text(checkMark, margin + 1, y);
+
+        // Produktname (ggf. Durchstrich simulieren via hellgrau bei done)
+        var nameX = margin + 8;
+        doc.text(item.name || '', nameX, y);
+
+        // Menge + Einheit
+        var qtyStr = String(item.menge || 1) + ' ' + (item.einheit || 'Stk');
+        var qtyW   = doc.getTextWidth(qtyStr);
+        var qtyX   = pageW - margin - 38 - qtyW;
+        if (qtyX > nameX + 2) {
+          doc.text(qtyStr, qtyX, y);
+        }
+
+        // Preis
+        if (itemCost > 0.001) {
+          var priceStr = '\u20AC' + itemCost.toFixed(2).replace('.', ',');
+          var priceX   = pageW - margin - doc.getTextWidth(priceStr);
+          doc.text(priceStr, priceX, y);
+          if (!isDone) shopTotal += itemCost;
+        }
+
+        y += 7;
+      }
+
+      // Trennlinie + Summe pro Shop
+      setDrawRGB(180, 180, 180);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageW - margin, y);
+      y += 5;
+
+      if (shopTotal > 0.001) {
+        checkPageBreak(8);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        setRGB(97, 0, 0);
+        var shopSumLabel = 'Summe ' + group.label + ':';
+        var shopSumStr   = '\u20AC' + shopTotal.toFixed(2).replace('.', ',');
+        doc.text(shopSumLabel, margin + 3, y);
+        doc.text(shopSumStr, pageW - margin - doc.getTextWidth(shopSumStr), y);
+        grandTotal += shopTotal;
+        y += 5;
+      }
+
+      y += 6; // Abstand zwischen Shops
+    }
+
+    // ── Gesamtsumme ───────────────────────────────────────────────
+    if (grandTotal > 0.001) {
+      checkPageBreak(20);
+
+      setDrawRGB(97, 0, 0);
+      doc.setLineWidth(0.8);
+      doc.line(margin, y, pageW - margin, y);
+      y += 7;
+
+      setFillRGB(252, 240, 238);
+      doc.rect(margin, y - 5, colW, 12, 'F');
+
+      doc.setFontSize(13);
+      doc.setFont(undefined, 'bold');
+      setRGB(97, 0, 0);
+      doc.text('GESAMT:', margin + 3, y + 2);
+
+      var totalStr = '\u20AC' + grandTotal.toFixed(2).replace('.', ',');
+      doc.text(totalStr, pageW - margin - doc.getTextWidth(totalStr), y + 2);
+
+      y += 14;
+    }
+
+    // ── Fusszeile ─────────────────────────────────────────────────
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    setRGB(160, 160, 160);
+    doc.text('Erstellt: ' + dateStr + ' ' + timeStr + '   \u00B7   Pizzeria San Carino   \u00B7   Internes Einkaufssystem', margin, pageH - 10);
+
+    doc.save('einkaufsliste_' + fileDate + '.pdf');
+
+  } catch (err) {
+    console.error('PDF-Export Fehler:', err);
+    alert('PDF-Export fehlgeschlagen: ' + err.message);
+  }
 }
 
 // ═══ PRINT ═══════════════════════════════════════════════════════

@@ -16,6 +16,9 @@
   <script src="users.js"></script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
   <script id="tailwind-config">
@@ -1278,6 +1281,8 @@
     <div class="nav-group" data-grp="betrieb">
       <button class="tab-btn" style="gap:6px"><span style="font-size:16px">✅</span>Betrieb<span class="material-symbols-outlined" style="font-size:15px;margin-left:1px">expand_more</span></button>
       <div class="nav-grp-dd">
+        <button data-nav-tab="heute" onclick="switchTab('heute')" class="dd-item"><span style="font-size:14px">📅</span>Heute</button>
+        <div class="nav-grp-dd-sep"></div>
         <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="dd-item"><span style="font-size:14px">✅</span>Checkliste<span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0">✓</span></button>
         <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')" class="dd-item"><span style="font-size:14px">📋</span>Schicht-Check</button>
         <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben')" class="dd-item"><span style="font-size:14px">✅</span>Aufgaben</button>
@@ -1341,6 +1346,7 @@
   <div class="ts-group" id="tsg-betrieb">
     <button class="ts-grp-btn" onclick="tsSidebarToggle('betrieb')"><span class="ts-icon">✅</span><span class="ts-label">Betrieb</span></button>
     <div class="ts-sub">
+      <button class="ts-sub-item" data-nav-tab="heute" onclick="switchTab('heute')"><span class="ts-sub-icon">📅</span>Heute</button>
       <button class="ts-sub-item" data-nav-tab="checkliste" onclick="switchTab('checkliste')"><span class="ts-sub-icon">✅</span>Checkliste</button>
       <button class="ts-sub-item" data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')"><span class="ts-sub-icon">📋</span>Schicht-Check</button>
       <button class="ts-sub-item" data-nav-tab="aufgaben" onclick="switchTab('aufgaben')"><span class="ts-sub-icon">✅</span>Aufgaben</button>
@@ -1393,6 +1399,8 @@
   <div id="panel-fehlmaterial" style="display:none"></div>
   <div id="panel-checkliste"   style="display:none"></div>
   <div id="panel-business"     style="display:none"></div>
+  <div id="panel-heute"        style="display:none"></div>
+  <div id="panel-bewertungen"  style="display:none"></div>
   <div id="panel-dashboard"    style="display:none"></div>
   <div id="panel-speisekarte"  style="display:none"></div>
   <div id="panel-lieferanten"  style="display:none"></div>
@@ -1424,10 +1432,10 @@
 
 <!-- ═══ MOBILE BOTTOM NAV <768px — 5 Buttons ═══ -->
 <nav id="mobile-bottom-nav">
-  <button data-bottom-nav="dashboard" onclick="switchTab('dashboard')"
+  <button data-bottom-nav="heute" onclick="switchTab('heute')"
     style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
-    <span style="font-size:20px">🏠</span>
-    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Dashboard</span>
+    <span style="font-size:20px">📅</span>
+    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Heute</span>
   </button>
   <button data-bottom-nav="aufgaben" onclick="switchTab('aufgaben')"
     style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
@@ -1491,6 +1499,7 @@
   <div class="bs-section">
     <div class="bs-title">Betrieb</div>
     <div class="bs-grid">
+      <button data-drawer-nav="heute" onclick="switchTab('heute');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>Heute</button>
       <button data-drawer-nav="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📋</span>Schicht-Check</button>
       <button data-drawer-nav="dienstplan" onclick="switchTab('dienstplan');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>Dienstplan</button>
       <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🔍</span>Suche</button>
@@ -6987,7 +6996,7 @@ const NAV_GROUPS = [
   { id:'kombis',   icon:'shopping_cart',   label:'Kombis',    tabs:['kombis'],                                          mobile:true  },
   { id:'einkauf',  icon:'receipt_long',    label:'Einkauf',   tabs:['angebote','einkaufsliste','suche','upload','verlauf'], mobile:true  },
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
-  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
+  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
   { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'], mobile:false },
 ];
@@ -7054,7 +7063,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -7115,6 +7124,7 @@ function switchTab(tab) {
   if (tab === 'buchhaltung')   renderBuchhaltungTab();
   if (tab === 'konkurrenz')    renderKonkurrenzTab();
   if (tab === 'bewertungen')   renderBewertungenTab();
+  if (tab === 'heute')         renderHeuteTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -10644,10 +10654,10 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
-  manager:  ['dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
-  employee: ['dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
-  kitchen:  ['fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
+  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
+  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
+  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
+  kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
 };
 
 const ROLE_COLORS = {
