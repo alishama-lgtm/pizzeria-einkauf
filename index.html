@@ -1617,6 +1617,11 @@ const syncManager = {
               console.log('📥 Remote: ' + msg.key + ' (von ' + (msg.updatedBy || '?') + ')');
             }
           }
+
+          // ── Inbox: neue Datei erkannt ──
+          if (msg.type === 'inbox_update' && msg.entry) {
+            _inboxOnNewFile(msg.entry);
+          }
         } catch (e) {
           console.error('Sync Parse-Fehler:', e);
         }
@@ -14691,6 +14696,235 @@ function _markField(id, isError) {
     el.classList.remove('field-error');
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// INBOX — Ordner-Watcher Benachrichtigungen
+// ═══════════════════════════════════════════════════════════════
+
+const _INBOX_FOLDER_LABELS = {
+  rechnungen:  { label: 'Rechnung',   icon: 'receipt_long',   color: '#610000' },
+  preise:      { label: 'Preisliste', icon: 'price_change',   color: '#1565c0' },
+  lieferanten: { label: 'Lieferant',  icon: 'local_shipping', color: '#2e7d32' },
+  lager:       { label: 'Lager',      icon: 'inventory_2',    color: '#e65100' },
+};
+
+// Wird aufgerufen wenn server.js eine neue Datei meldet (via WebSocket)
+function _inboxOnNewFile(entry) {
+  const def = _INBOX_FOLDER_LABELS[entry.folder] || { label: entry.folder, icon: 'folder', color: '#555' };
+  _showToast('📥 Neue ' + def.label + ': ' + entry.filename, 'info');
+
+  // Badge auf Heute-Tab aktualisieren
+  _inboxUpdateBadge();
+
+  // Wenn Heute-Tab gerade aktiv → sofort neu rendern
+  if (typeof renderHeuteTab === 'function') {
+    const panel = document.getElementById('panel-heute');
+    if (panel && panel.style.display !== 'none') renderHeuteTab();
+  }
+}
+
+// Badge (rote Zahl) auf Heute-Tab setzen
+async function _inboxUpdateBadge() {
+  try {
+    const r = await fetch('/api/inbox');
+    if (!r.ok) return;
+    const data = await r.json();
+    const count = data.pending || 0;
+    // Badge auf alle Heute-Buttons setzen
+    document.querySelectorAll('[data-nav-tab="heute"],[data-drawer-nav="heute"]').forEach(btn => {
+      let badge = btn.querySelector('._inbox-badge');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = '_inbox-badge';
+          badge.style.cssText = 'position:absolute;top:2px;right:2px;background:#ba1a1a;color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 5px;min-width:14px;text-align:center;line-height:1.4;pointer-events:none';
+          btn.style.position = 'relative';
+          btn.appendChild(badge);
+        }
+        badge.textContent = count > 9 ? '9+' : count;
+      } else if (badge) {
+        badge.remove();
+      }
+    });
+  } catch(_) {}
+}
+
+// Inbox-Sektion im Heute-Tab rendern
+async function _renderInboxSection() {
+  let html = '';
+  try {
+    const r = await fetch('/api/inbox');
+    if (!r.ok) return '';
+    const data = await r.json();
+    const pending = (data.items || []).filter(e => e.status === 'pending');
+    if (!pending.length) return '';
+
+    html += '<div style="background:#fff;border-radius:16px;border:2px solid #ffd54f;margin-bottom:20px;overflow:hidden">';
+    html += '<div style="background:linear-gradient(135deg,#fff8e1,#fff3cd);padding:14px 18px;display:flex;align-items:center;justify-content:space-between">';
+    html += '<div style="display:flex;align-items:center;gap:8px"><span class="material-symbols-outlined" style="font-size:20px;color:#f0a500">move_to_inbox</span>';
+    html += '<span style="font-weight:800;font-size:14px;color:#5d4037">Inbox</span>';
+    html += '<span style="background:#ba1a1a;color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px">' + pending.length + ' neu</span></div>';
+    html += '<button onclick="_inboxClearAll()" style="background:none;border:1px solid #e0b800;color:#8d6e63;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Alle erledigt</button>';
+    html += '</div>';
+    html += '<div style="padding:12px 18px;display:flex;flex-direction:column;gap:8px">';
+
+    for (const e of pending) {
+      const def = _INBOX_FOLDER_LABELS[e.folder] || { label: e.folder, icon: 'folder', color: '#555' };
+      const d = e.data;
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fffbf0;border-radius:12px;border:1px solid #f0e0a0">';
+      html += '<span class="material-symbols-outlined" style="font-size:22px;color:' + def.color + ';flex-shrink:0">' + def.icon + '</span>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-size:13px;font-weight:700;color:#261816;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(e.filename) + '</div>';
+      html += '<div style="font-size:11px;color:#8d6562;margin-top:2px">';
+      if (e.folder === 'rechnungen' && d) {
+        html += (d.datum || '') + (d.lieferant ? ' · ' + _esc(d.lieferant) : '') + (d.betrag ? ' · € ' + d.betrag.toFixed(2) : '');
+      } else if (d && d.count) {
+        html += def.label + ' · ' + d.count + ' Einträge';
+      } else {
+        html += def.label + ' · ' + new Date(e.added).toLocaleString('de-AT');
+      }
+      html += '</div></div>';
+      html += '<div style="display:flex;gap:6px;flex-shrink:0">';
+      if (e.folder === 'rechnungen') {
+        html += '<button onclick="_inboxAddRechnung(\'' + _esc(e.id) + '\')" style="padding:6px 12px;background:#610000;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">+ Verlauf</button>';
+      } else if (e.folder === 'preise') {
+        html += '<button onclick="_inboxImportPreise(\'' + _esc(e.id) + '\')" style="padding:6px 12px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Importieren</button>';
+      } else if (e.folder === 'lager') {
+        html += '<button onclick="_inboxImportLager(\'' + _esc(e.id) + '\')" style="padding:6px 12px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Importieren</button>';
+      }
+      html += '<button onclick="_inboxDone(\'' + _esc(e.id) + '\')" style="padding:6px 10px;background:#f0f0f5;color:#8d6562;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✓</button>';
+      html += '</div></div>';
+    }
+
+    html += '</div></div>';
+  } catch(_) {
+    return '';
+  }
+  return html;
+}
+
+async function _inboxDone(id) {
+  await fetch('/api/inbox/done/' + id, { method: 'POST' });
+  _inboxUpdateBadge();
+  if (typeof renderHeuteTab === 'function') renderHeuteTab();
+}
+
+async function _inboxClearAll() {
+  const r = await fetch('/api/inbox');
+  const data = await r.json();
+  const pending = (data.items || []).filter(e => e.status === 'pending');
+  for (const e of pending) await fetch('/api/inbox/done/' + e.id, { method: 'POST' });
+  _inboxUpdateBadge();
+  if (typeof renderHeuteTab === 'function') renderHeuteTab();
+  _showToast('✓ Inbox geleert', 'success');
+}
+
+// Rechnung aus Inbox in den Verlauf-Tab übernehmen
+async function _inboxAddRechnung(id) {
+  try {
+    const r = await fetch('/api/inbox');
+    const data = await r.json();
+    const entry = (data.items || []).find(e => e.id === id);
+    if (!entry || !entry.data) { _showToast('Fehler: Eintrag nicht gefunden', 'error'); return; }
+    const d = entry.data;
+
+    // In localStorage-Verlauf speichern
+    const verlauf = JSON.parse(localStorage.getItem('pizzeria_verlauf') || '[]');
+    verlauf.unshift({
+      id: 'inbox_' + Date.now(),
+      datum: d.datum || new Date().toISOString().slice(0,10),
+      lieferant: d.lieferant || 'Unbekannt',
+      betrag: d.betrag || 0,
+      datei: entry.filename,
+      quelle: 'inbox',
+      artikel: [],
+    });
+    localStorage.setItem('pizzeria_verlauf', JSON.stringify(verlauf));
+
+    await _inboxDone(id);
+    _showToast('✅ Rechnung in Verlauf übernommen', 'success');
+  } catch(e) {
+    _showToast('Fehler beim Übernehmen: ' + e.message, 'error');
+  }
+}
+
+// Preisliste importieren → Produkte aktualisieren
+async function _inboxImportPreise(id) {
+  try {
+    const r = await fetch('/api/inbox');
+    const data = await r.json();
+    const entry = (data.items || []).find(e => e.id === id);
+    if (!entry || !entry.data || !entry.data.rows) { _showToast('Kein CSV gefunden', 'error'); return; }
+
+    const rows = entry.data.rows;
+    const produkte = JSON.parse(localStorage.getItem('pizzeria_produkte') || '[]');
+    let updated = 0, added = 0;
+
+    for (const row of rows) {
+      const name  = row.produkt || row.name || row.artikel || '';
+      const preis = parseFloat((row.preis || row.price || '0').replace(',','.'));
+      const shop  = row.shop || row.geschaeft || '';
+      if (!name || !preis) continue;
+
+      const existing = produkte.find(p => p.name && p.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        existing.preis = preis;
+        existing.shop  = shop || existing.shop;
+        existing.aktualisiert = new Date().toISOString().slice(0,10);
+        updated++;
+      } else {
+        produkte.push({ id: 'inbox_' + Date.now() + '_' + added, name, preis, einheit: row.einheit || row.unit || 'Stk', shop, kategorie: row.kategorie || 'Sonstiges', aktualisiert: new Date().toISOString().slice(0,10) });
+        added++;
+      }
+    }
+    localStorage.setItem('pizzeria_produkte', JSON.stringify(produkte));
+    await _inboxDone(id);
+    _showToast('✅ ' + updated + ' aktualisiert, ' + added + ' neu hinzugefügt', 'success');
+  } catch(e) {
+    _showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// Lager importieren → Lagerbestand aktualisieren
+async function _inboxImportLager(id) {
+  try {
+    const r = await fetch('/api/inbox');
+    const data = await r.json();
+    const entry = (data.items || []).find(e => e.id === id);
+    if (!entry || !entry.data || !entry.data.rows) { _showToast('Kein CSV gefunden', 'error'); return; }
+
+    const rows = entry.data.rows;
+    const lager = JSON.parse(localStorage.getItem('pizzeria_lager') || '[]');
+    let updated = 0, added = 0;
+
+    for (const row of rows) {
+      const artikel = row.artikel || row.name || row.produkt || '';
+      const menge   = parseFloat((row.menge || row.quantity || '0').replace(',','.'));
+      if (!artikel) continue;
+
+      const existing = lager.find(l => l.artikel && l.artikel.toLowerCase() === artikel.toLowerCase());
+      if (existing) {
+        existing.menge = menge;
+        existing.einheit = row.einheit || row.unit || existing.einheit || 'Stk';
+        existing.mindestmenge = parseFloat(row.mindestmenge || existing.mindestmenge || 0);
+        updated++;
+      } else {
+        lager.push({ id: 'inbox_' + Date.now() + '_' + added, artikel, menge, einheit: row.einheit || 'Stk', mindestmenge: parseFloat(row.mindestmenge || 0), kategorie: row.kategorie || 'Sonstiges' });
+        added++;
+      }
+    }
+    localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
+    await _inboxDone(id);
+    _showToast('✅ Lager: ' + updated + ' aktualisiert, ' + added + ' neu', 'success');
+  } catch(e) {
+    _showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// Badge beim App-Start laden
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(_inboxUpdateBadge, 2000);
+});
 
 function _showToast(msg, type) {
   document.querySelectorAll('._toast-popup').forEach(el => el.remove());

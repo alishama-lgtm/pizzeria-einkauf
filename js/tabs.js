@@ -2439,8 +2439,17 @@ function renderHeuteTab() {
 
   // ── HTML bauen ───────────────────────────────────────────────
 
+  // INBOX async laden und in DOM einfügen (non-blocking)
+  if (typeof _renderInboxSection === 'function') {
+    _renderInboxSection().then(inboxHtml => {
+      const inboxEl = document.getElementById('_heute-inbox-container');
+      if (inboxEl && inboxHtml) inboxEl.innerHTML = inboxHtml;
+    });
+  }
+
   // HEADER
   let html = `
+    <div id="_heute-inbox-container"></div>
     <div style="margin-bottom:24px">
       <h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px">
         Guten Tag — ${wochentagDE}, ${datumDE}

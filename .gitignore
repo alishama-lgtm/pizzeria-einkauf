@@ -21,6 +21,9 @@ key.pem
 # Große Cache-Dateien
 hp-cache.json
 
+# Inbox-Queue (lokale Daten, nicht ins Repo)
+inbox-queue.json
+
 # Datenbank
 pizzeria.db
 

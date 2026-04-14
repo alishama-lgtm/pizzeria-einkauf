@@ -8,6 +8,7 @@ import os from 'os';
 import https from 'https';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
+import { startWatcher, setBroadcast, getQueue, markDone, deleteEntry, clearProcessed } from './server/watcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -428,6 +429,36 @@ app.put('/api/sync/:key', (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════
+// Inbox API — Ordner-Watcher Endpunkte
+// ════════════════════════════════════════════════════════════════════
+
+// Alle ausstehenden Einträge (oder gefiltert nach Ordner)
+app.get('/api/inbox', (req, res) => {
+  const folder = req.query.folder || null;
+  const q      = getQueue(folder);
+  const pending = q.filter(e => e.status === 'pending');
+  res.json({ total: q.length, pending: pending.length, items: q.slice(-100) });
+});
+
+// Eintrag als verarbeitet markieren
+app.post('/api/inbox/done/:id', (req, res) => {
+  const ok = markDone(req.params.id);
+  res.json({ ok });
+});
+
+// Eintrag löschen
+app.delete('/api/inbox/:id', (req, res) => {
+  deleteEntry(req.params.id);
+  res.json({ ok: true });
+});
+
+// Alle verarbeiteten löschen
+app.post('/api/inbox/clear-processed', (_req, res) => {
+  const remaining = clearProcessed();
+  res.json({ ok: true, remaining });
+});
+
+// ════════════════════════════════════════════════════════════════════
 // Start
 // ════════════════════════════════════════════════════════════════════
 function getLocalIP() {
@@ -440,10 +471,19 @@ function getLocalIP() {
   return '127.0.0.1';
 }
 
+// Inbox-Watcher mit WebSocket-Broadcast verbinden
+setBroadcast((msg) => {
+  const payload = JSON.stringify(msg);
+  for (const client of syncClients) {
+    if (client.readyState === 1) client.send(payload);
+  }
+});
+
 console.log('\n  Lade Preisdaten ...');
 loadHeissePreise().then(() => {
   const httpServer = app.listen(PORT, '0.0.0.0', () => {
     handleUpgrade(httpServer);
+    startWatcher();
     const ip = getLocalIP();
     console.log('\n' + '='.repeat(56));
     console.log('   Pizzeria San Carino — Server BEREIT');
