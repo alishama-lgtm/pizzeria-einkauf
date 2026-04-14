@@ -692,6 +692,20 @@ function renderBizCockpit() {
   </p>
 </div>
 
+<!-- Demo-Daten Banner (nur wenn Kassa leer) -->
+${bizGetKassa().length === 0 ? `
+<div id="biz-demo-btn" style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:1.5px dashed #f0a500;border-radius:14px;padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div>
+    <p style="font-size:13px;font-weight:700;color:#5d4037;margin:0">Charts sind leer</p>
+    <p style="font-size:12px;color:#8d6e63;margin:4px 0 0">Demo-Daten laden um Charts zu sehen (wird mit echten Daten überschrieben)</p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button onclick="bizLoadDemoData()" style="padding:8px 16px;background:#f0a500;color:#fff;border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:15px">play_circle</span>Demo laden
+    </button>
+  </div>
+</div>` : ''}
+
 <!-- Charts -->
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:20px">
 
@@ -1443,4 +1457,51 @@ function exportLohnPDF(ma) {
 
   doc.save(filename);
   bizShowToast('✅ PDF gespeichert: ' + filename);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEMO-DATEN — für Charts (nur wenn noch keine echten Daten da)
+// ═══════════════════════════════════════════════════════════════
+
+function bizLoadDemoData() {
+  // Kassa: letzte 7 Tage mit realistischen Pizzeria-Umsätzen
+  const kassa = [];
+  const tagesUmsatz = [450, 520, 850, 920, 580, 380, 420]; // Mi–Di
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const gesamt = tagesUmsatz[6 - i];
+    kassa.push({ date: ds, bar: Math.round(gesamt * 0.6 * 100)/100, karte: Math.round(gesamt * 0.4 * 100)/100, gesamt, speiseAnteil: 80 });
+  }
+  bizSave('kassa', kassa);
+
+  // Fixkosten: typische Pizzeria-Kosten (Österreich)
+  bizSave('fixkosten', { miete: 1800, strom: 320, versicherung: 180, buchhaltung: 120, sonstige: 280 });
+
+  // Personal: 4 Mitarbeiter
+  bizSave('personal', [
+    { name: 'Ali',   rolle: 'admin',    lohn: 15, stunden: 40 },
+    { name: 'Maria', rolle: 'manager',  lohn: 13, stunden: 25 },
+    { name: 'Lukas', rolle: 'mitarbeiter', lohn: 12, stunden: 30 },
+    { name: 'Sofia', rolle: 'mitarbeiter', lohn: 12, stunden: 20 },
+  ]);
+
+  // Charts neu laden
+  _bizInitCharts();
+
+  // Demo-Button ausblenden
+  const btn = document.getElementById('biz-demo-btn');
+  if (btn) btn.style.display = 'none';
+
+  bizShowToast('✅ Demo-Daten geladen — Charts sind jetzt befüllt');
+}
+
+function bizClearDemoData() {
+  localStorage.removeItem('biz_kassa');
+  localStorage.removeItem('biz_fixkosten');
+  localStorage.removeItem('biz_personal');
+  _bizInitCharts();
+  const btn = document.getElementById('biz-demo-btn');
+  if (btn) btn.style.display = '';
+  bizShowToast('🗑️ Demo-Daten gelöscht');
 }
