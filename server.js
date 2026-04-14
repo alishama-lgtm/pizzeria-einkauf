@@ -8,7 +8,7 @@ import os from 'os';
 import https from 'https';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
-import { startWatcher, setBroadcast, getQueue, markDone, deleteEntry, clearProcessed } from './server/watcher.js';
+import { startWatcher, setBroadcast, getQueue, markDone, deleteEntry, clearProcessed, getFolderInfo } from './server/watcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -431,6 +431,11 @@ app.put('/api/sync/:key', (req, res) => {
 // ════════════════════════════════════════════════════════════════════
 // Inbox API — Ordner-Watcher Endpunkte
 // ════════════════════════════════════════════════════════════════════
+
+// Ordner-Info (welche Formate werden unterstützt)
+app.get('/api/inbox/folders', (_req, res) => {
+  res.json(getFolderInfo());
+});
 
 // Alle ausstehenden Einträge (oder gefiltert nach Ordner)
 app.get('/api/inbox', (req, res) => {
