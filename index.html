@@ -1432,31 +1432,26 @@
 
 <!-- ═══ MOBILE BOTTOM NAV <768px — 5 Buttons ═══ -->
 <nav id="mobile-bottom-nav">
-  <button data-bottom-nav="heute" onclick="switchTab('heute')"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+  <button data-bottom-nav="heute" onclick="switchTab('heute')" class="mob-nav-btn">
     <span style="font-size:20px">📅</span>
-    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Heute</span>
+    <span class="mob-nav-label" style="font-size:10px;font-weight:700;color:#5a403c">Heute</span>
   </button>
-  <button data-bottom-nav="aufgaben" onclick="switchTab('aufgaben')"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+  <button data-bottom-nav="aufgaben" onclick="switchTab('aufgaben')" class="mob-nav-btn">
     <span style="font-size:20px">✅</span>
-    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Aufgaben</span>
+    <span class="mob-nav-label" style="font-size:10px;font-weight:700;color:#5a403c">Aufgaben</span>
     <span id="aufg-mob-badge" style="display:none;position:absolute;top:6px;right:calc(50% - 16px);background:#8B0000;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:16px;text-align:center"></span>
   </button>
-  <button data-bottom-nav="checkliste" onclick="switchTab('checkliste')"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+  <button data-bottom-nav="checkliste" onclick="switchTab('checkliste')" class="mob-nav-btn">
     <span style="font-size:20px">📋</span>
-    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Checkliste</span>
+    <span class="mob-nav-label" style="font-size:10px;font-weight:700;color:#5a403c">Checkliste</span>
   </button>
-  <button data-bottom-nav="lager" onclick="switchTab('lager')"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+  <button data-bottom-nav="lager" onclick="switchTab('lager')" class="mob-nav-btn">
     <span style="font-size:20px">📦</span>
-    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Lager</span>
+    <span class="mob-nav-label" style="font-size:10px;font-weight:700;color:#5a403c">Lager</span>
   </button>
-  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()"
-    style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 4px;background:none;border:none;cursor:pointer;position:relative;min-height:56px">
+  <button id="mob-mehr-btn" onclick="toggleMehrDrawer()" class="mob-nav-btn">
     <span class="material-symbols-outlined" style="font-size:24px;color:#5a403c">more_horiz</span>
-    <span style="font-size:10px;font-weight:700;color:#5a403c" class="mob-nav-label">Mehr</span>
+    <span class="mob-nav-label" style="font-size:10px;font-weight:700;color:#5a403c">Mehr</span>
     <span id="fehl-mob-badge" style="display:none;position:absolute;top:6px;right:calc(50% - 16px);background:#8B0000;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:16px;text-align:center"></span>
   </button>
 </nav>
