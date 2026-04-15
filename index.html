@@ -6471,8 +6471,36 @@ function daysUntilMonday() {
 }
 
 function renderShopsTab() {
+  const panel2 = document.getElementById('panel-geschaefte');
+  const mwstOn  = panel2.dataset.mwst  === '1';
+  const menge   = parseFloat(panel2.dataset.menge  || '1');
+  const mwstFak = mwstOn ? 1.10 : 1.0;
+
+  function calcPreis(v) { return v * menge * mwstFak; }
+
   const lowIds = new Set(getLowStockProducts().map(p => p.id));
-  const _shopHdr = _pageHdr('store', 'Geschäfte', SHOPS.length + ' Shops · Preisvergleich', '');
+
+  const mengenBtns = [1,5,10,15,20].map(m => {
+    const aktiv = menge === m;
+    return `<button onclick="document.getElementById('panel-geschaefte').dataset.menge='${m}';renderShopsTab()"
+      style="padding:5px 14px;border-radius:8px;border:1.5px solid ${aktiv?'#610000':'#e3beb8'};background:${aktiv?'#610000':'#fff'};color:${aktiv?'#fff':'#5a403c'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">${m} kg</button>`;
+  }).join('');
+
+  const mwstToggle =
+    `<button onclick="document.getElementById('panel-geschaefte').dataset.mwst='${mwstOn?'0':'1'}';renderShopsTab()"
+      style="padding:5px 16px;border-radius:8px;border:1.5px solid ${mwstOn?'#1b5e20':'#e3beb8'};background:${mwstOn?'#e8f5e9':'#fff'};color:${mwstOn?'#1b5e20':'#5a403c'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      ${mwstOn?'✓ Brutto (inkl. 10% MwSt)':'Netto (exkl. MwSt)'}
+    </button>`;
+
+  const controlBar = `
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:18px;padding:12px 16px;background:#fff;border-radius:12px;border:1.5px solid #e3beb8">
+      <span style="font-size:12px;font-weight:700;color:#5a403c">Menge:</span>
+      ${mengenBtns}
+      <div style="flex:1"></div>
+      ${mwstToggle}
+    </div>`;
+
+  const _shopHdr = _pageHdr('store', 'Geschäfte', SHOPS.length + ' Shops · Preisvergleich', '') + controlBar;
 
   // ── 1. PREISVERGLEICH TABELLE ────────────────────────────────
   // Per product: find min and max price across all shops
@@ -6483,31 +6511,37 @@ function renderShopsTab() {
   }
   const productsWithPrices = PRODUCTS.filter(p => priceStats[p.id]);
 
+  // Einheit-Label für Header
+  const einheitLabel = menge === 1 ? 'pro kg' : `für ${menge} kg`;
+
   if (productsWithPrices.length === 0) {
     document.getElementById('panel-geschaefte').innerHTML = _shopHdr + '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">store</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Noch keine Preise vorhanden</div><div style="font-size:13px;color:#9ca3af">Lade Preise über den Preisserver oder trage sie manuell ein.</div></div>';
     return;
   }
 
   const thCols = SHOPS.map(s =>
-    `<th style="padding:8px 14px;font-size:11px;font-weight:700;color:#5a403c;text-align:right;white-space:nowrap;border-bottom:2px solid #e3beb8;min-width:82px">${s.name}</th>`
+    `<th style="padding:8px 14px;font-size:11px;font-weight:700;color:#5a403c;text-align:right;white-space:nowrap;border-bottom:2px solid #e3beb8;min-width:90px">${s.name}<br><span style="font-weight:400;color:#9ca3af">${einheitLabel}</span></th>`
   ).join('');
 
   const tRows = productsWithPrices.map(p => {
     const { min, max } = priceStats[p.id];
+    const calcMin = calcPreis(min);
+    const calcMax = calcPreis(max);
     const allSame = min === max;
     const cells = SHOPS.map(s => {
       const v = getPrice(s.id, p.id);
       if (v === null) return `<td style="padding:8px 14px;text-align:right;font-size:13px;color:#c9b8b4">—</td>`;
+      const cv = calcPreis(v);
       const isMin = v === min;
       const isMax = !allSame && v === max;
-      const diff = v - min;
+      const diff = calcPreis(v - min);
       const style = isMin
         ? 'padding:8px 14px;text-align:right;font-size:13px;font-weight:700;color:#16a34a;background:#f0fdf4;'
         : isMax
           ? 'padding:8px 14px;text-align:right;font-size:13px;color:#a89490;text-decoration:line-through;'
           : 'padding:8px 14px;text-align:right;font-size:13px;color:#261816;';
       const diffBadge = !isMin && diff > 0 ? `<br><span style="font-size:10px;color:#c62828;font-weight:600">+${eur(diff)}</span>` : '';
-      return `<td style="${style}">${eur(v)}${isMin ? ' <span style="font-size:10px;background:#16a34a;color:#fff;border-radius:3px;padding:1px 4px">✓</span>' : ''}${diffBadge}</td>`;
+      return `<td style="${style}">${eur(cv)}${isMin ? ' <span style="font-size:10px;background:#16a34a;color:#fff;border-radius:3px;padding:1px 4px">✓</span>' : ''}${diffBadge}</td>`;
     }).join('');
 
     const rowBg = lowIds.has(p.id) ? 'background:#fff5f5;' : '';
@@ -6518,6 +6552,7 @@ function renderShopsTab() {
             ${lowIds.has(p.id) ? '<span class="material-symbols-outlined" style="font-size:12px;color:#ba1a1a;flex-shrink:0">warning</span>' : ''}
             <span style="font-size:13px;font-weight:600;color:#261816">${p.name}</span>
             <span style="font-size:10px;color:#8e706b">/${p.unit}</span>
+            ${menge > 1 ? `<span style="font-size:10px;color:#aaa">(${eur(calcPreis(priceStats[p.id].min))} günstigst)</span>` : ''}
           </div>
         </td>
         ${cells}
