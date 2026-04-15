@@ -4008,7 +4008,6 @@ async function auslesenStart() {
 async function scanReceiptViaClaudeAPI() {
   const base64 = UPLOAD_STATE.fileDataUrl.split(',')[1];
   const mediaType = UPLOAD_STATE.mediaType;
-  const isPdf = mediaType === 'application/pdf';
 
   const prompt =
     `Lies diesen Kassenbon / diese Rechnung aus und gib mir alle Produkte als JSON zurück.\n\n` +
@@ -4029,37 +4028,8 @@ async function scanReceiptViaClaudeAPI() {
     `Nur die eigentlichen Produkte/Waren auflisten — keine Summen, Rabatte, Steuern oder Zahlungsinfos.\n` +
     `Falls kein Kassenbon erkennbar oder das Bild unlesbar ist, antworte mit: {"fehler": "Kurze Beschreibung"}`;
 
-  const contentBlock = isPdf
-    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-    : { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
-
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: [contentBlock, { type: 'text', text: prompt }] }],
-    }),
-  });
-
-  if (!resp.ok) {
-    let errMsg = `HTTP ${resp.status}`;
-    try { const e = await resp.json(); errMsg = e?.error?.message || errMsg; } catch (_) {}
-    if (resp.status === 401) throw new Error('Ungültiger API Key (401). Bitte API Key prüfen.');
-    if (resp.status === 429) throw new Error('Rate Limit erreicht (429). Kurz warten und erneut versuchen.');
-    throw new Error(errMsg);
-  }
-
-  const data = await resp.json();
-  const textBlock = data.content.find(b => b.type === 'text');
-  if (!textBlock) throw new Error('Keine Antwort von Claude erhalten.');
-  return parseReceiptJSON(textBlock.text);
+  const text = await callVisionAI(prompt, base64, mediaType, 4096);
+  return parseReceiptJSON(text);
 }
 
 function parseReceiptJSON(text) {
@@ -4431,31 +4401,8 @@ async function scanHandlistViaClaudeAPI() {
     `- Falls Schrift unleserlich: {"fehler": "Unleserlich — bitte deutlicheres Foto"}\n` +
     `- Falls kein Text erkennbar: {"fehler": "Kein Text im Bild erkannt"}`;
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: [
-        { type: mediaType === 'application/pdf' ? 'document' : 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-        { type: 'text', text: prompt },
-      ]}],
-    }),
-  });
-
-  if (!resp.ok) {
-    let errMsg = `HTTP ${resp.status}`;
-    try { const e = await resp.json(); errMsg = e?.error?.message || errMsg; } catch (_) {}
-    if (resp.status === 401) throw new Error('Ungültiger API Key (401). Bitte API Key prüfen.');
-    if (resp.status === 429) throw new Error('Rate Limit erreicht (429). Kurz warten und erneut versuchen.');
-    throw new Error(errMsg);
-  }
-
-  const data = await resp.json();
-  const textBlock = data.content.find(b => b.type === 'text');
-  if (!textBlock) throw new Error('Keine Antwort von Claude erhalten.');
-  return parseHandlistJSON(textBlock.text);
+  const text = await callVisionAI(prompt, base64, mediaType, 2048);
+  return parseHandlistJSON(text);
 }
 
 function parseHandlistJSON(text) {
@@ -12119,6 +12066,33 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:5px 0 0">Webhook-URL des N8N-Servers (z.B. http://localhost:5678)</p>
       </div>
 
+      <!-- Gemini Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🤖</span> AI Anbieter
+          </label>
+          <div style="display:flex;gap:6px">
+            <button id="ai-btn-claude"
+              onclick="(function(){localStorage.setItem('pizzeria_ai_provider','claude');document.getElementById('ai-btn-claude').style.background='#610000';document.getElementById('ai-btn-claude').style.color='#fff';document.getElementById('ai-btn-gemini').style.background='#f3ebe9';document.getElementById('ai-btn-gemini').style.color='#5a403c';})()"
+              style="padding:6px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;background:${(localStorage.getItem('pizzeria_ai_provider')||'claude')==='claude'?'#610000':'#f3ebe9'};color:${(localStorage.getItem('pizzeria_ai_provider')||'claude')==='claude'?'#fff':'#5a403c'}">
+              Claude
+            </button>
+            <button id="ai-btn-gemini"
+              onclick="(function(){localStorage.setItem('pizzeria_ai_provider','gemini');document.getElementById('ai-btn-gemini').style.background='#1a73e8';document.getElementById('ai-btn-gemini').style.color='#fff';document.getElementById('ai-btn-claude').style.background='#f3ebe9';document.getElementById('ai-btn-claude').style.color='#5a403c';})()"
+              style="padding:6px 14px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;background:${localStorage.getItem('pizzeria_ai_provider')==='gemini'?'#1a73e8':'#f3ebe9'};color:${localStorage.getItem('pizzeria_ai_provider')==='gemini'?'#fff':'#5a403c'}">
+              Gemini
+            </button>
+          </div>
+        </div>
+        <input id="settings-gemini-key" type="password" placeholder="AIza..."
+          value="${localStorage.getItem('pizzeria_gemini_key') ? '••••••••••••••••••••••••••••••' : ''}"
+          onfocus="if(this.value.startsWith('•'))this.value=''"
+          style="width:100%;padding:10px 14px;border:1.5px solid ${localStorage.getItem('pizzeria_gemini_key')?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none"
+          onfocusin="this.style.borderColor='#1a73e8'" onblur="this.style.borderColor='${localStorage.getItem('pizzeria_gemini_key')?'#a5d6a7':'#e3beb8'}'"/>
+        <p style="font-size:11px;color:#8d6562;margin:5px 0 0">Google Gemini API Key — <strong>aistudio.google.com</strong> → Get API Key (kostenlos)</p>
+      </div>
+
       <div style="display:flex;gap:10px">
         <button onclick="saveApiKey()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
         ${hasKey?`<button onclick="clearApiKey()" style="padding:13px 16px;background:#ffdad6;color:#93000a;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Löschen</button>`:''}
@@ -12138,6 +12112,8 @@ function saveApiKey() {
   ANTHROPIC_API_KEY = val;
   const n8nUrl = document.getElementById('settings-n8n-url')?.value.trim();
   if (n8nUrl) _safeLocalSet('pizzeria_n8n_url', n8nUrl);
+  const geminiVal = document.getElementById('settings-gemini-key')?.value.trim();
+  if (geminiVal && !geminiVal.startsWith('•')) { _safeLocalSet('pizzeria_gemini_key', geminiVal); GEMINI_API_KEY = geminiVal; }
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
@@ -14956,6 +14932,65 @@ async function _inboxImportLager(id) {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(_inboxUpdateBadge, 2000);
 });
+
+// ═══════════════════════════════════════════════════════════════
+// GEMINI AI HELPER
+// ═══════════════════════════════════════════════════════════════
+async function callGeminiVision(prompt, base64, mediaType, maxTokens) {
+  const parts = [];
+  if (base64) parts.push({ inline_data: { mime_type: mediaType, data: base64 } });
+  parts.push({ text: prompt });
+  const resp = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { maxOutputTokens: maxTokens || 4096 }
+      })
+    }
+  );
+  if (!resp.ok) {
+    let errMsg = 'Gemini HTTP ' + resp.status;
+    try { const e = await resp.json(); errMsg = e?.error?.message || errMsg; } catch(_) {}
+    if (resp.status === 400) throw new Error('Gemini: Ungültiger Key oder Anfrage (400). Key prüfen.');
+    if (resp.status === 429) throw new Error('Gemini: Rate Limit erreicht (429). Kurz warten.');
+    throw new Error(errMsg);
+  }
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Keine Antwort von Gemini erhalten.');
+  return text;
+}
+
+async function callVisionAI(prompt, base64, mediaType, maxTokens) {
+  const provider = localStorage.getItem('pizzeria_ai_provider') || 'claude';
+  if (provider === 'gemini' && GEMINI_API_KEY) {
+    return callGeminiVision(prompt, base64, mediaType, maxTokens);
+  }
+  // Claude Fallback
+  const isPdf = mediaType === 'application/pdf';
+  const contentBlock = isPdf
+    ? { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } }
+    : { type: 'image',    source: { type: 'base64', media_type: mediaType, data: base64 } };
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens || 4096, messages: [{ role: 'user', content: [contentBlock, { type: 'text', text: prompt }] }] }),
+  });
+  if (!resp.ok) {
+    let errMsg = 'HTTP ' + resp.status;
+    try { const e = await resp.json(); errMsg = e?.error?.message || errMsg; } catch(_) {}
+    if (resp.status === 401) throw new Error('Ungültiger API Key (401). Bitte API Key prüfen.');
+    if (resp.status === 429) throw new Error('Rate Limit (429). Kurz warten.');
+    throw new Error(errMsg);
+  }
+  const data = await resp.json();
+  const tb = data.content.find(b => b.type === 'text');
+  if (!tb) throw new Error('Keine Antwort von Claude erhalten.');
+  return tb.text;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // N8N WEBHOOK HELPER

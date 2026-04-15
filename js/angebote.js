@@ -1041,8 +1041,10 @@ async function loadLiveProspekt(storeId) {
   renderAngeboteTab();
 
   try {
+    var provider = localStorage.getItem('pizzeria_ai_provider') || 'claude';
+    var hasGemini = typeof GEMINI_API_KEY !== 'undefined' && GEMINI_API_KEY;
     var hasKey = typeof ANTHROPIC_API_KEY !== 'undefined' && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
-    if (!hasKey) throw new Error('Kein API Key konfiguriert.');
+    if (!hasKey && !hasGemini) throw new Error('Kein API Key konfiguriert.');
 
     var today = new Date().toISOString().slice(0,10);
     var storeSlug = store.name.toLowerCase().replace(/\s+/g, '-');
@@ -1058,50 +1060,64 @@ async function loadLiveProspekt(storeId) {
       ']}\n' +
       'Gib alle Angebote aus dem aktuellen Prospekt zurück, mindestens 8, maximal 40.';
 
-    var resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'web-search-2025-03-05',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 8192,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'Antworte IMMER nur mit einem JSON-Objekt. Kein Text davor oder danach, kein Markdown.',
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    var rawText = '';
 
-    // Fallback ohne Web Search
-    if (!resp.ok) {
-      resp = await fetch('https://api.anthropic.com/v1/messages', {
+    if (provider === 'gemini' && hasGemini) {
+      // Gemini mit Google Search Grounding
+      var gResp = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            tools: [{ googleSearch: {} }],
+            generationConfig: { maxOutputTokens: 8192 }
+          })
+        }
+      );
+      if (!gResp.ok) {
+        var ge = {}; try { ge = await gResp.json(); } catch(_) {}
+        throw new Error(ge.error ? ge.error.message : 'Gemini HTTP ' + gResp.status);
+      }
+      var gData = await gResp.json();
+      rawText = (gData.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+    } else {
+      // Claude mit Web Search
+      var resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': ANTHROPIC_API_KEY,
           'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'web-search-2025-03-05',
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 4096,
-          system: 'Antworte IMMER nur mit einem JSON-Objekt. Kein Text davor oder danach.',
+          max_tokens: 8192,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          system: 'Antworte IMMER nur mit einem JSON-Objekt. Kein Text davor oder danach, kein Markdown.',
           messages: [{ role: 'user', content: prompt }],
         }),
       });
+      if (!resp.ok) {
+        resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+          body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 4096, system: 'Antworte IMMER nur mit einem JSON-Objekt. Kein Text davor oder danach.', messages: [{ role: 'user', content: prompt }] }),
+        });
+      }
+      if (!resp.ok) {
+        var e = {}; try { e = await resp.json(); } catch(_) {}
+        throw new Error(e.error ? e.error.message : 'HTTP ' + resp.status);
+      }
+      var data = await resp.json();
+      var textBlocks = (data.content || []).filter(function(b){ return b.type === 'text'; });
+      rawText = textBlocks.map(b => b.text).join('');
     }
 
-    if (!resp.ok) {
-      var e = {}; try { e = await resp.json(); } catch(_) {}
-      throw new Error(e.error ? e.error.message : 'HTTP ' + resp.status);
-    }
-
-    var data = await resp.json();
-    var textBlocks = (data.content || []).filter(function(b){ return b.type === 'text'; });
+    var textBlocks = [{ text: rawText }];
 
     var prospektData = null;
     for (var ti = textBlocks.length - 1; ti >= 0; ti--) {

@@ -1091,13 +1091,21 @@ async function startSearch() {
       }
       console.log('✅ Lokaler Server:', results.length, 'Ergebnisse');
     } catch (localErr) {
-      // Server nicht gestartet → Claude als Fallback
+      // Server nicht gestartet → AI als Fallback
       SUCHE_STATE._serverNotice = null;
-      console.log('ℹ️ Lokaler Server nicht verfügbar, verwende Claude AI …');
-      const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
-      if (!hasKey) throw new Error('Kein API Key und kein lokaler Server. Bitte start-preisserver.bat starten.');
-      updateLoadingStep('Suche via AI (start-preisserver.bat für echte Preise starten) …');
-      results = await searchViaClaudeAPI(query);
+      const provider = localStorage.getItem('pizzeria_ai_provider') || 'claude';
+      const hasGemini = typeof GEMINI_API_KEY !== 'undefined' && GEMINI_API_KEY;
+      const hasClaude = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
+      if (!hasGemini && !hasClaude) throw new Error('Kein API Key und kein lokaler Server. Bitte start-preisserver.bat starten.');
+      if (provider === 'gemini' && hasGemini) {
+        console.log('ℹ️ Lokaler Server nicht verfügbar, verwende Gemini AI …');
+        updateLoadingStep('Suche via Gemini AI …');
+        results = await searchViaGeminiAPI(query);
+      } else {
+        console.log('ℹ️ Lokaler Server nicht verfügbar, verwende Claude AI …');
+        updateLoadingStep('Suche via AI (start-preisserver.bat für echte Preise starten) …');
+        results = await searchViaClaudeAPI(query);
+      }
     }
 
     SUCHE_STATE.results = results;
@@ -1242,6 +1250,45 @@ function getSucheCache(query) {
     }
     return entry;
   } catch (_) { return null; }
+}
+
+async function searchViaGeminiAPI(query) {
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt =
+    `Suche nach dem aktuellen Preis von "${query}" bei österreichischen Supermärkten und Discountern. ` +
+    `Quellen: aktionsfinder.at, marktguru.at, wogibtswas.at. Datum heute: ${today}. ` +
+    `Gib NUR Preise zurück, die du tatsächlich gefunden hast. Keine Schätzungen. ` +
+    `Antworte AUSSCHLIESSLICH mit JSON-Array (kein Text davor/danach):\n` +
+    `[{"name":"${query} 250ml 4er Pack","brand":"Red Bull","shop":"Penny","price":0.95,` +
+    `"originalPrice":1.29,"unit":"Pack","validFrom":"${today}","validUntil":"","source":"aktionsfinder.at"}]`;
+
+  const resp = await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        tools: [{ googleSearch: {} }],
+        generationConfig: { maxOutputTokens: 8192 }
+      })
+    }
+  );
+  if (!resp.ok) {
+    let errMsg = 'Gemini HTTP ' + resp.status;
+    try { const e = await resp.json(); errMsg = e?.error?.message || errMsg; } catch(_) {}
+    throw new Error(errMsg);
+  }
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.find(p => p.text)?.text || '';
+  if (!text) throw new Error('Keine Antwort von Gemini erhalten.');
+  let arr = [];
+  try {
+    const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const raw = fenceMatch ? fenceMatch[1] : text.match(/\[[\s\S]*\]/)?.[0] || '[]';
+    arr = JSON.parse(raw);
+  } catch(_) {}
+  return Array.isArray(arr) ? arr : [];
 }
 
 function setSucheCache(query, results) {

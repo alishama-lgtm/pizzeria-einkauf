@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════
-// API KEY — hier deinen Anthropic API Key eintragen
+// API KEYS
 // ═══════════════════════════════════════════════════════════════
 const ANTHROPIC_API_KEY ="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";
+
+let GEMINI_API_KEY = '';
+try { GEMINI_API_KEY = localStorage.getItem('pizzeria_gemini_key') || ''; } catch(e) {}
 
 // ═══════════════════════════════════════════════════════════════
 // DATA
