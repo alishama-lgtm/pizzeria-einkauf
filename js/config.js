@@ -31,22 +31,16 @@ const SHOPS = [
 ];
 
 // pricePerUnit indexed as PRICE_MAP[shopId][productId]
+// Wird automatisch befüllt wenn Rechnungen gescannt werden (Upload-Tab)
 const PRICE_MAP = {
-  metro: { mehl:0.89, tomaten:0.99, mozzarella:4.99, olivenoel:5.49, salami:7.99, parmesan:8.99, basilikum:0.69, hefe:0.39, salz:0.49, peperoni:5.99 },
-  billa: { mehl:1.19, tomaten:1.39, mozzarella:4.49, olivenoel:5.99, salami:8.49, parmesan:10.99,basilikum:0.89, hefe:0.45, salz:0.59, peperoni:6.49 },
-  lidl:  { mehl:0.79, tomaten:0.89, mozzarella:3.99, olivenoel:4.49, salami:6.49, parmesan:7.99, basilikum:0.59, hefe:0.29, salz:0.39, peperoni:4.99 },
-  spar:  { mehl:1.09, tomaten:1.29, mozzarella:4.29, olivenoel:5.49, salami:7.99, parmesan:9.99, basilikum:0.79, hefe:0.39, salz:0.55, peperoni:5.99 },
+  metro: {},
+  billa: {},
+  lidl:  {},
+  spar:  {},
 };
 
-// Weekly deals — populated here or via Upload tab
-// week: 'current' = diese Woche, 'next' = ab Montag
-const DEALS = [
-  { shopId: 'lidl',  productId: 'mozzarella', pricePerUnit: 2.99, normalPrice: 3.99, validTo: '29.03.', week: 'current' },
-  { shopId: 'metro', productId: 'olivenoel',  pricePerUnit: 4.29, normalPrice: 5.49, validTo: '29.03.', week: 'current' },
-  { shopId: 'billa', productId: 'salami',     pricePerUnit: 6.49, normalPrice: 8.49, validTo: '30.03.', week: 'current' },
-  { shopId: 'spar',  productId: 'parmesan',   pricePerUnit: 7.49, normalPrice: 9.99, validTo: '06.04.', week: 'next'    },
-  { shopId: 'lidl',  productId: 'mehl',       pricePerUnit: 0.59, normalPrice: 0.79, validTo: '06.04.', week: 'next'    },
-];
+// Weekly deals — wird automatisch via Upload-Tab befüllt
+const DEALS = [];
 
 // Mutable stock levels
 const stockLevels = {};
