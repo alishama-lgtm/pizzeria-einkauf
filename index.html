@@ -2813,6 +2813,7 @@ function fmSubmitForm() {
   _safeLocalSet('fm_last_person', eingetragenVon);
   // Notification auslösen
   if (typeof notifAdd === 'function') notifAdd('fehlmaterial', 'Fehlmaterial: ' + produktName, kategorie ? 'Kategorie: ' + kategorie : '', prioritaet === 'dringend' ? 'critical' : 'warning', 'fehlmaterial');
+  n8nHook('fehlmaterial-alert', { artikel: produktName, menge, einheit, prioritaet, person: eingetragenVon, datum: new Date().toISOString() });
   _showToast('Fehlmaterial gemeldet', 'success');
   document.getElementById('fm-produktname').value = '';
   document.getElementById('fm-menge').value        = '';
@@ -12096,6 +12097,28 @@ function openSettings() {
         <br><br>Key erstellen: <strong>console.anthropic.com → API Keys</strong>
       </div>
 
+      <!-- N8N Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🔗</span> N8N-Workflows
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <span style="font-size:12px;color:#5a403c" id="n8n-toggle-label">${localStorage.getItem('pizzeria_n8n_enabled')==='1'?'Aktiv':'Inaktiv'}</span>
+            <div onclick="(function(){const on=localStorage.getItem('pizzeria_n8n_enabled')==='1'; localStorage.setItem('pizzeria_n8n_enabled',on?'0':'1'); document.getElementById('n8n-toggle-label').textContent=on?'Inaktiv':'Aktiv'; document.getElementById('n8n-toggle-btn').style.background=on?'#ccc':'#610000'; document.getElementById('n8n-toggle-thumb').style.transform=on?'translateX(0)':'translateX(20px)';})()"
+              id="n8n-toggle-btn"
+              style="width:44px;height:24px;border-radius:12px;background:${localStorage.getItem('pizzeria_n8n_enabled')==='1'?'#610000':'#ccc'};position:relative;cursor:pointer;transition:background .2s">
+              <div id="n8n-toggle-thumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;transform:${localStorage.getItem('pizzeria_n8n_enabled')==='1'?'translateX(20px)':'translateX(0)'}"></div>
+            </div>
+          </label>
+        </div>
+        <input id="settings-n8n-url" type="text" placeholder="http://localhost:5678"
+          value="${localStorage.getItem('pizzeria_n8n_url')||''}"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+        <p style="font-size:11px;color:#8d6562;margin:5px 0 0">Webhook-URL des N8N-Servers (z.B. http://localhost:5678)</p>
+      </div>
+
       <div style="display:flex;gap:10px">
         <button onclick="saveApiKey()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
         ${hasKey?`<button onclick="clearApiKey()" style="padding:13px 16px;background:#ffdad6;color:#93000a;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Löschen</button>`:''}
@@ -12113,6 +12136,8 @@ function saveApiKey() {
   if (!val.startsWith('sk-ant-')) { _showToast('Ungültiges Format. Key muss mit "sk-ant-" beginnen.', 'error'); return; }
   _safeLocalSet('pizzeria_api_key', val);
   ANTHROPIC_API_KEY = val;
+  const n8nUrl = document.getElementById('settings-n8n-url')?.value.trim();
+  if (n8nUrl) _safeLocalSet('pizzeria_n8n_url', n8nUrl);
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
@@ -12643,7 +12668,9 @@ function bestellungHinzufuegen() {
 function bestellungToggle(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   const x = a.find(i=>i.id===id); if(x) x.erledigt=!x.erledigt;
-  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(a)); renderBestellungTab();
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(a));
+  if (x && x.erledigt) n8nHook('bestellung-done', { id: x.id, artikel: x.name, erledigt: true });
+  renderBestellungTab();
 }
 function bestellungDringlich(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
@@ -12898,6 +12925,10 @@ function lagerSpeichern(id) {
     return { id:a.id, name:name, kategorie:document.getElementById('lag-edit-kat')?.value||a.kategorie, menge:parseFloat(document.getElementById('lag-edit-menge')?.value)||0, einheit:document.getElementById('lag-edit-einheit')?.value||a.einheit, mindest:parseFloat(document.getElementById('lag-edit-mindest')?.value)||0 };
   });
   _syncedLocalSet('pizzeria_lager', JSON.stringify(lager));
+  const gespeichert = lager.find(a => a.id === id);
+  if (gespeichert && gespeichert.menge <= gespeichert.mindest) {
+    n8nHook('lager-low', { artikel: gespeichert.name, menge: gespeichert.menge, mindestmenge: gespeichert.mindest });
+  }
   _showToast('Artikel gespeichert', 'success');
   renderLagerTab();
 }
@@ -14925,6 +14956,22 @@ async function _inboxImportLager(id) {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(_inboxUpdateBadge, 2000);
 });
+
+// ═══════════════════════════════════════════════════════════════
+// N8N WEBHOOK HELPER
+// ═══════════════════════════════════════════════════════════════
+async function n8nHook(name, data) {
+  if (localStorage.getItem('pizzeria_n8n_enabled') !== '1') return;
+  const url = localStorage.getItem('pizzeria_n8n_url') || 'http://localhost:5678';
+  try {
+    await fetch(url + '/webhook/' + name, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      keepalive: true
+    });
+  } catch(_) {}
+}
 
 function _showToast(msg, type) {
   document.querySelectorAll('._toast-popup').forEach(el => el.remove());
