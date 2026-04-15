@@ -1350,97 +1350,152 @@ function renderShopsTab() {
 // ═══════════════════════════════════════════════════════════════
 
 function renderKombisTab() {
-  const low = getLowStockProducts();
-  const { single, two, hasLow } = calculateCombinations();
+  const panel = document.getElementById('panel-kombis');
+  if (!panel) return;
 
-  // ── Mini Dashboard ────────────────────────────────────────────
-  const fmOpen = typeof FM_DATA !== 'undefined' ? FM_DATA.filter(x=>x.status==='offen').length : 0;
-  const fmDringend = typeof FM_DATA !== 'undefined' ? FM_DATA.filter(x=>x.status==='offen'&&x.prioritaet==='dringend').length : 0;
-  const { y, m } = typeof bizCurrentMonth === 'function' ? bizCurrentMonth() : { y: new Date().getFullYear(), m: new Date().getMonth()+1 };
-  const monthStr = y + '-' + String(m).padStart(2,'0');
-  const kassa = typeof bizGetKassa === 'function' ? bizGetKassa() : [];
-  const monthRev = kassa.filter(e => e.date && e.date.startsWith(monthStr)).reduce((s,e)=>s+(e.gesamt||0),0);
-  const monthNames = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const products = Array.isArray(PRODUCTS) ? PRODUCTS : [];
+  const stocks = (typeof stockLevels === 'object' && stockLevels) ? stockLevels : {};
+  const low = (typeof getLowStockProducts === 'function' && products.length > 0) ? getLowStockProducts() : [];
+  const combos = typeof calculateCombinations === 'function' ? calculateCombinations() : {};
+  const single = Array.isArray(combos.single) ? combos.single : [];
+  const two = Array.isArray(combos.two) ? combos.two : [];
+  const hasLow = typeof combos.hasLow === 'boolean' ? combos.hasLow : low.length > 0;
 
-  // Find most critical product (lowest stock ratio)
-  const criticalProduct = PRODUCTS.reduce((worst, p) => {
-    const ratio = stockLevels[p.id] / p.minStock;
-    if (!worst || ratio < (stockLevels[worst.id] / worst.minStock)) return p;
+  const fmData = Array.isArray(window.FM_DATA) ? window.FM_DATA : [];
+  const fmOpen = fmData.filter(x => x && x.status === 'offen').length;
+  const fmDringend = fmData.filter(x => x && x.status === 'offen' && x.prioritaet === 'dringend').length;
+
+  const monthInfo = typeof bizCurrentMonth === 'function'
+    ? bizCurrentMonth()
+    : { y: new Date().getFullYear(), m: new Date().getMonth() + 1 };
+  const y = Number(monthInfo.y) || new Date().getFullYear();
+  const m = Number(monthInfo.m) || (new Date().getMonth() + 1);
+  const monthStr = y + '-' + String(m).padStart(2, '0');
+  const monthNames = ['Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+  const kassaRaw = typeof bizGetKassa === 'function' ? bizGetKassa() : [];
+  const kassa = Array.isArray(kassaRaw) ? kassaRaw : [];
+  const monthRev = kassa.reduce((sum, entry) => {
+    if (!entry || !entry.date || !String(entry.date).startsWith(monthStr)) return sum;
+    const value = Number(entry.gesamt);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
+  const monthRevText = monthRev > 0 ? ('€ ' + Math.round(monthRev).toLocaleString('de-AT')) : '—';
+
+  const criticalData = products.reduce((worst, product) => {
+    const min = Number(product?.minStock);
+    if (!Number.isFinite(min) || min <= 0) return worst;
+    const stock = Number(stocks[product.id]) || 0;
+    const ratio = stock / min;
+    if (!worst || ratio < worst.ratio) return { product, ratio, stock, min };
     return worst;
   }, null);
-  const critPct = criticalProduct ? Math.min(100, Math.round((stockLevels[criticalProduct.id] / criticalProduct.minStock) * 100)) : 100;
-  const mozzarella = PRODUCTS.find(p => p.id === 'mozzarella');
-  const mozzStock = mozzarella ? stockLevels['mozzarella'] : null;
-  const mozzPct = mozzarella ? Math.min(100, Math.round((mozzStock / mozzarella.minStock) * 100)) : null;
+  const criticalProduct = criticalData ? criticalData.product : null;
+  const critPct = criticalData ? Math.max(0, Math.min(100, Math.round(criticalData.ratio * 100))) : 100;
+
+  const mozzarella = products.find(p => p && p.id === 'mozzarella') || null;
+  const mozzMin = mozzarella ? Number(mozzarella.minStock) : 0;
+  const mozzStock = mozzarella ? (Number(stocks.mozzarella) || 0) : 0;
+  const hasMozzData = !!(mozzarella && Number.isFinite(mozzMin) && mozzMin > 0);
+  const mozzPct = hasMozzData ? Math.max(0, Math.min(100, Math.round((mozzStock / mozzMin) * 100))) : null;
+
+  const lowNames = low.map(p => p.name).filter(Boolean);
+  const lowPreview = lowNames.length > 0 ? lowNames.slice(0, 2).join(', ') + (lowNames.length > 2 ? '…' : '') : 'Alle im Soll-Bereich';
+  const restockNames = lowNames.length > 0 ? lowNames.join(' · ') : 'Keine offenen Nachbestellungen';
 
   const dashHtml = `
     <div class="bento-grid">
       <div class="bento-hero">
         <div style="font-size:11px;font-weight:700;color:#8e706b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Kritischstes Produkt</div>
         ${criticalProduct ? `
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <span class="material-symbols-outlined" style="font-size:28px;color:#ba1a1a">warning</span>
-            <div>
-              <div style="font-size:20px;font-weight:800;color:#261816;font-family:'Plus Jakarta Sans',sans-serif">${criticalProduct.name}</div>
-              <div style="font-size:12px;color:#8e706b">${stockLevels[criticalProduct.id].toLocaleString('de-DE')} / ${criticalProduct.minStock} ${criticalProduct.unit}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;min-width:0">
+            <span class="material-symbols-outlined" style="font-size:28px;color:#8B0000">warning</span>
+            <div style="min-width:0">
+              <div style="font-size:20px;font-weight:800;color:#261816;font-family:'Plus Jakarta Sans',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${criticalProduct.name}</div>
+              <div style="font-size:12px;color:#8e706b">${criticalData.stock.toLocaleString('de-DE')} / ${criticalData.min} ${criticalProduct.unit || ''}</div>
             </div>
           </div>
           <div style="height:8px;background:#f0e8e6;border-radius:4px;overflow:hidden;margin-bottom:8px">
-            <div style="height:100%;width:${critPct}%;background:${critPct < 40 ? '#dc2626' : critPct < 70 ? '#f59e0b' : '#16a34a'};border-radius:4px;transition:width .3s ease"></div>
+            <div style="height:100%;width:${critPct}%;background:${critPct < 40 ? '#8B0000' : '#610000'};border-radius:4px;transition:width .3s ease"></div>
           </div>
-          <div style="font-size:12px;color:${critPct < 40 ? '#dc2626' : '#8e706b'};font-weight:600">${critPct}% vom Minimum</div>
-        ` : `<div style="font-size:14px;color:#16a34a;font-weight:600">✅ Alle Bestände OK</div>`}
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0e8e6;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="font-size:12px;color:${critPct < 40 ? '#8B0000' : '#610000'};font-weight:600">${critPct}% vom Minimum</div>
+        ` : `<div style="font-size:14px;color:#610000;font-weight:600">Keine Produktdaten verfügbar</div>`}
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0e8e6;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
           <div onclick="switchTab('fehlmaterial')" style="cursor:pointer">
-            <div style="font-size:26px;font-weight:800;color:${low.length>0?'#dc2626':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
+            <div style="font-size:26px;font-weight:800;color:${low.length > 0 ? '#8B0000' : '#610000'};font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
             <div style="font-size:11px;color:#8e706b;font-weight:500">Unter Minimum</div>
-            <div style="font-size:11px;font-weight:700;color:${low.length>0?'#dc2626':'#16a34a'};margin-top:3px">${low.length>0?'🔴 Nachbestellen':'✅ Alles OK'}</div>
+            <div style="font-size:11px;font-weight:700;color:${low.length > 0 ? '#8B0000' : '#610000'};margin-top:3px">${low.length > 0 ? 'Nachbestellen' : 'Alles im Soll'}</div>
           </div>
           <div>
-            <div style="font-size:26px;font-weight:800;color:#1565c0;font-family:'Plus Jakarta Sans',sans-serif">${PRODUCTS.length}</div>
+            <div style="font-size:26px;font-weight:800;color:#610000;font-family:'Plus Jakarta Sans',sans-serif">${products.length}</div>
             <div style="font-size:11px;color:#8e706b;font-weight:500">Produkte gesamt</div>
-            <div style="font-size:11px;font-weight:700;color:#2e7d32;margin-top:3px">📦 ${PRODUCTS.length - low.length} im Soll</div>
+            <div style="font-size:11px;font-weight:700;color:#610000;margin-top:3px">Im Soll: ${Math.max(0, products.length - low.length)}</div>
           </div>
         </div>
       </div>
       <div class="bento-side">
-        <div class="bento-small bento-small-yellow" onclick="void(0)">
+        <div class="bento-small" onclick="void(0)" style="border-left:4px solid #610000">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#f59e0b">water_drop</span>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#610000">water_drop</span>
             <span style="font-size:12px;font-weight:700;color:#5a403c">Mozzarella Status</span>
           </div>
-          ${mozzarella && mozzPct !== null ? `
-            <div style="font-size:22px;font-weight:800;color:${mozzPct<50?'#dc2626':'#f59e0b'};font-family:'Plus Jakarta Sans',sans-serif">${mozzStock} kg</div>
-            <div style="height:5px;background:#fef3c7;border-radius:3px;overflow:hidden;margin:8px 0 4px">
-              <div style="height:100%;width:${mozzPct}%;background:#f59e0b;border-radius:3px"></div>
+          ${hasMozzData ? `
+            <div style="font-size:22px;font-weight:800;color:${mozzPct < 50 ? '#8B0000' : '#610000'};font-family:'Plus Jakarta Sans',sans-serif">${mozzStock} ${mozzarella.unit || 'kg'}</div>
+            <div style="height:5px;background:#f0e8e6;border-radius:3px;overflow:hidden;margin:8px 0 4px">
+              <div style="height:100%;width:${mozzPct}%;background:#610000;border-radius:3px"></div>
             </div>
-            <div style="font-size:11px;color:#8e706b">${mozzPct}% vom Min (${mozzarella.minStock} kg)</div>
-          ` : `<div style="font-size:13px;color:#8e706b">Nicht gefunden</div>`}
+            <div style="font-size:11px;color:#8e706b">${mozzPct}% vom Min (${mozzMin} ${mozzarella.unit || 'kg'})</div>
+          ` : `<div style="font-size:13px;color:#8e706b">Produkt oder Mindestbestand fehlt</div>`}
         </div>
-        <div class="bento-small bento-small-red" onclick="switchTab('fehlmaterial')" style="cursor:pointer">
+        <div class="bento-small" onclick="switchTab('fehlmaterial')" style="border-left:4px solid #8B0000;cursor:pointer">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#dc2626">error</span>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">error</span>
             <span style="font-size:12px;font-weight:700;color:#5a403c">Kritische Artikel</span>
           </div>
-          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
-          <div style="font-size:11px;color:#8e706b;margin-top:4px">${low.length>0 ? low.slice(0,2).map(p=>p.name).join(', ')+(low.length>2?'…':'') : 'Alle im grünen Bereich'}</div>
+          <div style="font-size:22px;font-weight:800;color:#8B0000;font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
+          <div style="font-size:11px;color:#8e706b;margin-top:4px">${lowPreview}</div>
         </div>
-        <div class="bento-small" style="border-left:4px solid #2e7d32">
+        <div class="bento-small" style="border-left:4px solid #610000">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#2e7d32">euro</span>
-            <span style="font-size:12px;font-weight:700;color:#5a403c">Umsatz ${monthNames[m-1]}</span>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#610000">euro</span>
+            <span style="font-size:12px;font-weight:700;color:#5a403c">Umsatz ${monthNames[m - 1] || 'Monat'}</span>
           </div>
-          <div style="font-size:20px;font-weight:800;color:${monthRev>0?'#2e7d32':'#9ca3af'};font-family:'Plus Jakarta Sans',sans-serif">${monthRev>0?'€ '+Math.round(monthRev).toLocaleString('de-AT'):'—'}</div>
-          <div style="font-size:11px;color:#8e706b;margin-top:4px">${monthRev>0?'aus Kassabuch':'Noch keine Daten'}</div>
+          <div style="font-size:20px;font-weight:800;color:${monthRev > 0 ? '#610000' : '#9ca3af'};font-family:'Plus Jakarta Sans',sans-serif">${monthRevText}</div>
+          <div style="font-size:11px;color:#8e706b;margin-top:4px">${monthRev > 0 ? 'aus Kassabuch' : 'Noch keine Monatsdaten'}</div>
         </div>
       </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:-8px 0 18px">
+      <button onclick="switchTab('fehlmaterial')" style="border:1px solid #f0e8e6;background:#fff;border-radius:10px;padding:8px 10px;text-align:left;cursor:pointer">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;color:#8e706b;text-transform:uppercase">Fehlmaterial</div>
+        <div style="font-size:17px;font-weight:800;color:#8B0000">${fmOpen}</div>
+      </button>
+      <button onclick="switchTab('fehlmaterial')" style="border:1px solid #f0e8e6;background:#fff;border-radius:10px;padding:8px 10px;text-align:left;cursor:pointer">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;color:#8e706b;text-transform:uppercase">Dringend</div>
+        <div style="font-size:17px;font-weight:800;color:#8B0000">${fmDringend}</div>
+      </button>
+      <button onclick="switchTab('business')" style="border:1px solid #f0e8e6;background:#fff;border-radius:10px;padding:8px 10px;text-align:left;cursor:pointer">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.06em;color:#8e706b;text-transform:uppercase">Umsatz</div>
+        <div style="font-size:17px;font-weight:800;color:#610000">${monthRevText}</div>
+      </button>
     </div>`;
 
+  if (products.length === 0) {
+    panel.innerHTML = dashHtml + `
+      <div style="text-align:center;padding:44px 20px;border:1px dashed #f0e8e6;border-radius:14px;background:#fff">
+        <h3 style="font-size:18px;font-weight:700;color:#261816;margin-bottom:6px">Keine Produktdaten vorhanden</h3>
+        <p style="font-size:13px;color:#5a403c;max-width:360px;margin:0 auto;line-height:1.6">
+          Lege zuerst Produkte an, damit kritische Bestände und Einkaufskombinationen berechnet werden können.
+        </p>
+      </div>`;
+    return;
+  }
+
   if (!hasLow) {
-    document.getElementById('panel-kombis').innerHTML = dashHtml + `
+    panel.innerHTML = dashHtml + `
       <div style="text-align:center;padding:60px 20px">
-        <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-          <span class="material-symbols-outlined filled" style="font-size:32px;color:#16a34a">check_circle</span>
+        <div style="width:64px;height:64px;border-radius:50%;background:#f0e8e6;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+          <span class="material-symbols-outlined filled" style="font-size:32px;color:#610000">check_circle</span>
         </div>
         <h3 style="font-size:18px;font-weight:700;color:#261816;margin-bottom:6px">Alle Bestände in Ordnung</h3>
         <p style="font-size:13px;color:#5a403c;max-width:340px;margin:0 auto;line-height:1.6">
@@ -1450,20 +1505,17 @@ function renderKombisTab() {
     return;
   }
 
-  // Warning banner — compact single line
   let html = dashHtml + `
-    <div style="background:#ffdad6;border-left:3px solid #ba1a1a;border-radius:6px;padding:8px 12px;margin-bottom:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span class="material-symbols-outlined" style="font-size:15px;color:#ba1a1a;flex-shrink:0">warning</span>
-      <span style="font-size:12px;font-weight:700;color:#93000a;flex-shrink:0">${low.length} nachbestellen:</span>
-      <span style="font-size:12px;color:#5a403c">${low.map(p => p.name).join(' · ')}</span>
+    <div style="background:#fff0ee;border-left:3px solid #8B0000;border-radius:6px;padding:8px 12px;margin-bottom:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="material-symbols-outlined" style="font-size:15px;color:#8B0000;flex-shrink:0">warning</span>
+      <span style="font-size:12px;font-weight:700;color:#610000;flex-shrink:0">${low.length} nachbestellen:</span>
+      <span style="font-size:12px;color:#5a403c">${restockNames}</span>
     </div>`;
 
-  // Best combo = first two-shop combo, or first single-shop if none
   const bestCombo = two.length > 0 ? two[0] : (single.length > 0 ? single[0] : null);
-  const altCombos = two.length > 0 ? two.slice(1) : [];
+  const altCombos = two.length > 1 ? two.slice(1) : [];
   const singleCombos = single;
 
-  // ── Empfohlene Kombination ───────────────────────────────────
   if (bestCombo) {
     html += `
       <div style="margin-bottom:22px">
@@ -1472,29 +1524,27 @@ function renderKombisTab() {
       </div>`;
   }
 
-  // ── Alternative Kombinationen (2-col grid, collapsible) ──────
   if (altCombos.length > 0) {
     html += `
       <div style="margin-bottom:22px">
         <p style="font-size:11px;font-weight:700;color:#8e706b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Alternative Kombinationen (${altCombos.length})</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px">
-          ${altCombos.map((c,i) => renderAltCombo(c, i+2)).join('')}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px">
+          ${altCombos.map((combo, index) => renderAltCombo(combo, index + 2)).join('')}
         </div>
       </div>`;
   }
 
-  // ── Einzel-Geschäfte (3-col grid) ───────────────────────────
   if (singleCombos.length > 0) {
     html += `
       <div style="margin-bottom:22px">
         <p style="font-size:11px;font-weight:700;color:#8e706b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Einzel-Geschäfte (${singleCombos.length})</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px">
-          ${singleCombos.map((c,i) => renderSingleCombo(c, i+1)).join('')}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:8px">
+          ${singleCombos.map((combo, index) => renderSingleCombo(combo, index + 1)).join('')}
         </div>
       </div>`;
   }
 
-  document.getElementById('panel-kombis').innerHTML = html;
+  panel.innerHTML = html;
 }
 
 // ── Empfohlene Kombi: kompakte Karte, 2-spaltige Shop-Ansicht ──
