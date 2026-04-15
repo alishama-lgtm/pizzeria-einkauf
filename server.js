@@ -8,11 +8,8 @@ import os from 'os';
 import https from 'https';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
+import { DatabaseSync } from 'node:sqlite';
 import { startWatcher, setBroadcast, getQueue, markDone, deleteEntry, clearProcessed, getFolderInfo } from './server/watcher.js';
-
-const require = createRequire(import.meta.url);
-const Database = require('better-sqlite3');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -21,7 +18,13 @@ const app  = express();
 const PORT = 8080;
 
 // ── SQLite Preishistorie ──────────────────────────────────────────────
-const db = new Database(path.join(__dirname, 'pizzeria.db'));
+const db = new DatabaseSync(path.join(__dirname, 'pizzeria.db'));
+// Schema-Migration: alte Tabelle (geschaeft-Schema) auf neues Schema migrieren
+const oldSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='preishistorie'").get();
+if (oldSchema && oldSchema.sql && oldSchema.sql.includes('geschaeft')) {
+  console.log('  DB Migration: altes Schema erkannt → Tabelle wird neu erstellt');
+  db.exec('DROP TABLE IF EXISTS preishistorie');
+}
 db.exec(`
   CREATE TABLE IF NOT EXISTS preishistorie (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,13 +36,13 @@ db.exec(`
     shop_id     TEXT,
     datum       TEXT NOT NULL,
     quelle      TEXT DEFAULT 'kassenbon'
-  );
-  CREATE INDEX IF NOT EXISTS idx_ph_produkt ON preishistorie(produkt_id);
-  CREATE INDEX IF NOT EXISTS idx_ph_datum   ON preishistorie(datum);
+  )
 `);
+db.exec('CREATE INDEX IF NOT EXISTS idx_ph_produkt ON preishistorie(produkt_id)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_ph_datum   ON preishistorie(datum)');
 const phInsert = db.prepare(`
   INSERT INTO preishistorie (produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle)
-  VALUES (@produkt_id, @produkt, @preis, @normalpreis, @shop, @shop_id, @datum, @quelle)
+  VALUES ($produkt_id, $produkt, $preis, $normalpreis, $shop, $shop_id, $datum, $quelle)
 `);
 console.log('  SQLite Preishistorie bereit →', path.join(__dirname, 'pizzeria.db'));
 
@@ -506,7 +509,7 @@ app.get('/api/preisverlauf', (req, res) => {
     if (req.query.bis)        { sql += ' AND datum <= ?';     params.push(req.query.bis); }
     sql += ' ORDER BY datum DESC LIMIT ?';
     params.push(parseInt(req.query.limit) || 200);
-    res.json(db.prepare(sql).all(...params));
+    res.json(db.prepare(sql).all(params));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -519,10 +522,10 @@ app.get('/api/preisverlauf/stats', (req, res) => {
              ROUND(AVG(preis),2) AS avg_preis, COUNT(*) AS anzahl,
              MAX(datum) AS letztes_datum
       FROM preishistorie
-      WHERE (@pid IS NULL OR produkt_id = @pid)
+      WHERE ($pid IS NULL OR produkt_id = $pid)
       GROUP BY produkt_id, shop_id
       ORDER BY produkt, shop
-    `).all({ pid: req.query.produkt_id || null });
+    `).all({ $pid: req.query.produkt_id || null });
     res.json(rows);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -532,23 +535,37 @@ app.post('/api/preisverlauf', express.json(), (req, res) => {
   try {
     const items = Array.isArray(req.body) ? req.body : [req.body];
     const heute = new Date().toISOString().slice(0, 10);
-    const insertMany = db.transaction((list) => {
-      for (const it of list) {
+    db.exec('BEGIN');
+    try {
+      for (const it of items) {
         if (!it.produkt || it.preis == null) continue;
         phInsert.run({
-          produkt_id:  it.produkt_id  || null,
-          produkt:     it.produkt,
-          preis:       parseFloat(it.preis),
-          normalpreis: it.normalpreis != null ? parseFloat(it.normalpreis) : null,
-          shop:        it.shop        || null,
-          shop_id:     it.shop_id     || null,
-          datum:       it.datum       || heute,
-          quelle:      it.quelle      || 'manuell',
+          $produkt_id:  it.produkt_id  || null,
+          $produkt:     it.produkt,
+          $preis:       parseFloat(it.preis),
+          $normalpreis: it.normalpreis != null ? parseFloat(it.normalpreis) : null,
+          $shop:        it.shop        || null,
+          $shop_id:     it.shop_id     || null,
+          $datum:       it.datum       || heute,
+          $quelle:      it.quelle      || 'manuell',
         });
       }
-    });
-    insertMany(items);
+      db.exec('COMMIT');
+    } catch(txErr) { db.exec('ROLLBACK'); throw txErr; }
     res.json({ ok: true, gespeichert: items.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/umsatz/heute — Tages-Report für N8N
+app.get('/api/umsatz/heute', (_req, res) => {
+  try {
+    const heute = new Date().toISOString().slice(0, 10);
+    const rows  = db.prepare(`
+      SELECT shop, shop_id, COUNT(*) AS artikel, ROUND(SUM(preis),2) AS gesamt
+      FROM preishistorie WHERE datum = ? GROUP BY shop_id ORDER BY gesamt DESC
+    `).all([heute]);
+    const total = rows.reduce((s, r) => s + (r.gesamt || 0), 0);
+    res.json({ datum: heute, gesamt: Math.round(total * 100) / 100, shops: rows });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -1226,6 +1226,10 @@
         <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
         <span class="notif-badge" id="notif-badge"></span>
       </button>
+      <!-- Einkauf loggen Button -->
+      <button id="einkauf-log-btn" onclick="einkaufLoggModal()" style="display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1.5px solid #610000;background:#610000;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer" title="Einkauf schnell erfassen">
+        <span class="material-symbols-outlined" style="font-size:16px">add_shopping_cart</span>Einkauf
+      </button>
       <!-- Business Button -->
       <button id="biz-header-btn" onclick="switchTab('business')">
         <span class="material-symbols-outlined" id="biz-lock-icon">lock</span>
@@ -1400,7 +1404,6 @@
   <div id="panel-checkliste"   style="display:none"></div>
   <div id="panel-business"     style="display:none"></div>
   <div id="panel-heute"        style="display:none"></div>
-  <div id="panel-bewertungen"  style="display:none"></div>
   <div id="panel-dashboard"    style="display:none"></div>
   <div id="panel-speisekarte"  style="display:none"></div>
   <div id="panel-lieferanten"  style="display:none"></div>
@@ -10775,6 +10778,8 @@ function showApp() {
   // Business-Button nur fuer Admin
   const bizBtn = document.getElementById('biz-header-btn');
   if (bizBtn) bizBtn.style.display = currentUser.role === 'admin' ? '' : 'none';
+  const einkaufBtn = document.getElementById('einkauf-log-btn');
+  if (einkaufBtn) einkaufBtn.style.display = 'flex';
 
   // App initialisieren
   const unlocked = bizIsAuth();
@@ -15227,6 +15232,148 @@ async function n8nHook(name, data) {
       keepalive: true
     });
   } catch(_) {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EINKAUF LOGGEN MODAL
+// ═══════════════════════════════════════════════════════════════
+function einkaufLoggModal() {
+  document.getElementById('einkauf-log-overlay')?.remove();
+  const shops = [
+    { id: 'metro', name: 'Metro', color: '#003DA5' },
+    { id: 'billa', name: 'Billa', color: '#ed1c24' },
+    { id: 'lidl',  name: 'Lidl',  color: '#0050AA' },
+    { id: 'spar',  name: 'Spar',  color: '#007f3e' },
+  ];
+  const shopBtns = shops.map(s =>
+    `<button onclick="einkaufLoggShop('${s.id}')" id="el-shop-${s.id}"
+      style="flex:1;padding:14px 8px;border-radius:12px;border:2px solid ${s.color};background:#fff;color:${s.color};font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s">
+      ${escHtml(s.name)}
+    </button>`
+  ).join('');
+
+  const ov = document.createElement('div');
+  ov.id = 'einkauf-log-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:24px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h2 style="margin:0;font-size:18px;font-weight:800;color:#261816;display:flex;align-items:center;gap:8px">
+          <span class="material-symbols-outlined" style="color:#610000;font-size:20px">add_shopping_cart</span>Einkauf loggen
+        </h2>
+        <button onclick="einkaufLoggClose()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#5a403c">close</span>
+        </button>
+      </div>
+
+      <p style="font-size:12px;font-weight:700;color:#5a403c;margin:0 0 10px;letter-spacing:.5px">SHOP</p>
+      <div style="display:flex;gap:10px;margin-bottom:20px">${shopBtns}</div>
+      <input type="hidden" id="el-shop-val" value="">
+
+      <p style="font-size:12px;font-weight:700;color:#5a403c;margin:0 0 10px;letter-spacing:.5px">ARTIKEL</p>
+      <div id="el-zeilen"></div>
+      <button onclick="einkaufLoggZeile()" style="width:100%;padding:9px;border:1.5px dashed #e3beb8;border-radius:10px;background:#fff8f6;color:#610000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:18px">
+        + Zeile hinzufügen
+      </button>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fff8f6;border-radius:12px;margin-bottom:16px">
+        <span style="font-size:14px;font-weight:700;color:#5a403c">Gesamtsumme</span>
+        <span id="el-gesamt" style="font-size:22px;font-weight:800;color:#610000">€ 0.00</span>
+      </div>
+
+      <button onclick="einkaufLoggSave()" style="width:100%;padding:14px;background:#610000;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">
+        💾 Speichern
+      </button>
+    </div>`;
+  ov.addEventListener('click', e => { if (e.target === ov) einkaufLoggClose(); });
+  document.body.appendChild(ov);
+  _elZeileIdx = 0;
+  einkaufLoggZeile();
+  einkaufLoggZeile();
+}
+
+function einkaufLoggClose() {
+  document.getElementById('einkauf-log-overlay')?.remove();
+}
+
+function einkaufLoggShop(id) {
+  document.getElementById('el-shop-val').value = id;
+  const colors = { metro: '#003DA5', billa: '#ed1c24', lidl: '#0050AA', spar: '#007f3e' };
+  ['metro', 'billa', 'lidl', 'spar'].forEach(s => {
+    const btn = document.getElementById('el-shop-' + s);
+    if (!btn) return;
+    if (s === id) { btn.style.background = colors[s]; btn.style.color = '#fff'; }
+    else          { btn.style.background = '#fff';    btn.style.color = colors[s]; }
+  });
+}
+
+let _elZeileIdx = 0;
+function einkaufLoggZeile() {
+  const idx = _elZeileIdx++;
+  const container = document.getElementById('el-zeilen');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.id = 'el-row-' + idx;
+  row.style.cssText = 'display:flex;gap:6px;margin-bottom:8px;align-items:center';
+  row.innerHTML =
+    `<input type="text" placeholder="Produkt..." id="el-n-${idx}" oninput="einkaufLoggGesamt()"
+      style="flex:2;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">` +
+    `<input type="number" placeholder="Menge" id="el-m-${idx}" min="0" step="0.01" oninput="einkaufLoggGesamt()"
+      style="flex:1;padding:8px 6px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">` +
+    `<select id="el-e-${idx}" style="padding:8px 4px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">
+      <option>kg</option><option>Stk</option><option>L</option><option>Pkg</option>
+    </select>` +
+    `<input type="number" placeholder="€ Preis" id="el-p-${idx}" min="0" step="0.01" oninput="einkaufLoggGesamt()"
+      style="flex:1;padding:8px 6px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">` +
+    `<button onclick="document.getElementById('el-row-${idx}').remove();einkaufLoggGesamt()"
+      style="background:none;border:none;cursor:pointer;color:#b52619;font-size:18px;line-height:1;padding:4px">✕</button>`;
+  container.appendChild(row);
+}
+
+function einkaufLoggGesamt() {
+  let sum = 0;
+  document.querySelectorAll('[id^="el-p-"]').forEach(inp => { sum += parseFloat(inp.value) || 0; });
+  const el = document.getElementById('el-gesamt');
+  if (el) el.textContent = '€ ' + sum.toFixed(2);
+}
+
+function einkaufLoggSave() {
+  const shopId   = document.getElementById('el-shop-val')?.value;
+  const shopObj  = { metro: 'Metro', billa: 'Billa', lidl: 'Lidl', spar: 'Spar' };
+  const shopName = shopObj[shopId] || shopId || 'Unbekannt';
+  const heute    = new Date().toISOString().slice(0, 10);
+  const rows     = document.querySelectorAll('[id^="el-row-"]');
+  const artikel  = [];
+
+  rows.forEach(row => {
+    const idx     = row.id.replace('el-row-', '');
+    const name    = (document.getElementById('el-n-' + idx)?.value || '').trim();
+    const menge   = parseFloat(document.getElementById('el-m-' + idx)?.value) || null;
+    const einheit = document.getElementById('el-e-' + idx)?.value || 'Stk';
+    const preis   = parseFloat(document.getElementById('el-p-' + idx)?.value);
+    if (!name) return;
+    artikel.push({ name, menge, einheit, preis: isNaN(preis) ? null : preis });
+  });
+
+  if (!shopId)         { _showToast('Bitte Shop auswählen', 'error'); return; }
+  if (!artikel.length) { _showToast('Bitte mindestens einen Artikel eingeben', 'error'); return; }
+
+  artikel.forEach(a => {
+    addHistoryEntry({
+      produktName: a.name, menge: a.menge, einheit: a.einheit, preis: a.preis,
+      shopName, shopId, quelle: 'einkauf-log', datum: heute,
+    });
+    if (a.preis != null) {
+      fetch('http://localhost:8080/api/preisverlauf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ produkt: a.name, preis: a.preis, shop: shopName, shop_id: shopId, datum: heute, quelle: 'einkauf-log' })
+      }).catch(() => {});
+    }
+  });
+
+  einkaufLoggClose();
+  _showToast(artikel.length + ' Artikel von ' + escHtml(shopName) + ' gespeichert', 'success');
+  if (typeof renderVerlaufTab === 'function') renderVerlaufTab();
 }
 
 function _showToast(msg, type) {
