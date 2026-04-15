@@ -4115,6 +4115,23 @@ function addReceiptItemToInventory(idx, btn) {
     datum:       UPLOAD_STATE.einkaufsDatum || null,
   });
 
+  // Preis in SQLite Preishistorie speichern (Server läuft lokal)
+  if (item.preis != null) {
+    fetch('http://localhost:8080/api/preisverlauf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        produkt_id:  matched ? matched.id : null,
+        produkt:     item.name,
+        preis:       item.preis,
+        shop:        UPLOAD_STATE.geschaeft || null,
+        shop_id:     foundShopId || null,
+        datum:       UPLOAD_STATE.einkaufsDatum || new Date().toISOString().slice(0,10),
+        quelle:      'kassenbon',
+      })
+    }).catch(() => {}); // Server evtl. nicht gestartet — kein Fehler zeigen
+  }
+
   UPLOAD_STATE.addedIndices.add(idx);
   btn.classList.add('added');
   btn.disabled = true;
@@ -13795,7 +13812,7 @@ function renderStatistikTab() {
         '<button onclick="statistikAdd()" style="flex:0 0 auto;padding:8px 20px;background:#8B0000;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;">+ Hinzuf&uuml;gen</button>' +
       '</div>' +
     '</div>' +
-    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 12px 0;color:#8B0000;font-size:16px;">Alle Eintr&auml;ge (letzte 50)</h3>' +
       '<div style="overflow-x:auto">' +
       '<table style="width:100%;border-collapse:collapse;">' +
@@ -13810,7 +13827,83 @@ function renderStatistikTab() {
       '</table>' +
       '</div>' +
     '</div>' +
+    '<div id="preisverlauf-section" style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
+      '<h3 style="margin:0 0 6px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
+      '<p style="font-size:12px;color:#8d6562;margin:0 0 14px">Wird aus gescannten Rechnungen automatisch befüllt (braucht <strong>node server.js</strong>)</p>' +
+      '<div style="color:#aaa;font-size:13px">Lade...</div>' +
+    '</div>' +
     '</div>';
+  loadPreisverlaufSection();
+}
+
+async function loadPreisverlaufSection() {
+  const el = document.getElementById('preisverlauf-section');
+  if (!el) return;
+  try {
+    const [statsResp, recentResp] = await Promise.all([
+      fetch('http://localhost:8080/api/preisverlauf/stats'),
+      fetch('http://localhost:8080/api/preisverlauf?limit=20'),
+    ]);
+    if (!statsResp.ok) throw new Error('Server nicht erreichbar');
+    const stats  = await statsResp.json();
+    const recent = await recentResp.json();
+
+    if (!stats.length) {
+      el.querySelector('div:last-child').innerHTML = '<p style="color:#aaa;font-size:13px;margin:0">Noch keine Daten — Rechnungen scannen um Preise zu speichern.</p>';
+      return;
+    }
+
+    const statsRows = stats.map(r =>
+      `<tr style="border-bottom:1px solid #f3ebe9">
+        <td style="padding:6px 10px;font-size:13px;font-weight:600">${r.produkt}</td>
+        <td style="padding:6px 10px;font-size:12px;color:#5a403c">${r.shop||'—'}</td>
+        <td style="padding:6px 10px;font-size:13px;text-align:right;color:#2e7d32">€${r.min_preis.toFixed(2)}</td>
+        <td style="padding:6px 10px;font-size:13px;text-align:right;color:#5a403c">€${r.avg_preis.toFixed(2)}</td>
+        <td style="padding:6px 10px;font-size:13px;text-align:right;color:#b52619">€${r.max_preis.toFixed(2)}</td>
+        <td style="padding:6px 10px;font-size:11px;color:#8d6562;text-align:right">${r.anzahl}×</td>
+      </tr>`
+    ).join('');
+
+    const recentRows = recent.map(r =>
+      `<tr style="border-bottom:1px solid #f3ebe9">
+        <td style="padding:5px 10px;font-size:12px">${r.datum}</td>
+        <td style="padding:5px 10px;font-size:12px;font-weight:600">${r.produkt}</td>
+        <td style="padding:5px 10px;font-size:12px;color:#5a403c">${r.shop||'—'}</td>
+        <td style="padding:5px 10px;font-size:13px;text-align:right;font-weight:700;color:#8B0000">€${parseFloat(r.preis).toFixed(2)}</td>
+      </tr>`
+    ).join('');
+
+    el.innerHTML =
+      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
+      '<div style="overflow-x:auto;margin-bottom:18px">' +
+        '<table style="width:100%;border-collapse:collapse">' +
+          '<thead><tr style="background:#fff8f6">' +
+            '<th style="text-align:left;padding:7px 10px;font-size:12px;color:#5a403c">Produkt</th>' +
+            '<th style="text-align:left;padding:7px 10px;font-size:12px;color:#5a403c">Shop</th>' +
+            '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#2e7d32">Min</th>' +
+            '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#5a403c">Ø Avg</th>' +
+            '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#b52619">Max</th>' +
+            '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#8d6562">Einträge</th>' +
+          '</tr></thead>' +
+          '<tbody>' + statsRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+      '<h4 style="margin:0 0 10px;color:#5a403c;font-size:14px;">Letzte 20 Einträge</h4>' +
+      '<div style="overflow-x:auto">' +
+        '<table style="width:100%;border-collapse:collapse">' +
+          '<thead><tr style="background:#fff8f6">' +
+            '<th style="text-align:left;padding:5px 10px;font-size:11px;color:#8d6562">Datum</th>' +
+            '<th style="text-align:left;padding:5px 10px;font-size:11px;color:#8d6562">Produkt</th>' +
+            '<th style="text-align:left;padding:5px 10px;font-size:11px;color:#8d6562">Shop</th>' +
+            '<th style="text-align:right;padding:5px 10px;font-size:11px;color:#8d6562">Preis</th>' +
+          '</tr></thead>' +
+          '<tbody>' + recentRows + '</tbody>' +
+        '</table>' +
+      '</div>';
+  } catch(_) {
+    const inner = el.querySelector('div:last-child');
+    if (inner) inner.innerHTML = '<p style="color:#aaa;font-size:12px;margin:0">Server nicht aktiv — <code>node server.js</code> starten um Preishistorie zu sehen.</p>';
+  }
 }
 
 function statistikAdd() {
