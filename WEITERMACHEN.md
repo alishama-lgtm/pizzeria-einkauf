@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-14 (Session 2)
+# Pizzeria San Carino — Weitermachen ab 2026-04-15 (Session 3)
 
 ## Arbeitsverzeichnis
 
@@ -7,20 +7,20 @@ C:\Users\shama\Claude\Pizzaria\.claude\San Carino\aktuell\
 ```
 
 ```bash
-npm install        # xlsx Paket (neu!) — einmalig
+npm install        # better-sqlite3 (neu!) — einmalig
 node server.js     # → http://localhost:8080
 ```
 
 ---
 
-## Was heute erledigt wurde ✅
+## Was bisher erledigt wurde ✅
 
 ### Session 1 (früher)
 - Saubere Ordnerstruktur: `aktuell/` + `alt/`
 - GitHub `main` Branch neu aufgesetzt
 - CLAUDE.md + ANLEITUNG/ Dokumentation
 
-### Session 2 (heute)
+### Session 2 (2026-04-14)
 - **Angebote KW16/KW17** — alle Prospekte auf aktuelles Datum, KW17-Vorschau
 - **ANLEITUNG/server.md** — vollständige Server-Dokumentation
 - **Charts Demo-Daten** — "Demo laden" Button wenn Kassa leer
@@ -30,6 +30,22 @@ node server.js     # → http://localhost:8080
   - App zeigt Badge + Inbox-Sektion im Heute-Tab
   - XLSX braucht `npm install` (xlsx Paket hinzugefügt)
 
+### Session 3 (2026-04-15)
+- **Aufgabe 5: N8N Agenten-Hooks** eingebaut
+  - `n8nHook()` Helper global verfügbar
+  - Settings-Modal: Toggle + URL-Feld für N8N-Server
+  - Hooks: `fehlmaterial-alert`, `bestellung-done`, `lager-low`
+- **Gemini als zweiter AI-Agent** eingebaut
+  - Settings: Claude/Gemini Toggle + Gemini API Key Feld
+  - Gemini läuft in: Upload-Scan, Handliste, Suche-Tab, Angebote-Tab
+  - Gemini nutzt `gemini-2.0-flash` + Google Search Grounding
+- **Aufgabe 6: Preishistorie SQLite DB**
+  - `better-sqlite3` zu `package.json` hinzugefügt
+  - Tabelle `preishistorie` in `pizzeria.db` (auto-erstellt beim Server-Start)
+  - API: `GET /api/preisverlauf`, `GET /api/preisverlauf/stats`, `POST /api/preisverlauf`
+  - Auto-Speichern beim Rechnung-Scannen (addReceiptItemToInventory)
+  - Statistik-Tab: neue Sektion "Einkaufspreise Verlauf" (Min/Avg/Max + letzte 20)
+
 ---
 
 ## Offene Aufgaben (nächste Schritte)
@@ -37,10 +53,8 @@ node server.js     # → http://localhost:8080
 ### Priorität Hoch
 | # | Aufgabe | Details |
 |---|---|---|
-| 5 | **N8N Agenten einbauen** | `n8nHook()` Helper global in index.html + Settings-Toggle + Hooks in: `fmSubmitForm`, `bestellungToggle`, `lagerSpeichern`. Doku: `N8N-AGENTEN-WORKFLOWS.md` |
-| 6 | **Preishistorie DB** | SQLite `pizzeria.db` erweitern: Tabelle `preishistorie` (produkt_id, preis, datum, shop). API-Endpunkt `/api/preisverlauf` in `server.js` |
-| 7 | **Statistik-Tab** | `renderStatistikTab()` mit echten Daten aus localStorage befüllen (Umsatz-Verlauf, Top-Pizzen) |
-| 8 | **Tagesangebote-Tab** | `renderTagesangeboteTab()` — Heute-Angebote mit Countdown + Marge |
+| 7 | **Statistik-Tab** | `renderStatistikTab()` mit echten Daten aus localStorage befüllen (Umsatz-Verlauf, Top-Pizzen) — Zeile ~13689 |
+| 8 | **Tagesangebote-Tab** | `renderTagesangeboteTab()` — Heute-Angebote mit Countdown + Marge — Zeile ~13862 |
 
 ### Priorität Mittel
 | # | Aufgabe |
@@ -54,46 +68,30 @@ node server.js     # → http://localhost:8080
 
 | Datei | Was |
 |---|---|
-| `index.html` | Haupt-App (~14.500+ Zeilen, Vanilla JS SPA) |
-| `js/tabs.js` | Tab-Logik + renderHeuteTab() + renderBewertungenTab() |
+| `index.html` | Haupt-App (~15.000+ Zeilen, Vanilla JS SPA) |
+| `js/tabs.js` | Tab-Logik + renderHeuteTab() + renderBewertungenTab() + searchViaGeminiAPI() |
 | `js/business.js` | Business-Charts + Lohnabrechnung PDF + Demo-Daten |
-| `js/angebote.js` | Angebots-System (KW16/KW17 aktuell) |
-| `server.js` | Express + Preissuche + WebSocket + Inbox-API |
+| `js/angebote.js` | Angebots-System (KW16/KW17 aktuell) + Gemini Support |
+| `js/config.js` | ANTHROPIC_API_KEY + GEMINI_API_KEY + PRODUCTS/SHOPS/PRICE_MAP |
+| `server.js` | Express + Preissuche + WebSocket + Inbox-API + SQLite Preishistorie |
 | `server/watcher.js` | File-Watcher für inbox/ Ordner |
 | `N8N-AGENTEN-WORKFLOWS.md` | Alle 8 geplanten N8N Workflows dokumentiert |
 | `ANLEITUNG/` | Vollständige Dokumentation |
 
 ---
 
-## N8N Aufgabe 5 — Wo einbauen
+## Neue localStorage Keys (Session 3)
+| Key | Was |
+|---|---|
+| `pizzeria_n8n_enabled` | N8N aktiv (1/0) |
+| `pizzeria_n8n_url` | N8N Server URL |
+| `pizzeria_ai_provider` | `claude` oder `gemini` |
+| `pizzeria_gemini_key` | Google Gemini API Key |
 
-### 1. `n8nHook()` Helper — global in index.html (vor `_showToast`)
-```javascript
-async function n8nHook(name, data) {
-  if (localStorage.getItem('pizzeria_n8n_enabled') !== '1') return;
-  const url = localStorage.getItem('pizzeria_n8n_url') || 'http://localhost:5678';
-  try {
-    await fetch(url + '/webhook/' + name, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      keepalive: true
-    });
-  } catch(_) {}
-}
-```
-
-### 2. Settings-Modal — N8N-Sektion hinzufügen
-In `openSettings()` → nach dem API-Key Block:
-- Toggle "N8N-Workflows aktiv" → `pizzeria_n8n_enabled`
-- URL-Feld → `pizzeria_n8n_url` (default: `http://localhost:5678`)
-
-### 3. Hooks einfügen
-| Funktion (Zeile) | Hook-Name | Payload |
-|---|---|---|
-| `fmSubmitForm()` (Zeile ~2816) | `fehlmaterial-alert` | `{artikel, menge, einheit, prioritaet, person, datum}` |
-| `bestellungToggle()` (Zeile ~12643) | `bestellung-done` | `{id, artikel, erledigt}` |
-| `lagerSpeichern()` (Zeile ~12892) | `lager-low` | `{artikel, menge, mindestmenge}` (nur wenn unter Min.) |
+## SQLite Tabellen (pizzeria.db)
+| Tabelle | Felder |
+|---|---|
+| `preishistorie` | id, produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle |
 
 ---
 
