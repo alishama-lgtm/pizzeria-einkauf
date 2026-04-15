@@ -1226,10 +1226,6 @@
         <span class="material-symbols-outlined" style="font-size:24px;">notifications</span>
         <span class="notif-badge" id="notif-badge"></span>
       </button>
-      <!-- Einkauf loggen Button -->
-      <button id="einkauf-log-btn" onclick="einkaufLoggModal()" style="display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1.5px solid #610000;background:#610000;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer" title="Einkauf schnell erfassen">
-        <span class="material-symbols-outlined" style="font-size:16px">add_shopping_cart</span>Einkauf
-      </button>
       <!-- Business Button -->
       <button id="biz-header-btn" onclick="switchTab('business')">
         <span class="material-symbols-outlined" id="biz-lock-icon">lock</span>
@@ -6475,21 +6471,23 @@ function daysUntilMonday() {
 }
 
 function renderShopsTab() {
-  const mwstOn  = isBrutto();
-  const menge   = getGlobalMenge();
+  const panel2 = document.getElementById('panel-geschaefte');
+  const mwstOn  = panel2.dataset.mwst  === '1';
+  const menge   = parseFloat(panel2.dataset.menge  || '1');
+  const mwstFak = mwstOn ? 1.10 : 1.0;
 
-  function calcPreis(v) { return v * menge * mwstFaktor(); }
+  function calcPreis(v) { return v * menge * mwstFak; }
 
   const lowIds = new Set(getLowStockProducts().map(p => p.id));
 
   const mengenBtns = [1,5,10,15,20].map(m => {
     const aktiv = menge === m;
-    return `<button onclick="localStorage.setItem('pizzeria_menge','${m}');renderShopsTab()"
+    return `<button onclick="document.getElementById('panel-geschaefte').dataset.menge='${m}';renderShopsTab()"
       style="padding:5px 14px;border-radius:8px;border:1.5px solid ${aktiv?'#610000':'#e3beb8'};background:${aktiv?'#610000':'#fff'};color:${aktiv?'#fff':'#5a403c'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">${m} kg</button>`;
   }).join('');
 
   const mwstToggle =
-    `<button onclick="localStorage.setItem('pizzeria_mwst','${mwstOn?'0':'1'}');renderShopsTab()"
+    `<button onclick="document.getElementById('panel-geschaefte').dataset.mwst='${mwstOn?'0':'1'}';renderShopsTab()"
       style="padding:5px 16px;border-radius:8px;border:1.5px solid ${mwstOn?'#1b5e20':'#e3beb8'};background:${mwstOn?'#e8f5e9':'#fff'};color:${mwstOn?'#1b5e20':'#5a403c'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
       ${mwstOn?'✓ Brutto (inkl. 10% MwSt)':'Netto (exkl. MwSt)'}
     </button>`;
@@ -6826,7 +6824,6 @@ function renderFeaturedCombo(combo) {
 
   const shopSections = shopGroups.map(group => {
     const initials = group.shop.name.slice(0,2).toUpperCase();
-    const mwst = mwstFaktor();
     const rows = group.items.map(item => `
       <div class="product-row">
         <div class="product-row-check" onclick="this.classList.toggle('checked')"></div>
@@ -6835,8 +6832,8 @@ function renderFeaturedCombo(combo) {
           <span>${item.product.category} · ${item.quantity} ${item.product.unit}</span>
         </div>
         <div class="product-row-price">
-          <span class="qty">${eur(item.pricePerUnit * mwst)}/${item.product.unit}</span>
-          <span class="total">${eur(item.totalCost * mwst)}</span>
+          <span class="qty">${eur(item.pricePerUnit)}/${item.product.unit}</span>
+          <span class="total">${eur(item.totalCost)}</span>
         </div>
       </div>`).join('');
 
@@ -6850,16 +6847,13 @@ function renderFeaturedCombo(combo) {
         <div>${rows}</div>
         <div style="display:flex;justify-content:flex-end;padding:10px 16px;background:#fafafa;border-top:1px solid #f0e8e6">
           <span style="font-size:13px;color:#8e706b;font-weight:600;margin-right:8px">Subtotal ${group.shop.name}:</span>
-          <span style="font-size:14px;font-weight:800;color:#610000">${eur(group.subtotal * mwst)}</span>
+          <span style="font-size:14px;font-weight:800;color:#610000">${eur(group.subtotal)}</span>
         </div>
       </div>`;
   }).join('');
 
-  const mwst = mwstFaktor();
-  const displayTotal = combo.totalCost * mwst;
-
   // Store combo data for floating bar
-  window._featuredComboTotal = displayTotal;
+  window._featuredComboTotal = combo.totalCost;
   window._featuredComboId = combo.id;
 
   setTimeout(() => {
@@ -6867,7 +6861,7 @@ function renderFeaturedCombo(combo) {
     if (bar) {
       bar.classList.remove('bar-hidden');
       const totalEl = bar.querySelector('.floating-bar-total strong');
-      if (totalEl) totalEl.textContent = eur(displayTotal);
+      if (totalEl) totalEl.textContent = eur(combo.totalCost);
     }
   }, 50);
 
@@ -6887,8 +6881,8 @@ function renderFeaturedCombo(combo) {
           <span class="material-symbols-outlined" style="font-size:15px">print</span> Drucken
         </button>
         <div style="display:flex;align-items:baseline;gap:6px">
-          <span style="font-size:13px;color:#8e706b;font-weight:600">Gesamt${isBrutto() ? ' (Brutto)' : ''}</span>
-          <span style="font-size:26px;font-weight:800;color:#610000;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em">${eur(displayTotal)}</span>
+          <span style="font-size:13px;color:#8e706b;font-weight:600">Gesamt</span>
+          <span style="font-size:26px;font-weight:800;color:#610000;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em">${eur(combo.totalCost)}</span>
         </div>
       </div>
     </div>`;
@@ -6905,21 +6899,20 @@ function renderAltCombo(combo, rank) {
   const shopGroups = Object.values(byShop);
   const detailId = 'altd-' + combo.id;
 
-  const mwst = mwstFaktor();
   const detailRows = shopGroups.map(group => {
     const rows = group.items.map(item => `
       <div style="display:flex;justify-content:space-between;align-items:center;height:36px;border-bottom:1px solid #f5f0ee">
         <span style="font-size:12px;font-weight:600;color:#261816;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px">${item.product.name}</span>
         <div style="display:flex;gap:5px;flex-shrink:0">
           <span style="font-size:11px;color:#8e706b">${item.quantity}×</span>
-          <span style="font-size:12px;font-weight:700;color:#261816">${eur(item.totalCost * mwst)}</span>
+          <span style="font-size:12px;font-weight:700;color:#261816">${eur(item.totalCost)}</span>
         </div>
       </div>`).join('');
 
     const shopHead = shopGroups.length > 1 ? `
       <div style="display:flex;justify-content:space-between;padding:5px 0 2px;border-bottom:2px solid ${group.shop.color}55">
         <span style="font-size:11px;font-weight:700;color:${group.shop.color}">${group.shop.name}</span>
-        <span style="font-size:11px;font-weight:600;color:#5a403c">${eur(group.subtotal * mwst)}</span>
+        <span style="font-size:11px;font-weight:600;color:#5a403c">${eur(group.subtotal)}</span>
       </div>` : '';
 
     return `<div style="margin-bottom:6px">${shopHead}${rows}</div>`;
@@ -6940,7 +6933,7 @@ function renderAltCombo(combo, rank) {
           onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
           <span class="material-symbols-outlined" style="font-size:13px">print</span>
         </button>
-        <span style="font-size:16px;font-weight:800;color:#261816;letter-spacing:-.01em;flex-shrink:0">${eur(combo.totalCost * mwst)}</span>
+        <span style="font-size:16px;font-weight:800;color:#261816;letter-spacing:-.01em;flex-shrink:0">${eur(combo.totalCost)}</span>
         <span class="material-symbols-outlined chev" style="font-size:16px;color:#8e706b;transition:transform .2s;flex-shrink:0">expand_more</span>
       </div>
       <div id="${detailId}" style="display:none;padding:8px 12px 12px;border-top:1px solid #e3beb8;background:#fafafa">
@@ -6960,13 +6953,12 @@ function renderSingleCombo(combo, rank) {
   const group = Object.values(byShop)[0];
   const detailId = 'sngd-' + combo.id;
 
-  const mwst = mwstFaktor();
   const detailRows = group.items.map(item => `
     <div style="display:flex;justify-content:space-between;align-items:center;height:34px;border-bottom:1px solid #f5f0ee">
       <span style="font-size:12px;font-weight:600;color:#261816;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px">${item.product.name}</span>
       <div style="display:flex;gap:4px;flex-shrink:0">
         <span style="font-size:11px;color:#8e706b">${item.quantity}×</span>
-        <span style="font-size:12px;font-weight:700;color:#261816">${eur(item.totalCost * mwst)}</span>
+        <span style="font-size:12px;font-weight:700;color:#261816">${eur(item.totalCost)}</span>
       </div>
     </div>`).join('');
 
@@ -6980,7 +6972,7 @@ function renderSingleCombo(combo, rank) {
           onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
           <span class="material-symbols-outlined" style="font-size:12px;color:#5a403c">print</span>
         </button>
-        <span style="font-size:15px;font-weight:800;color:#261816;flex-shrink:0">${eur(combo.totalCost * mwst)}</span>
+        <span style="font-size:15px;font-weight:800;color:#261816;flex-shrink:0">${eur(combo.totalCost)}</span>
       </div>
       <div id="${detailId}" style="display:none;padding:6px 10px 10px;background:#fafafa">
         ${detailRows}
@@ -10783,8 +10775,6 @@ function showApp() {
   // Business-Button nur fuer Admin
   const bizBtn = document.getElementById('biz-header-btn');
   if (bizBtn) bizBtn.style.display = currentUser.role === 'admin' ? '' : 'none';
-  const einkaufBtn = document.getElementById('einkauf-log-btn');
-  if (einkaufBtn) einkaufBtn.style.display = 'flex';
 
   // App initialisieren
   const unlocked = bizIsAuth();
@@ -15237,160 +15227,6 @@ async function n8nHook(name, data) {
       keepalive: true
     });
   } catch(_) {}
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EINKAUF LOGGEN MODAL
-// ═══════════════════════════════════════════════════════════════
-function einkaufLoggModal() {
-  document.getElementById('einkauf-log-overlay')?.remove();
-  const shops = [
-    { id: 'metro', name: 'Metro', color: '#003DA5' },
-    { id: 'billa', name: 'Billa', color: '#ed1c24' },
-    { id: 'lidl',  name: 'Lidl',  color: '#0050AA' },
-    { id: 'spar',  name: 'Spar',  color: '#007f3e' },
-  ];
-  const shopBtns = shops.map(s =>
-    `<button onclick="einkaufLoggShop('${s.id}')" id="el-shop-${s.id}"
-      style="flex:1;padding:14px 8px;border-radius:12px;border:2px solid ${s.color};background:#fff;color:${s.color};font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s">
-      ${escHtml(s.name)}
-    </button>`
-  ).join('');
-
-  const ov = document.createElement('div');
-  ov.id = 'einkauf-log-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
-  ov.innerHTML = `
-    <div style="background:#fff;border-radius:20px;padding:24px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-        <h2 style="margin:0;font-size:18px;font-weight:800;color:#261816;display:flex;align-items:center;gap:8px">
-          <span class="material-symbols-outlined" style="color:#610000;font-size:20px">add_shopping_cart</span>Einkauf loggen
-        </h2>
-        <button onclick="einkaufLoggClose()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;line-height:0">
-          <span class="material-symbols-outlined" style="font-size:18px;color:#5a403c">close</span>
-        </button>
-      </div>
-
-      <p style="font-size:12px;font-weight:700;color:#5a403c;margin:0 0 10px;letter-spacing:.5px">SHOP</p>
-      <div style="display:flex;gap:10px;margin-bottom:20px">${shopBtns}</div>
-      <input type="hidden" id="el-shop-val" value="">
-
-      <p style="font-size:12px;font-weight:700;color:#5a403c;margin:0 0 10px;letter-spacing:.5px">ARTIKEL</p>
-      <div id="el-zeilen"></div>
-      <button onclick="einkaufLoggZeile()" style="width:100%;padding:9px;border:1.5px dashed #e3beb8;border-radius:10px;background:#fff8f6;color:#610000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:18px">
-        + Zeile hinzufügen
-      </button>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#fff8f6;border-radius:12px;margin-bottom:16px">
-        <span style="font-size:14px;font-weight:700;color:#5a403c">Gesamtsumme</span>
-        <span id="el-gesamt" style="font-size:22px;font-weight:800;color:#610000">€ 0.00</span>
-      </div>
-
-      <button onclick="einkaufLoggSave()" style="width:100%;padding:14px;background:#610000;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit">
-        💾 Speichern
-      </button>
-    </div>`;
-  ov.addEventListener('click', e => { if (e.target === ov) einkaufLoggClose(); });
-  document.body.appendChild(ov);
-  _elZeileIdx = 0;
-  einkaufLoggZeile();
-  einkaufLoggZeile();
-}
-
-function einkaufLoggClose() {
-  document.getElementById('einkauf-log-overlay')?.remove();
-}
-
-function einkaufLoggShop(id) {
-  document.getElementById('el-shop-val').value = id;
-  const colors = { metro: '#003DA5', billa: '#ed1c24', lidl: '#0050AA', spar: '#007f3e' };
-  ['metro', 'billa', 'lidl', 'spar'].forEach(s => {
-    const btn = document.getElementById('el-shop-' + s);
-    if (!btn) return;
-    if (s === id) {
-      btn.style.background = colors[s];
-      btn.style.color = '#fff';
-    } else {
-      btn.style.background = '#fff';
-      btn.style.color = colors[s];
-    }
-  });
-}
-
-let _elZeileIdx = 0;
-function einkaufLoggZeile() {
-  const idx = _elZeileIdx++;
-  const container = document.getElementById('el-zeilen');
-  if (!container) return;
-  const row = document.createElement('div');
-  row.id = 'el-row-' + idx;
-  row.style.cssText = 'display:flex;gap:6px;margin-bottom:8px;align-items:center';
-  row.innerHTML =
-    `<input type="text" placeholder="Produkt..." id="el-n-${idx}" oninput="einkaufLoggGesamt()"
-      style="flex:2;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">` +
-    `<input type="number" placeholder="Menge" id="el-m-${idx}" min="0" step="0.01" oninput="einkaufLoggGesamt()"
-      style="flex:1;padding:8px 6px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">` +
-    `<select id="el-e-${idx}" style="padding:8px 4px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">
-      <option>kg</option><option>Stk</option><option>L</option><option>Pkg</option>
-    </select>` +
-    `<input type="number" placeholder="€ Preis" id="el-p-${idx}" min="0" step="0.01" oninput="einkaufLoggGesamt()"
-      style="flex:1;padding:8px 6px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit">` +
-    `<button onclick="document.getElementById('el-row-${idx}').remove();einkaufLoggGesamt()"
-      style="background:none;border:none;cursor:pointer;color:#b52619;font-size:18px;line-height:1;padding:4px">✕</button>`;
-  container.appendChild(row);
-}
-
-function einkaufLoggGesamt() {
-  let sum = 0;
-  document.querySelectorAll('[id^="el-p-"]').forEach(inp => { sum += parseFloat(inp.value) || 0; });
-  const el = document.getElementById('el-gesamt');
-  if (el) el.textContent = '€ ' + sum.toFixed(2);
-}
-
-function einkaufLoggSave() {
-  const shopId   = document.getElementById('el-shop-val')?.value;
-  const shopObj  = { metro: 'Metro', billa: 'Billa', lidl: 'Lidl', spar: 'Spar' };
-  const shopName = shopObj[shopId] || shopId || 'Unbekannt';
-  const heute    = new Date().toISOString().slice(0, 10);
-  const rows     = document.querySelectorAll('[id^="el-row-"]');
-  const artikel  = [];
-
-  rows.forEach(row => {
-    const idx    = row.id.replace('el-row-', '');
-    const name   = (document.getElementById('el-n-' + idx)?.value || '').trim();
-    const menge  = parseFloat(document.getElementById('el-m-' + idx)?.value) || null;
-    const einheit = document.getElementById('el-e-' + idx)?.value || 'Stk';
-    const preis  = parseFloat(document.getElementById('el-p-' + idx)?.value);
-    if (!name) return;
-    artikel.push({ name, menge, einheit, preis: isNaN(preis) ? null : preis });
-  });
-
-  if (!shopId)         { _showToast('Bitte Shop auswählen', 'error'); return; }
-  if (!artikel.length) { _showToast('Bitte mindestens einen Artikel eingeben', 'error'); return; }
-
-  artikel.forEach(a => {
-    addHistoryEntry({
-      produktName: a.name,
-      menge:       a.menge,
-      einheit:     a.einheit,
-      preis:       a.preis,
-      shopName,
-      shopId,
-      quelle:      'einkauf-log',
-      datum:       heute,
-    });
-    if (a.preis != null) {
-      fetch('http://localhost:8080/api/preisverlauf', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ produkt: a.name, preis: a.preis, shop: shopName, shop_id: shopId, datum: heute, quelle: 'einkauf-log' })
-      }).catch(() => {});
-    }
-  });
-
-  einkaufLoggClose();
-  _showToast(artikel.length + ' Artikel von ' + escHtml(shopName) + ' gespeichert', 'success');
-  if (typeof renderVerlaufTab === 'function') renderVerlaufTab();
 }
 
 function _showToast(msg, type) {
