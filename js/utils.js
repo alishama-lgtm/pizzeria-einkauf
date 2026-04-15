@@ -6,6 +6,12 @@ function eur(val) {
   return val.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 }
 
+// ── Globale MwSt / Menge Einstellungen ──────────────────────────
+function getGlobalMenge() { return parseFloat(localStorage.getItem('pizzeria_menge') || '1'); }
+function isBrutto() { return localStorage.getItem('pizzeria_mwst') === '1'; }
+function mwstFaktor() { return isBrutto() ? 1.10 : 1.0; }
+function calcGlobalPreis(v) { return v * getGlobalMenge() * mwstFaktor(); }
+
 function getLowStockProducts() {
   return PRODUCTS.filter(p => stockLevels[p.id] < p.minStock);
 }

@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-15 (Session 3)
+# Pizzeria San Carino — Weitermachen ab 2026-04-15 (Session 4)
 
 ## Arbeitsverzeichnis
 
@@ -6,61 +6,66 @@
 C:\Users\shama\Claude\Pizzaria\.claude\San Carino\aktuell\
 ```
 
+## Setup auf neuem Laptop
+
 ```bash
-npm install        # better-sqlite3 (neu!) — einmalig
-node server.js     # → http://localhost:8080
+git clone https://github.com/alishama-lgtm/pizzeria-einkauf
+cd pizzeria-einkauf
+node server.js        # → http://localhost:8080
 ```
+
+**Kein `npm install` nötig** — server.js nutzt jetzt `node:sqlite` (eingebaut in Node 22+).
+Node.js Version: mind. **Node 22** erforderlich.
 
 ---
 
 ## Was bisher erledigt wurde ✅
 
-### Session 1 (früher)
+### Session 1
 - Saubere Ordnerstruktur: `aktuell/` + `alt/`
 - GitHub `main` Branch neu aufgesetzt
 - CLAUDE.md + ANLEITUNG/ Dokumentation
 
 ### Session 2 (2026-04-14)
-- **Angebote KW16/KW17** — alle Prospekte auf aktuelles Datum, KW17-Vorschau
-- **ANLEITUNG/server.md** — vollständige Server-Dokumentation
-- **Charts Demo-Daten** — "Demo laden" Button wenn Kassa leer
-- **Inbox-Ordnersystem** — `inbox/rechnungen|preise|lieferanten|lager/`
-  - File-Watcher in `server/watcher.js`
-  - Alle Formate: PDF, JPG, PNG, WEBP, XLSX, XLS, CSV, JSON
-  - App zeigt Badge + Inbox-Sektion im Heute-Tab
-  - XLSX braucht `npm install` (xlsx Paket hinzugefügt)
+- Angebote KW16/KW17 aktualisiert
+- ANLEITUNG/server.md vollständige Dokumentation
+- Charts: "Demo laden" Button wenn Kassa leer
+- Inbox-Ordnersystem mit File-Watcher (`inbox/rechnungen|preise|lieferanten|lager/`)
+- App zeigt Badge + Inbox-Sektion im Heute-Tab
 
-### Session 3 (2026-04-15)
-- **Aufgabe 5: N8N Agenten-Hooks** eingebaut
-  - `n8nHook()` Helper global verfügbar
-  - Settings-Modal: Toggle + URL-Feld für N8N-Server
-  - Hooks: `fehlmaterial-alert`, `bestellung-done`, `lager-low`
-- **Gemini als zweiter AI-Agent** eingebaut
-  - Settings: Claude/Gemini Toggle + Gemini API Key Feld
-  - Gemini läuft in: Upload-Scan, Handliste, Suche-Tab, Angebote-Tab
-  - Gemini nutzt `gemini-2.0-flash` + Google Search Grounding
-- **Aufgabe 6: Preishistorie SQLite DB**
-  - `better-sqlite3` zu `package.json` hinzugefügt
-  - Tabelle `preishistorie` in `pizzeria.db` (auto-erstellt beim Server-Start)
-  - API: `GET /api/preisverlauf`, `GET /api/preisverlauf/stats`, `POST /api/preisverlauf`
-  - Auto-Speichern beim Rechnung-Scannen (addReceiptItemToInventory)
-  - Statistik-Tab: neue Sektion "Einkaufspreise Verlauf" (Min/Avg/Max + letzte 20)
+### Session 3 (2026-04-15 vormittag)
+- N8N Agenten-Hooks (`n8nHook()`, Settings-Modal, Toggle + URL)
+- Gemini als zweiter AI-Agent (Upload-Scan, Handliste, Suche, Angebote)
+- Preishistorie SQLite DB — API: GET/POST `/api/preisverlauf`, `/api/preisverlauf/stats`
+- Statistik-Tab: Chart + CSV Export (Aufgabe 7) ✅
+- Tagesangebote-Tab: Marge + Stunden-Countdown (Aufgabe 8) ✅
+- Geschäfte-Tab: Netto/Brutto Toggle + Mengen-Rechner (1–20 kg)
+- Demo-Preise geleert — PRICE_MAP wird live aus SQLite DB geladen
+
+### Session 4 (2026-04-15 nachmittag)
+- **Einkauf loggen Modal** — Header-Button + Shop-Auswahl + Artikel-Zeilen + Gesamtsumme + Speichern
+  - Speichert in `HISTORY[]` (localStorage `pizzeria_history`)
+  - Speichert Preise in SQLite via `/api/preisverlauf`
+  - Toast-Bestätigung
+- **server.js Migration**: `better-sqlite3` → `node:sqlite` (kein Python/npm nötig)
+- **DB-Schema Migration**: alte `geschaeft`-Tabelle wird automatisch auf neues Schema migriert
+- **Bug fix**: `panel-bewertungen` war doppelt im HTML — entfernt
 
 ---
 
-## Offene Aufgaben (nächste Schritte)
+## Offene Aufgaben
 
 ### Priorität Hoch
-| # | Aufgabe | Details |
+| # | Aufgabe | Zeile ca. |
 |---|---|---|
-| 7 | **Statistik-Tab** | `renderStatistikTab()` mit echten Daten aus localStorage befüllen (Umsatz-Verlauf, Top-Pizzen) — Zeile ~13689 |
-| 8 | **Tagesangebote-Tab** | `renderTagesangeboteTab()` — Heute-Angebote mit Countdown + Marge — Zeile ~13862 |
+| 9 | Inbox: Lieferanten-Import — Import-Button fehlt noch | ~11884 |
+| 10 | N8N Workflow 2 — `/api/umsatz/heute` Endpunkt testen + N8N-seitig einrichten | server.js |
 
 ### Priorität Mittel
 | # | Aufgabe |
 |---|---|
-| 9 | Inbox: Lieferanten-Import fertigstellen (nur Anzeige, kein Import-Button noch) |
-| 10 | N8N Workflow 2 (Tages-Report) — `/api/umsatz/heute` Endpunkt in server.js |
+| 11 | Geschäfte-Tab leer wenn kein Server läuft — Hinweis einbauen "Server starten für Preise" |
+| 12 | Statistik-Tab: echte Verlaufsdaten aus `pizzeria_history` statt Demo-Daten |
 
 ---
 
@@ -68,33 +73,46 @@ node server.js     # → http://localhost:8080
 
 | Datei | Was |
 |---|---|
-| `index.html` | Haupt-App (~15.000+ Zeilen, Vanilla JS SPA) |
-| `js/tabs.js` | Tab-Logik + renderHeuteTab() + renderBewertungenTab() + searchViaGeminiAPI() |
+| `index.html` | Haupt-App (~15.400 Zeilen, Vanilla JS SPA) |
+| `js/config.js` | ANTHROPIC_API_KEY + GEMINI_API_KEY + PRODUCTS/SHOPS/PRICE_MAP + HISTORY |
+| `js/tabs.js` | renderHeuteTab, renderBewertungenTab, renderSucheTab, renderShopsTab etc. |
 | `js/business.js` | Business-Charts + Lohnabrechnung PDF + Demo-Daten |
-| `js/angebote.js` | Angebots-System (KW16/KW17 aktuell) + Gemini Support |
-| `js/config.js` | ANTHROPIC_API_KEY + GEMINI_API_KEY + PRODUCTS/SHOPS/PRICE_MAP |
-| `server.js` | Express + Preissuche + WebSocket + Inbox-API + SQLite Preishistorie |
+| `js/angebote.js` | Angebots-System KW16/KW17 + Gemini Support |
+| `server.js` | Express + node:sqlite + WebSocket + Inbox-API + Preishistorie |
 | `server/watcher.js` | File-Watcher für inbox/ Ordner |
-| `N8N-AGENTEN-WORKFLOWS.md` | Alle 8 geplanten N8N Workflows dokumentiert |
 | `ANLEITUNG/` | Vollständige Dokumentation |
 
 ---
 
-## Neue localStorage Keys (Session 3)
-| Key | Was |
-|---|---|
-| `pizzeria_n8n_enabled` | N8N aktiv (1/0) |
-| `pizzeria_n8n_url` | N8N Server URL |
-| `pizzeria_ai_provider` | `claude` oder `gemini` |
-| `pizzeria_gemini_key` | Google Gemini API Key |
+## Technischer Stack
 
-## SQLite Tabellen (pizzeria.db)
-| Tabelle | Felder |
-|---|---|
-| `preishistorie` | id, produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle |
+- **Frontend:** Vanilla JS SPA, Tailwind CDN, Chart.js, jsPDF
+- **Backend:** Node.js (Express), `node:sqlite` (eingebaut), WebSocket
+- **DB:** `pizzeria.db` — SQLite lokal (gitignored)
+- **AI:** Claude API (Anthropic) + Google Gemini (optional)
+- **Shops:** Metro, Billa, Lidl, Spar (Österreich)
+- **Business-Passwort:** ali2024
 
 ---
 
 ## Panel-IDs (alle 31)
 
 `produkte, geschaefte, kombis, angebote, einkaufsliste, suche, upload, verlauf, mitarbeiter, fehlmaterial, checkliste, business, dashboard, speisekarte, lieferanten, dienstplan, aufgaben, schichtcheck, bestellung, lager, wareneinsatz, preisalarm, standardmaterial, statistik, tagesangebote, umsatz, gewinn, buchhaltung, konkurrenz, bewertungen, heute`
+
+---
+
+## localStorage Keys
+
+| Key | Was |
+|---|---|
+| `pizzeria_history` | Einkaufs-Verlauf (HISTORY[]) |
+| `pizzeria_n8n_enabled` | N8N aktiv (1/0) |
+| `pizzeria_n8n_url` | N8N Server URL |
+| `pizzeria_ai_provider` | `claude` oder `gemini` |
+| `pizzeria_gemini_key` | Google Gemini API Key |
+
+## SQLite Tabellen (pizzeria.db)
+
+| Tabelle | Felder |
+|---|---|
+| `preishistorie` | id, produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle |
