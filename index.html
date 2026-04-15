@@ -13803,6 +13803,18 @@ function renderStatistikTab() {
     '</div>' +
     tageHtml +
     '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">' +
+        '<h3 style="margin:0;color:#8B0000;font-size:16px;">&#128200; Umsatz-Verlauf</h3>' +
+      '</div>' +
+      (days.length === 0
+        ? '<p style="color:#aaa;font-size:13px;margin:0">Noch keine Daten — Einträge hinzufügen oder Demo laden.</p>'
+        : '<canvas id="stat-chart" style="max-height:220px"></canvas>') +
+    '</div>' +
+    '<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">' +
+      '<button onclick="statistikDemoLaden()" style="padding:9px 18px;background:#fff8f6;color:#8B0000;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">&#127381; Demo-Daten laden</button>' +
+      '<button onclick="statistikCsvExport()" style="padding:9px 18px;background:#fff8f6;color:#1b5e20;border:1.5px solid #c8e6c9;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">&#128190; CSV Export</button>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
       '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">Eintrag hinzuf&uuml;gen</h3>' +
       '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">' +
         '<div style="flex:1;min-width:120px;"><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="stat-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
@@ -13834,6 +13846,25 @@ function renderStatistikTab() {
     '</div>' +
     '</div>';
   loadPreisverlaufSection();
+
+  // Umsatz-Verlauf Chart
+  if (days.length > 0) {
+    if (window._chartStatistik) window._chartStatistik.destroy();
+    const ctx = document.getElementById('stat-chart');
+    if (ctx && window.Chart) {
+      window._chartStatistik = new window.Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: days,
+          datasets: [{ label: 'Umsatz €', data: days.map(d => parseFloat(tageMap[d].toFixed(2))),
+            borderColor: '#8B0000', backgroundColor: 'rgba(139,0,0,0.08)',
+            tension: 0.3, fill: true, pointRadius: 4, pointBackgroundColor: '#8B0000' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { callback: v => '€' + v } } } }
+      });
+    }
+  }
 }
 
 async function loadPreisverlaufSection() {
@@ -13931,8 +13962,42 @@ function statistikDelete(id) {
   try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
   data = data.filter(function(e) { return e.id !== id; });
   localStorage.setItem('pizzeria_statistik', JSON.stringify(data));
-  _showToast('Gel\u00f6scht', 'info');
+  _showToast('Gelöscht', 'info');
   renderStatistikTab();
+}
+
+function statistikDemoLaden() {
+  var gerichte = ['Margherita','Salami','Diavola','Quattro Formaggi','Prosciutto','Vegetariana','Tonno','Funghi'];
+  var data = [];
+  var heute = new Date();
+  for (var i = 27; i >= 0; i--) {
+    var d = new Date(heute); d.setDate(heute.getDate() - i);
+    var datum = d.toISOString().slice(0,10);
+    var eintraege = 3 + Math.floor(Math.random() * 5);
+    for (var j = 0; j < eintraege; j++) {
+      data.push({ id: Date.now() + '_' + i + '_' + j, datum: datum,
+        gericht: gerichte[Math.floor(Math.random() * gerichte.length)],
+        anzahl: 1 + Math.floor(Math.random() * 6),
+        preis: (8 + Math.floor(Math.random() * 8)) + '.00' });
+    }
+  }
+  localStorage.setItem('pizzeria_statistik', JSON.stringify(data));
+  _showToast('Demo-Daten geladen (28 Tage)', 'success');
+  renderStatistikTab();
+}
+
+function statistikCsvExport() {
+  var data = [];
+  try { data = JSON.parse(localStorage.getItem('pizzeria_statistik') || '[]'); } catch(ex) {}
+  if (!data.length) { _showToast('Keine Daten zum Exportieren', 'warning'); return; }
+  var csv = 'Datum,Gericht,Anzahl,Preis,Gesamt\n' + data.map(function(e) {
+    return [e.datum, '"'+e.gericht+'"', e.anzahl, e.preis, (parseFloat(e.preis)*parseInt(e.anzahl)).toFixed(2)].join(',');
+  }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'statistik_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  _showToast('CSV exportiert', 'success');
 }
 
 function renderTagesangeboteTab() {
