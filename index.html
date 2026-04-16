@@ -739,21 +739,26 @@
 
 
     /* ── Login Screen ── */
-    #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#fff8f6,#ffe4e0);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;}
+    #login-screen{position:fixed;inset:0;background:linear-gradient(145deg,#1a0404 0%,#2c0808 40%,#1a0606 70%,#0d0202 100%);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;}
     #login-screen.hide{display:none;}
+    #login-screen::before{content:'';position:absolute;top:-40%;left:-30%;width:80%;height:80%;background:radial-gradient(ellipse,rgba(139,0,0,.22) 0%,transparent 65%);pointer-events:none;}
+    #login-screen::after{content:'';position:absolute;bottom:-30%;right:-20%;width:70%;height:70%;background:radial-gradient(ellipse,rgba(97,0,0,.18) 0%,transparent 65%);pointer-events:none;}
+    .login-card{background:rgba(255,255,255,.97);border-radius:28px;box-shadow:0 32px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.08);padding:36px 28px;width:100%;max-width:400px;position:relative;z-index:1;}
     /* Rollen-Buttons (Schritt 1) */
-    .login-role-btn{padding:18px 10px;border-radius:14px;border:2px solid #e3beb8;background:#fff8f6;font-size:14px;font-weight:700;color:#5a403c;font-family:inherit;cursor:pointer;text-align:center;transition:background .12s,border-color .12s,transform .1s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
-    .login-role-btn:active{transform:scale(.96);background:#fff0ee;}
-    .login-role-btn:hover{background:#fff0ee;border-color:#c9a0a0;}
-    .login-role-btn .role-icon{font-size:28px;display:block;margin-bottom:6px}
-    #login-code-input:focus { border-color: #8B0000; box-shadow: 0 0 0 3px rgba(139,0,0,0.1); }
-    #login-code-input::placeholder { color: #c9a0a0; font-weight: 500; }
+    .login-role-btn{padding:14px 16px;border-radius:16px;border:2px solid #f0e4e1;background:#fff8f6;font-size:13px;font-weight:700;color:#261816;font-family:inherit;cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;transition:all .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+    .login-role-btn:active{transform:scale(.97);background:#fff0ee;border-color:#d4a0a0;}
+    .login-role-btn:hover{background:#fff0ee;border-color:#d4a0a0;transform:translateY(-1px);box-shadow:0 4px 12px rgba(139,0,0,.1);}
+    .login-role-btn .role-icon{font-size:26px;flex-shrink:0;width:36px;text-align:center;}
+    .login-role-btn .role-desc{font-size:11px;font-weight:500;color:#8d6562;margin-top:1px;}
+    #login-code-input:focus{border-color:#8B0000;box-shadow:0 0 0 3px rgba(139,0,0,.12);}
+    #login-code-input::placeholder{color:#c9a0a0;font-weight:500;}
     /* PIN Numpad */
-    .pin-key{padding:0;height:64px;border-radius:14px;border:2px solid #e3beb8;background:#fff8f6;font-size:24px;font-weight:700;color:#261816;font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .1s,transform .1s;}
-    .pin-key:active{transform:scale(.93);background:#fff0ee;}
-    .pin-key:hover{background:#fff0ee;}
-    .pin-key-del{background:#ffeaea;border-color:#f5c2c2;color:#8B0000;}
-    .pin-key-ok{background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20;}
+    .pin-key{padding:0;height:68px;border-radius:16px;border:1.5px solid #ede0de;background:#fff;font-size:26px;font-weight:700;color:#261816;font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:all .12s;box-shadow:0 2px 6px rgba(0,0,0,.06);}
+    .pin-key:active{transform:scale(.91);background:#fff0ee;box-shadow:none;}
+    .pin-key:hover{background:#fff8f6;border-color:#d4a0a0;}
+    .pin-key-del{background:#fff5f5;border-color:#f5c2c2;color:#8B0000;}
+    .pin-key-ok{background:linear-gradient(135deg,#8B0000,#610000);border-color:#610000;color:#fff;box-shadow:0 4px 14px rgba(139,0,0,.35);}
+    .pin-key-ok:hover{background:linear-gradient(135deg,#a00000,#750000);}
     /* Kassa Schnell-Buttons */
     .kassa-schnell-btn{padding:8px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:14px;font-weight:700;color:#610000;font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .1s,transform .1s;}
     .kassa-schnell-btn:active{transform:scale(.94);background:#fff0ee;}
@@ -1108,64 +1113,76 @@
 
 <!-- ═══ LOGIN SCREEN ═══ -->
 <div id="login-screen">
-  <div style="background:#fff;border-radius:24px;border:1.5px solid #e3beb8;box-shadow:0 20px 60px rgba(139,0,0,0.13);padding:28px 24px;width:100%;max-width:400px;">
+  <div class="login-card">
 
-    <!-- Header -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
-      <span style="font-size:38px;line-height:1">🍕</span>
-      <div>
-        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:800;color:#8B0000">Pizzeria San Carino</div>
-        <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Internes Management</div>
+    <!-- ── Brand Header ── -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:76px;height:76px;border-radius:22px;background:linear-gradient(145deg,#8B0000,#4a0000);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 28px rgba(139,0,0,.4)">
+        <span style="font-size:40px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">🍕</span>
       </div>
+      <div style="font-size:21px;font-weight:800;color:#1a0404;letter-spacing:-.02em">Pizzeria San Carino</div>
+      <div style="font-size:11px;color:#9c8680;text-transform:uppercase;letter-spacing:.1em;margin-top:4px;font-weight:600">Management System</div>
     </div>
 
-    <!-- SCHRITT 1: Rolle wählen -->
+    <!-- ── SCHRITT 1: Wer bist du? ── -->
     <div id="login-step1">
-      <div style="font-size:15px;font-weight:700;color:#261816;margin-bottom:14px">Wer bist du?</div>
-      <div id="login-error" style="display:none;background:#ffdad6;color:#93000a;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:12px">❌ Falscher PIN</div>
 
-      <!-- Tastatur-Login: Code/Passwort direkt eintippen -->
-      <div id="login-keyboard" style="margin-bottom:16px">
+      <!-- Fehler -->
+      <div id="login-error" style="display:none;background:#ffdad6;color:#93000a;border-radius:12px;padding:11px 15px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;align-items:center;gap:8px">
+        <span style="font-size:16px">❌</span> Falscher PIN oder Code
+      </div>
+
+      <!-- Code direkt eingeben -->
+      <div id="login-keyboard" style="margin-bottom:18px">
+        <label style="font-size:11px;font-weight:700;color:#9c8680;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:7px">Schnellanmeldung</label>
         <div style="position:relative">
+          <span class="material-symbols-outlined" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;color:#c9a0a0">lock</span>
           <input type="password" id="login-code-input"
-                 placeholder="Code eintippen + Enter"
+                 placeholder="Code eingeben + Enter"
                  autocomplete="off"
-                 style="width:100%;padding:14px 44px 14px 16px;border:2px solid #e3beb8;border-radius:12px;font-size:15px;font-family:inherit;font-weight:600;background:#fff8f6;color:#261816;outline:none;transition:border-color .2s">
-          <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#9c8680;font-size:18px">⌨️</span>
+                 style="width:100%;padding:14px 16px 14px 44px;border:2px solid #ede0de;border-radius:14px;font-size:15px;font-family:inherit;font-weight:600;background:#fff8f6;color:#261816;outline:none;transition:all .2s;box-sizing:border-box">
         </div>
         <div id="login-code-error" style="display:none;color:#93000a;font-size:12px;font-weight:600;margin-top:6px;padding-left:4px">Falscher Code!</div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-        <div style="flex:1;height:1px;background:#e3beb8"></div>
-        <span style="font-size:11px;color:#9c8680;font-weight:600;text-transform:uppercase;letter-spacing:.05em">oder Rolle wählen</span>
-        <div style="flex:1;height:1px;background:#e3beb8"></div>
+      <!-- Trenner -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <div style="flex:1;height:1px;background:#ede0de"></div>
+        <span style="font-size:11px;color:#b09090;font-weight:600;text-transform:uppercase;letter-spacing:.06em">oder Rolle wählen</span>
+        <div style="flex:1;height:1px;background:#ede0de"></div>
       </div>
 
-      <div id="login-role-buttons" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+      <!-- Rollen-Buttons -->
+      <div id="login-role-buttons" style="display:flex;flex-direction:column;gap:8px"></div>
+
     </div>
 
-    <!-- SCHRITT 2: PIN eingeben -->
+    <!-- ── SCHRITT 2: PIN eingeben ── -->
     <div id="login-step2" style="display:none">
-      <!-- Zurück + Titel -->
-      <div style="display:flex;align-items:center;margin-bottom:20px;gap:8px">
-        <button onclick="pinGoBack()" style="background:#fff0ee;border:1.5px solid #e3beb8;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:700;color:#8B0000;font-family:inherit">← Zurück</button>
+
+      <!-- Zurück + Rolle -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+        <button onclick="pinGoBack()"
+          style="width:38px;height:38px;border-radius:12px;border:1.5px solid #ede0de;background:#fff;cursor:pointer;font-size:18px;color:#8B0000;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0">
+          ←
+        </button>
         <div style="flex:1;text-align:center">
-          <div id="pin-role-label" style="font-size:17px;font-weight:800;color:#8B0000"></div>
-          <div style="font-size:11px;color:#9ca3af">PIN eingeben</div>
+          <div id="pin-role-label" style="font-size:18px;font-weight:800;color:#1a0404"></div>
+          <div style="font-size:12px;color:#9c8680;margin-top:1px">PIN eingeben</div>
         </div>
+        <div style="width:38px"></div><!-- spacer -->
       </div>
 
-      <!-- PIN-Punkte -->
-      <div style="display:flex;justify-content:center;gap:18px;margin-bottom:24px">
-        <div id="pin-dot-0" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
-        <div id="pin-dot-1" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
-        <div id="pin-dot-2" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
-        <div id="pin-dot-3" style="width:20px;height:20px;border-radius:50%;border:2.5px solid #e3beb8;background:#fff;transition:background .15s"></div>
+      <!-- PIN-Dots -->
+      <div style="display:flex;justify-content:center;gap:16px;margin-bottom:28px">
+        <div id="pin-dot-0" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #d4b0ac;background:#fff;transition:all .2s"></div>
+        <div id="pin-dot-1" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #d4b0ac;background:#fff;transition:all .2s"></div>
+        <div id="pin-dot-2" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #d4b0ac;background:#fff;transition:all .2s"></div>
+        <div id="pin-dot-3" style="width:18px;height:18px;border-radius:50%;border:2.5px solid #d4b0ac;background:#fff;transition:all .2s"></div>
       </div>
 
       <!-- Numpad -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
         <button class="pin-key" onclick="pinDigit(1)">1</button>
         <button class="pin-key" onclick="pinDigit(2)">2</button>
         <button class="pin-key" onclick="pinDigit(3)">3</button>
@@ -1181,10 +1198,14 @@
       </div>
 
       <!-- Angemeldet bleiben -->
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;background:#fff8f6;border-radius:12px;border:1.5px solid #f0e4e1">
-        <input type="checkbox" id="login-remember" style="width:18px;height:18px;accent-color:#8B0000;cursor:pointer">
-        <span style="font-size:13px;font-weight:600;color:#5a403c">Angemeldet bleiben</span>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 16px;background:#fff8f6;border-radius:14px;border:1.5px solid #f0e4e1">
+        <input type="checkbox" id="login-remember" style="width:18px;height:18px;accent-color:#8B0000;cursor:pointer;flex-shrink:0">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#261816">Angemeldet bleiben</div>
+          <div style="font-size:11px;color:#9c8680;margin-top:1px">Nächstes Mal automatisch einloggen</div>
+        </div>
       </label>
+
     </div>
 
   </div>
@@ -10757,10 +10778,26 @@ const USERS = PIZZERIA_USERS;
 (function buildRoleButtons() {
   const container = document.getElementById('login-role-buttons');
   if (!container) return;
+  const roleDescriptions = {
+    admin:    'Vollzugriff auf alle Bereiche',
+    manager:  'Einkauf, Business & Reports',
+    employee: 'Einkaufsliste & Produkte',
+    kitchen:  'Speisekarte & Fehlmaterial'
+  };
   PIZZERIA_USERS.forEach(u => {
+    const parts = u.label.split(' ');
+    const icon = parts[0];
+    const name = parts.slice(1).join(' ');
+    const desc = roleDescriptions[u.role] || u.role;
     const btn = document.createElement('button');
     btn.className = 'login-role-btn';
-    btn.innerHTML = `<span class="role-icon">${u.label.split(' ')[0]}</span>${u.label.split(' ').slice(1).join(' ')}`;
+    btn.innerHTML = `
+      <span class="role-icon">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:700;color:#1a0404">${name}</div>
+        <div class="role-desc">${desc}</div>
+      </div>
+      <span style="font-size:16px;color:#d4b0ac">›</span>`;
     btn.onclick = () => selectRole(u.username);
     container.appendChild(btn);
   });
