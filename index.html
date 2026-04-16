@@ -1991,6 +1991,16 @@ function getPrice(shopId, productId) {
   return PRICE_MAP[shopId]?.[productId] ?? null;
 }
 
+function getLatestPrice(productId) {
+  for (let i = 0; i < HISTORY.length; i++) {
+    const entry = HISTORY[i];
+    if (entry && entry.produktId === productId && entry.preis != null && !isNaN(entry.preis)) {
+      return +entry.preis;
+    }
+  }
+  return null;
+}
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso + 'T00:00:00');
@@ -7602,6 +7612,16 @@ function renderSucheTab() {
           {id:'etsan',  label:'🥩 Etsan'},
         ].map(f=>`<button class="filter-chip${SUCHE_STATE.shopFilter===f.id?' active':''}" onclick="setSucheShopFilter('${f.id}')">${f.label}</button>`).join('')}
       </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+        <span style="font-size:10px;font-weight:700;color:#9c8680;text-transform:uppercase;letter-spacing:.06em;align-self:center;flex-shrink:0">Schnell:</span>
+        ${[
+          'Mozzarella','Olivenöl','Mehl','Tomaten','Salami',
+          'Schinken','Parmesan','Oregano','Champignons','Thunfisch'
+        ].map(q => `<button onclick="quickSearch('${q}')"
+          style="padding:5px 12px;border-radius:20px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;transition:all .12s"
+          onmouseover="this.style.background='#fff0ee';this.style.borderColor='#d4a0a0'"
+          onmouseout="this.style.background='#fff';this.style.borderColor='#e3beb8'">${q}</button>`).join('')}
+      </div>
     </div>
     <div class="deals-scroll-row">
       <div class="deal-scroll-card">
@@ -7722,6 +7742,13 @@ function setSucheShopFilter(shopId) {
   renderSucheTab();
 }
 
+function quickSearch(term) {
+  const inp = document.getElementById('suche-input');
+  if (inp) inp.value = term;
+  SUCHE_STATE.query = term;
+  startSearch();
+}
+
 function renderSearchResults() {
   const { results, query, shopFilter } = SUCHE_STATE;
   const filtered = shopFilter
@@ -7744,6 +7771,14 @@ function renderSearchResults() {
     const savings = (r.originalPrice && r.price && r.originalPrice > r.price)
       ? Math.round((1 - r.price / r.originalPrice) * 100)
       : null;
+
+    // Preisvergleich mit gespeichertem Preis
+    const storedProduct = PRODUCTS.find(p =>
+      p.name.toLowerCase().includes(r.name.toLowerCase().split(' ')[0]) ||
+      r.name.toLowerCase().includes(p.name.toLowerCase().split(' ')[0])
+    );
+    const storedPrice = storedProduct ? getLatestPrice(storedProduct.id) : null;
+    const priceDiff = (storedPrice && r.price) ? Math.round(((r.price - storedPrice) / storedPrice) * 100) : null;
 
     let validHtml = '';
     if (r.validUntil) {
@@ -7785,19 +7820,31 @@ function renderSearchResults() {
               ${savings ? `<span style="font-size:11px;font-weight:700;background:#ffdad6;color:#610000;padding:2px 8px;border-radius:10px">−${savings}%</span>` : ''}
             </div>
             ${r.unit ? `<p style="font-size:11px;color:#8e706b;margin:2px 0 0">pro ${escHtml(r.unit)}</p>` : ''}
+            ${priceDiff !== null
+              ? `<div style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:${priceDiff<=0?'#e8f5e9':'#ffdad6'};color:${priceDiff<=0?'#1b5e20':'#93000a'}">
+                  <span class="material-symbols-outlined" style="font-size:12px">${priceDiff<=0?'trending_down':'trending_up'}</span>
+                  ${priceDiff<=0?Math.abs(priceDiff)+'% günstiger als gespeichert':priceDiff+'% teurer als gespeichert'}
+                </div>`
+              : ''}
             ${r.source ? `<p style="font-size:10px;color:#8d6562;margin:4px 0 0">via ${escHtml(r.source)}</p>` : ''}
             ${validHtml}
           </div>
         </div>
-        <div style="border-top:1px solid #f0e8e6;padding:12px 16px">
+        <div style="border-top:1px solid #f0e8e6;padding:12px 16px;display:flex;gap:8px">
+          <button
+            onclick="addResultToList(${idx})"
+            style="flex:1;padding:9px;border-radius:12px;border:1.5px solid #610000;background:#610000;color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:opacity .15s"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <span class="material-symbols-outlined" style="font-size:15px">shopping_cart</span>Zur Liste
+          </button>
           <button
             class="add-btn ${isAdded ? 'added' : ''}"
             onclick="addResultToInventory(${idx}, this)"
             ${isAdded ? 'disabled' : ''}
-            style="width:100%;padding:9px;border-radius:12px;border:1.5px solid ${isAdded?'#c7c9f9':'#c0eda6'};background:${isAdded?'#dfe0ff':'#c0eda6'};color:${isAdded?'#0d2ccc':'#0c2000'};font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s">
+            style="flex:1;padding:9px;border-radius:12px;border:1.5px solid ${isAdded?'#c7c9f9':'#c0eda6'};background:${isAdded?'#dfe0ff':'#c0eda6'};color:${isAdded?'#0d2ccc':'#0c2000'};font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background .15s">
             ${isAdded
-              ? '<span class="material-symbols-outlined" style="font-size:15px">check</span> Hinzugefügt'
-              : '<span class="material-symbols-outlined" style="font-size:15px">add</span> Zu Bestand hinzufügen'}
+              ? '<span class="material-symbols-outlined" style="font-size:15px">check</span>Gespeichert'
+              : '<span class="material-symbols-outlined" style="font-size:15px">inventory_2</span>Bestand'}
           </button>
         </div>
       </div>`;
@@ -7849,6 +7896,34 @@ function addResultToInventory(idx, btn) {
   btn.disabled = true;
   btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px">check</span> Hinzugefügt';
   btn.classList.remove('adding');
+}
+
+function addResultToList(idx) {
+  const r = SUCHE_STATE.results[idx];
+  if (!r) return;
+  const name = r.name + (r.brand ? ' ' + r.brand : '');
+  const list = getEinkaufsliste();
+  const existing = list.find(e => (e.name || '').toLowerCase() === name.toLowerCase());
+  if (existing) {
+    _showToast('Bereits in der Einkaufsliste', 'info');
+    return;
+  }
+  list.push({
+    id: 'el_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    name: name,
+    menge: 1,
+    einheit: r.unit || 'Stk',
+    shop: r.shop || '',
+    shopId: '',
+    shopColor: '#8d6562',
+    preis: r.price || null,
+    done: false,
+    source: 'suche',
+    addedAt: new Date().toISOString().slice(0,10),
+    note: r.price ? 'Gefunden: ' + eur(r.price) + (r.shop ? ' bei ' + r.shop : '') : ''
+  });
+  saveEinkaufsliste(list);
+  _showToast(name + ' zur Einkaufsliste hinzugefügt', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -7912,7 +7987,7 @@ async function startSearch() {
     SUCHE_STATE.error = null;
     SUCHE_STATE.results = cached.results;
     SUCHE_STATE.query = cached.query;
-    SUCHE_STATE.addedIds = new Set();
+    SUCHE_STATE.addedIds = [];
     SUCHE_STATE.fromCache = true;
     SUCHE_STATE.cacheDate = cached.date;
     SUCHE_STATE.loadingStep = '';
@@ -7924,7 +7999,7 @@ async function startSearch() {
   SUCHE_STATE.error = null;
   SUCHE_STATE.results = [];
   SUCHE_STATE.query = query;
-  SUCHE_STATE.addedIds = new Set();
+  SUCHE_STATE.addedIds = [];
   SUCHE_STATE.fromCache = false;
   SUCHE_STATE.cacheDate = null;
   SUCHE_STATE.loadingStep = 'Verbinde mit Supermärkten …';
@@ -8143,7 +8218,7 @@ function loadFromSucheCache(query) {
   SUCHE_STATE.error = null;
   SUCHE_STATE.results = cached.results;
   SUCHE_STATE.query = cached.query;
-  SUCHE_STATE.addedIds = new Set();
+  SUCHE_STATE.addedIds = [];
   SUCHE_STATE.fromCache = true;
   SUCHE_STATE.cacheDate = cached.date;
   renderSucheTab();
