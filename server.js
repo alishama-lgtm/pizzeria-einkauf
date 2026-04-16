@@ -556,6 +556,78 @@ app.post('/api/preisverlauf', express.json(), (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ════════════════════════════════════════════════════════════════════
+// NOTION INTEGRATION
+// ════════════════════════════════════════════════════════════════════
+
+// POST /api/notion/fehlmaterial — Fehlmaterial-Einträge in Notion speichern
+app.post('/api/notion/fehlmaterial', express.json(), async (req, res) => {
+  try {
+    const { entries, apiKey, dbId } = req.body;
+    if (!apiKey) return res.status(400).json({ error: 'Notion API Key fehlt' });
+    if (!dbId)   return res.status(400).json({ error: 'Notion Datenbank-ID fehlt' });
+    if (!entries || !entries.length) return res.status(400).json({ error: 'Keine Einträge' });
+
+    const results = [];
+    for (const e of entries) {
+      const dring = e.dringend ? '🔴 Dringend' : (e.prioritaet === 'mittel' ? '🟡 Mittel' : '🟢 Normal');
+      const body = {
+        parent: { database_id: dbId },
+        properties: {
+          'Artikel':          { title: [{ text: { content: e.produktName || e.name || 'Unbekannt' } }] },
+          'Menge':            { rich_text: [{ text: { content: String(e.menge || '') + (e.einheit ? ' ' + e.einheit : '') } }] },
+          'Kategorie':        { select: { name: e.kategorie || 'Sonstiges' } },
+          'Dringlichkeit':    { select: { name: dring } },
+          'Status':           { select: { name: 'Offen' } },
+          'Eingetragen von':  { rich_text: [{ text: { content: e.eingetragen || 'App' } }] },
+          'Bemerkung':        { rich_text: [{ text: { content: e.bemerkung || '' } }] },
+          'Datum':            { date: { start: (e.datum || new Date().toISOString().slice(0, 10)) } },
+          'Quelle':           { rich_text: [{ text: { content: 'Pizzeria San Carino App' } }] }
+        }
+      };
+      const resp = await axios.post('https://api.notion.com/v1/pages', body, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Notion-Version': '2022-06-28',
+          'Content-Type': 'application/json'
+        }
+      });
+      results.push({ id: resp.data.id, name: e.produktName || e.name });
+    }
+    res.json({ success: true, synced: results.length, entries: results });
+  } catch(e) {
+    const msg = e.response?.data?.message || e.message;
+    res.status(500).json({ error: msg });
+  }
+});
+
+// POST /api/notion/tagesbericht — Tagesbericht als Notion-Seite speichern
+app.post('/api/notion/tagesbericht', express.json(), async (req, res) => {
+  try {
+    const { apiKey, parentId, bericht } = req.body;
+    if (!apiKey || !parentId) return res.status(400).json({ error: 'API Key oder Parent-ID fehlt' });
+    const heute = new Date().toLocaleDateString('de-AT', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const body = {
+      parent: { page_id: parentId },
+      properties: { title: [{ text: { content: `📊 Tagesbericht ${heute}` } }] },
+      children: [
+        { object:'block', type:'heading_2', heading_2:{ rich_text:[{ text:{ content:'💰 Umsatz' } }] } },
+        { object:'block', type:'paragraph', paragraph:{ rich_text:[{ text:{ content: bericht.umsatz || '—' } }] } },
+        { object:'block', type:'heading_2', heading_2:{ rich_text:[{ text:{ content:'📋 Fehlmaterial' } }] } },
+        { object:'block', type:'paragraph', paragraph:{ rich_text:[{ text:{ content: bericht.fehlmaterial || 'Kein Fehlmaterial' } }] } },
+        { object:'block', type:'heading_2', heading_2:{ rich_text:[{ text:{ content:'✅ Checklisten' } }] } },
+        { object:'block', type:'paragraph', paragraph:{ rich_text:[{ text:{ content: bericht.checklisten || '—' } }] } }
+      ]
+    };
+    const resp = await axios.post('https://api.notion.com/v1/pages', body, {
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' }
+    });
+    res.json({ success: true, url: resp.data.url });
+  } catch(e) {
+    res.status(500).json({ error: e.response?.data?.message || e.message });
+  }
+});
+
 // GET /api/umsatz/heute — Tages-Report für N8N
 app.get('/api/umsatz/heute', (_req, res) => {
   try {

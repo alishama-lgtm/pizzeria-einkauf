@@ -2826,6 +2826,35 @@ function closeMehrDrawer() {
   if (overlay) overlay.style.display = 'none';
 }
 
+// ══ NOTION SYNC ══════════════════════════════════════════════════════
+async function fmNotionSync() {
+  const apiKey = localStorage.getItem('pizzeria_notion_key');
+  const dbId   = localStorage.getItem('pizzeria_notion_fm_db') || '5e9e674704d04860a3ea98687a329703';
+  if (!apiKey) {
+    _showToast('Notion API Key fehlt → Einstellungen ⚙️ öffnen', 'error');
+    openSettings();
+    return;
+  }
+  const offene = FM_DATA.filter(x => x.status === 'offen');
+  if (!offene.length) { _showToast('Kein offenes Fehlmaterial vorhanden', 'info'); return; }
+  _showToast('Sende ' + offene.length + ' Einträge an Notion…', 'info');
+  try {
+    const resp = await fetch('/api/notion/fehlmaterial', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entries: offene, apiKey, dbId })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      _showToast('✅ ' + data.synced + ' Einträge in Notion gespeichert', 'success');
+    } else {
+      _showToast('Notion Fehler: ' + (data.error || 'Unbekannt'), 'error');
+    }
+  } catch(e) {
+    _showToast('Verbindungsfehler: ' + e.message, 'error');
+  }
+}
+
 function fmUpdateBadge() {
   const openAll      = FM_DATA.filter(x => x.status === 'offen').length;
   const openDringend = FM_DATA.filter(x => x.status === 'offen' && x.prioritaet === 'dringend').length;
@@ -2920,9 +2949,14 @@ function renderFehlmaterialTab() {
   if (fmCurrentSection === 'historie')   content = renderFmHistorie();
   if (fmCurrentSection === 'auswertung') content = renderFmAuswertung();
 
+  const notionBtn = `<button onclick="fmNotionSync()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#261816;font-family:inherit;cursor:pointer" title="Offene Einträge in Notion speichern">
+    <img src="https://www.notion.so/images/favicon.ico" style="width:14px;height:14px;border-radius:2px" onerror="this.style.display='none'"> Notion
+  </button>`;
+
   panel.innerHTML =
     _pageHdr('assignment_late', 'Fehlmaterial',
-      FM_DATA.filter(x=>x.status==='offen').length + ' offen' + (dringendCount>0 ? ' · <span style="color:#c62828;font-weight:700">' + dringendCount + ' dringend</span>' : '')) +
+      FM_DATA.filter(x=>x.status==='offen').length + ' offen' + (dringendCount>0 ? ' · <span style="color:#c62828;font-weight:700">' + dringendCount + ' dringend</span>' : ''),
+      notionBtn) +
     subNav + content;
 
   fmUpdateBadge();
@@ -13081,6 +13115,20 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:5px 0 0">Google Gemini API Key — <strong>aistudio.google.com</strong> → Get API Key (kostenlos)</p>
       </div>
 
+      <!-- Notion Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <img src="https://www.notion.so/images/favicon.ico" style="width:16px;height:16px;border-radius:3px" onerror="this.style.display='none'"> Notion Integration
+        </label>
+        <input id="settings-notion-key" type="password" placeholder="secret_xxxxxxxxxxxx"
+          value="${localStorage.getItem('pizzeria_notion_key') ? '••••••••••••••••••••••••' : ''}"
+          onfocus="if(this.value.startsWith('•'))this.value=''"
+          style="width:100%;padding:10px 14px;border:1.5px solid ${localStorage.getItem('pizzeria_notion_key')?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:8px"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='${localStorage.getItem('pizzeria_notion_key')?'#a5d6a7':'#e3beb8'}'"/>
+        <p style="font-size:11px;color:#8d6562;margin:0 0 6px">Notion Integration Token — <strong>notion.so/my-integrations</strong> → New Integration → Internal Integration Secret</p>
+        <p style="font-size:11px;color:#8d6562;margin:0">Fehlmaterial-Datenbank ID: <code style="font-size:10px;background:#f3ebe9;padding:1px 4px;border-radius:4px">5e9e6747...329703</code> (bereits eingestellt)</p>
+      </div>
+
       <!-- Theme Picker -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -13130,6 +13178,8 @@ function saveApiKey() {
   if (n8nUrl) _safeLocalSet('pizzeria_n8n_url', n8nUrl);
   const geminiVal = document.getElementById('settings-gemini-key')?.value.trim();
   if (geminiVal && !geminiVal.startsWith('•')) { _safeLocalSet('pizzeria_gemini_key', geminiVal); GEMINI_API_KEY = geminiVal; }
+  const notionVal = document.getElementById('settings-notion-key')?.value.trim();
+  if (notionVal && !notionVal.startsWith('•')) { _safeLocalSet('pizzeria_notion_key', notionVal); }
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
