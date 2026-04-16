@@ -6064,9 +6064,13 @@ function renderBizReport() {
     <span class="material-symbols-outlined" style="color:#8B0000">summarize</span>Monatsbericht
   </h2>
   <div style="display:flex;gap:8px;flex-wrap:wrap" class="no-print">
-    <button onclick="window.print()"
+    <button onclick="bizDownloadPDF()"
       style="padding:10px 18px;border-radius:10px;border:none;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-      <span class="material-symbols-outlined" style="font-size:16px">print</span> Drucken / PDF
+      <span class="material-symbols-outlined" style="font-size:16px">picture_as_pdf</span> PDF Download
+    </button>
+    <button onclick="window.print()"
+      style="padding:10px 18px;border-radius:10px;border:1.5px solid #8B0000;background:#fff0ee;color:#8B0000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:16px">print</span> Drucken
     </button>
     <button onclick="bizCopyReport()"
       style="padding:10px 18px;border-radius:10px;border:1.5px solid #8B0000;background:#fff0ee;color:#8B0000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
@@ -6090,6 +6094,26 @@ function renderBizReport() {
       <div style="font-size:16px;font-weight:700;color:#261816">${bizMonthName(m)} ${y}</div>
       <div style="font-size:12px;color:#5a403c">UID: ${settings.uid}</div>
     </div>
+  </div>
+</div>
+
+<!-- KPI Übersicht -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+  <div style="background:#fff0ee;border:1px solid #e3beb8;border-radius:12px;padding:14px;text-align:center">
+    <div style="font-size:10px;color:#9c8680;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Umsatz Brutto</div>
+    <div style="font-size:20px;font-weight:800;color:#8B0000">${bizEur(totalBrutto)}</div>
+  </div>
+  <div style="background:#fff8f6;border:1px solid #e3beb8;border-radius:12px;padding:14px;text-align:center">
+    <div style="font-size:10px;color:#9c8680;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Gesamtkosten</div>
+    <div style="font-size:20px;font-weight:800;color:#5a403c">${bizEur(einkaufMonth+personalMonat+fixSum)}</div>
+  </div>
+  <div style="background:${gewinn>=0?'#e8f5e9':'#ffdad6'};border:1px solid ${gewinn>=0?'#a5d6a7':'#f5c2c2'};border-radius:12px;padding:14px;text-align:center">
+    <div style="font-size:10px;color:#9c8680;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Gewinn</div>
+    <div style="font-size:20px;font-weight:800;color:${gewinn>=0?'#2e7d32':'#ba1a1a'}">${bizEur(gewinn)}</div>
+  </div>
+  <div style="background:${gewinn>=0?'#e8f5e9':'#ffdad6'};border:1px solid ${gewinn>=0?'#a5d6a7':'#f5c2c2'};border-radius:12px;padding:14px;text-align:center">
+    <div style="font-size:10px;color:#9c8680;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Marge</div>
+    <div style="font-size:20px;font-weight:800;color:${gewinn>=0?'#2e7d32':'#ba1a1a'}">${totalBrutto>0?Math.round((gewinn/totalBrutto)*100):0}%</div>
   </div>
 </div>
 
@@ -6218,6 +6242,172 @@ GEWINN VOR STEUER: ${bizEur(gewinn)}`;
 
   navigator.clipboard?.writeText(text).then(() => bizShowToast('✅ Bericht in Zwischenablage kopiert!'))
     .catch(() => { const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); bizShowToast('✅ Kopiert!'); });
+}
+
+function bizDownloadPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    if (typeof bizShowToast === 'function') bizShowToast('PDF-Modul nicht geladen');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const { y, m } = bizCurrentMonth();
+  const kassa = bizGetKassa();
+  const fix = bizGetFixkosten();
+  const personal = bizGetPersonal();
+  const fixSum = Object.values(fix).reduce((s,v)=>s+(+v||0),0);
+  const personalMonat = personal.reduce((s,p)=>s+(+p.stunden||0)*(+p.lohn||0)*4.33,0);
+  const einkaufMonth = bizGetEinkaufThisMonth();
+  const monthStr = y+'-'+String(m).padStart(2,'0');
+  const monthKassa = kassa.filter(e => (e.date || '').startsWith(monthStr));
+  const totalBrutto = monthKassa.reduce((s,e)=>s+(e.gesamt||0),0);
+  const totalNetto = monthKassa.reduce((s,e)=>s+(e.netto||0),0);
+  const totalMwst10 = monthKassa.reduce((s,e)=>s+(e.m10||0),0);
+  const totalMwst20 = monthKassa.reduce((s,e)=>s+(e.m20||0),0);
+  const gesamtKosten = einkaufMonth+personalMonat+fixSum;
+  const gewinn = totalNetto - gesamtKosten;
+  const settings = bizGetSettings();
+  const monate = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+  let yPos = 20;
+  const pageW = 210;
+  const margin = 20;
+  const colW = pageW - margin*2;
+
+  function ensureSpace(nextRowsHeight) {
+    if (yPos + nextRowsHeight > 276) {
+      doc.addPage();
+      yPos = 20;
+    }
+  }
+
+  // Header-Balken (dunkelrot)
+  doc.setFillColor(139, 0, 0);
+  doc.rect(0, 0, pageW, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pizzeria San Carino', margin, 12);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ali Shama KG · Monatsbericht ' + monate[m-1] + ' ' + y, margin, 20);
+  doc.setFontSize(9);
+  doc.text('UID: ' + (settings.uid || '—'), pageW - margin, 20, { align: 'right' });
+
+  yPos = 38;
+
+  // KPI Karten (4 Kästchen nebeneinander)
+  const kpiW = (colW - 9) / 4;
+  const kpis = [
+    { label: 'Umsatz Brutto', value: bizEur(totalBrutto), color: [97,0,0] },
+    { label: 'Gesamtkosten', value: bizEur(gesamtKosten), color: [90,64,60] },
+    { label: 'Gewinn', value: bizEur(gewinn), color: gewinn>=0?[27,94,32]:[186,26,26] },
+    { label: 'Marge', value: (totalBrutto>0?Math.round((gewinn/totalBrutto)*100):0)+'%', color: gewinn>=0?[27,94,32]:[186,26,26] },
+  ];
+  kpis.forEach((k, i) => {
+    const x = margin + i*(kpiW+3);
+    doc.setFillColor(250, 245, 244);
+    doc.roundedRect(x, yPos, kpiW, 22, 2, 2, 'F');
+    doc.setTextColor(...k.color);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(k.value, x + kpiW/2, yPos + 11, { align: 'center' });
+    doc.setTextColor(90, 64, 60);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(k.label, x + kpiW/2, yPos + 17, { align: 'center' });
+  });
+  yPos += 28;
+
+  function sectionHeader(title) {
+    ensureSpace(12);
+    doc.setFillColor(255, 240, 238);
+    doc.rect(margin, yPos, colW, 7, 'F');
+    doc.setTextColor(139, 0, 0);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, margin+3, yPos+5);
+    yPos += 10;
+  }
+
+  function tableRow(cols, widths, bg, bold) {
+    ensureSpace(8);
+    if (bg) {
+      doc.setFillColor(...bg);
+      doc.rect(margin, yPos-4, colW, 7, 'F');
+    }
+    doc.setTextColor(38, 24, 22);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    let x = margin;
+    cols.forEach((c, i) => {
+      const align = i === 0 ? 'left' : 'right';
+      const tx = align === 'right' ? x + widths[i] - 2 : x + 2;
+      doc.text(String(c), tx, yPos, { align });
+      x += widths[i];
+    });
+    yPos += 7;
+  }
+
+  // Einnahmen
+  sectionHeader('EINNAHMEN — ' + monate[m-1] + ' ' + y);
+  const ew = [40, 25, 35, 35, 35, colW-170];
+  tableRow(['Datum','Tag','Brutto','Netto','MwSt 10%','MwSt 20%'], ew, [248,220,216], true);
+  const rows = monthKassa.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if (rows.length === 0) {
+    tableRow(['Keine Kassabuch-Einträge für diesen Monat','','','','',''], ew, [250,245,244], false);
+  } else {
+    rows.forEach((r, i) => {
+      const bg = i%2===0 ? null : [250,245,244];
+      const d = new Date(r.date);
+      const day = Number.isNaN(d.getTime()) ? '—' : dayNames[d.getDay()];
+      tableRow([
+        (r.date || '').split('-').reverse().join('.'),
+        day,
+        bizEur(r.gesamt||0),
+        bizEur(r.netto||0),
+        bizEur(r.m10||0),
+        bizEur(r.m20||0)
+      ], ew, bg || undefined, false);
+    });
+  }
+  tableRow(['GESAMT','',bizEur(totalBrutto),bizEur(totalNetto),bizEur(totalMwst10),bizEur(totalMwst20)], ew, [255,240,238], true);
+  yPos += 3;
+
+  // Ausgaben
+  sectionHeader('AUSGABEN');
+  tableRow(['Wareneinkauf', bizEur(einkaufMonth)], [colW-40, 40], null, false);
+  tableRow(['Personalkosten', bizEur(personalMonat)], [colW-40, 40], null, false);
+  tableRow(['Fixkosten', bizEur(fixSum)], [colW-40, 40], null, false);
+  tableRow(['GESAMT AUSGABEN', bizEur(gesamtKosten)], [colW-40, 40], [255,240,238], true);
+  yPos += 5;
+
+  // Gewinn-Box
+  ensureSpace(26);
+  const gColor = gewinn >= 0 ? [232,245,233] : [255,218,214];
+  const gText = gewinn >= 0 ? [27,94,32] : [186,26,26];
+  doc.setFillColor(...gColor);
+  doc.roundedRect(margin, yPos, colW, 20, 3, 3, 'F');
+  doc.setTextColor(...gText);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('GEWINN VOR STEUER', margin+5, yPos+8);
+  doc.setFontSize(16);
+  doc.text(bizEur(gewinn), margin+colW-5, yPos+13, {align:'right'});
+
+  // Footer auf allen Seiten
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    doc.setFontSize(7);
+    doc.setTextColor(150, 140, 138);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Erstellt am ' + new Date().toLocaleDateString('de-AT') + ' · Pizzeria San Carino · Ali Shama KG · Seite ' + p + '/' + pages, pageW/2, 290, {align:'center'});
+  }
+
+  doc.save('Monatsbericht-' + monate[m-1] + '-' + y + '.pdf');
+  if (typeof bizShowToast === 'function') bizShowToast('PDF wird heruntergeladen...');
 }
 
 function bizExportData() {
