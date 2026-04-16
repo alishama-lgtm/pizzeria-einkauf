@@ -8612,7 +8612,30 @@ function renderVerlaufTab() {
   const allShops  = [...new Set(HISTORY.map(e => e.shopName).filter(Boolean))];
   const allMonths = [...new Set(HISTORY.map(e => e.datum.slice(0,7)))].sort().reverse();
 
+  // ── 6-Monats-Chart Daten ──
+  const last6 = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('de-DE', { month:'short', year:'2-digit' });
+    const total = HISTORY.filter(e => (e.datum||'').startsWith(key))
+      .reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge : 0), 0);
+    last6.push({ key, label, total });
+  }
+
   let html = '';
+
+  // ─── 6-MONATS-CHART ───
+  html += `
+    <div style="background:#fff;border:1px solid #e3beb866;border-radius:18px;overflow:hidden;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+      <div style="padding:14px 20px;border-bottom:1px solid #e3beb844;background:#f8dcd8;display:flex;align-items:center;gap:10px">
+        <span class="material-symbols-outlined" style="font-size:20px;color:#610000">bar_chart</span>
+        <span style="font-size:15px;font-weight:700;color:#261816">Ausgaben letzte 6 Monate</span>
+      </div>
+      <div style="padding:16px 20px">
+        <canvas id="verlauf-chart-6m" height="120"></canvas>
+      </div>
+    </div>`;
 
   // ─── FILTER ROW ───
   html += `
@@ -8827,6 +8850,50 @@ function renderVerlaufTab() {
 
   html += `</div>`;
   panel.innerHTML = _verlHdr + html;
+
+  // ── Chart.js 6-Monats-Balkendiagramm ──
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('verlauf-chart-6m');
+    if (!canvas || !window.Chart) return;
+    if (canvas._chartInstance) canvas._chartInstance.destroy();
+    const maxVal = Math.max(...last6.map(d => d.total), 1);
+    canvas._chartInstance = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: last6.map(d => d.label),
+        datasets: [{
+          data: last6.map(d => d.total),
+          backgroundColor: last6.map(d =>
+            d.key === mKey ? '#8B0000' : '#e3beb8'
+          ),
+          borderRadius: 8,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => eur(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: {
+            beginAtZero: true,
+            grid: { color: '#f0e8e6' },
+            ticks: {
+              font: { size: 10 },
+              callback: v => v === 0 ? '€0' : (v >= 1000 ? (v/1000).toFixed(1)+'k' : v)
+            }
+          }
+        }
+      }
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
