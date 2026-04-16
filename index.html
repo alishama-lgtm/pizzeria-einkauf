@@ -3633,7 +3633,16 @@ function handleFileUpload(file) {
     UPLOAD_STATE.fileDataUrl = e.target.result;
     renderUploadTab();
   };
-  reader.readAsDataURL(file);
+  reader.onerror = () => {
+    UPLOAD_STATE.error = 'Datei konnte nicht gelesen werden. Bitte erneut versuchen.';
+    renderUploadTab();
+  };
+  try {
+    reader.readAsDataURL(file);
+  } catch (e) {
+    UPLOAD_STATE.error = 'Datei konnte nicht geöffnet werden: ' + e.message;
+    renderUploadTab();
+  }
 }
 
 function resetUpload() {
@@ -3751,8 +3760,14 @@ function renderUploadTab() {
       </div>`;
   }
 
-  // ─── Hidden file input ───
-  inner += `<input id="upload-file-input" type="file" accept="image/*,.pdf" capture="environment" style="display:none" onchange="handleFileSelect(this)">`;
+  // ─── iOS detection + Hidden file inputs ───
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+
+  inner += `<input id="upload-file-input" type="file" accept="image/*,.pdf"${isIOS ? '' : ' capture="environment"'} style="display:none" onchange="handleFileSelect(this)">`;
+  if (isIOS) {
+    inner += `<input id="upload-gallery-input" type="file" accept="image/*,.pdf" style="display:none" onchange="handleFileSelect(this)">`;
+  }
 
   // ─── Rechnung scannen Button + PDF-Liste ───
   if (!UPLOAD_STATE.fileDataUrl) {
@@ -3811,6 +3826,18 @@ function renderUploadTab() {
   }
 
   if (!UPLOAD_STATE.fileDataUrl) {
+    // ─── iOS Hinweis-Banner ───
+    if (isIOS) {
+      inner += `
+        <div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:14px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px">
+          <span class="material-symbols-outlined" style="font-size:20px;color:#f57c00;flex-shrink:0;margin-top:1px">info</span>
+          <p style="font-size:12px;color:#5d4037;line-height:1.6;margin:0">
+            <strong>iPhone/iPad Tipp:</strong> Tippe auf <strong>📷 Kamera</strong> für ein neues Foto,
+            oder auf <strong>🖼 Galerie</strong> um ein gespeichertes Bild auszuwählen.
+          </p>
+        </div>`;
+    }
+
     // ─── Drop zone ───
     inner += `
       <div id="upload-drop-zone"
@@ -3823,7 +3850,7 @@ function renderUploadTab() {
           <span class="material-symbols-outlined" style="font-size:38px;color:#fff">photo_camera</span>
         </div>
         <p style="font-size:17px;font-weight:700;color:#261816;margin-bottom:8px">Kassenbon hochladen</p>
-        <p style="font-size:14px;color:#5a403c;margin-bottom:20px">Foto oder PDF hierher ziehen — oder tippen zum Auswählen</p>
+        <p style="font-size:14px;color:#5a403c;margin-bottom:20px">${isIOS ? 'Tippe auf Kamera oder wähle aus der Galerie' : 'Foto oder PDF hierher ziehen — oder tippen zum Auswählen'}</p>
         <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:20px">
           <span style="background:#fff;border:1px solid #e3beb8;border-radius:20px;padding:5px 14px;font-size:12px;color:#5a403c;display:flex;align-items:center;gap:5px">
             <span class="material-symbols-outlined" style="font-size:14px">image</span> JPG / PNG / WebP
@@ -3832,7 +3859,18 @@ function renderUploadTab() {
             <span class="material-symbols-outlined" style="font-size:14px">picture_as_pdf</span> PDF
           </span>
         </div>
-        <p style="font-size:12px;color:#8d6562">📱 Auf dem Handy: Foto direkt von der Kamera wählen</p>
+        ${isIOS
+          ? `<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+               <button onclick="event.stopPropagation();document.getElementById('upload-file-input').click()"
+                 style="padding:10px 20px;border-radius:14px;border:none;background:#610000;color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
+                 <span class="material-symbols-outlined" style="font-size:18px">photo_camera</span> 📷 Kamera
+               </button>
+               <button onclick="event.stopPropagation();document.getElementById('upload-gallery-input').click()"
+                 style="padding:10px 20px;border-radius:14px;border:1px solid #610000;background:#fff;color:#610000;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
+                 <span class="material-symbols-outlined" style="font-size:18px">photo_library</span> 🖼 Galerie
+               </button>
+             </div>`
+          : `<p style="font-size:12px;color:#8d6562">📱 Auf dem Handy: Foto direkt von der Kamera wählen</p>`}
       </div>`;
   } else {
     // ─── File loaded: preview + auslesen ───
