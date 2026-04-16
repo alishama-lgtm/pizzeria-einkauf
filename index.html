@@ -1918,7 +1918,7 @@ const SUCHE_STATE = {
   loading: false,
   error: null,
   loadingStep: '',
-  addedIds: new Set(),
+  addedIds: [],
   fromCache: false,
   cacheDate: null,
   shopFilter: '',   // '' = Alle; 'hofer'|'billa'|'spar'|'lidl'|'metro'|'etsan'
@@ -5934,7 +5934,17 @@ function bizPizzaCalcChange(i, field, val) {
   }).join('');
 }
 
-function bizSavePizzaCalcBtn() { bizShowToast('✅ Pizza-Kalkulation gespeichert'); }
+function bizSavePizzaCalcBtn() {
+  const d = bizGetPizzaCalc();
+  d.forEach((p, i) => {
+    const preis = parseFloat(document.querySelector(`#pizza-calc-tbody tr:nth-child(${i+1}) input[onchange*="preis"]`)?.value);
+    const kosten = parseFloat(document.querySelector(`#pizza-calc-tbody tr:nth-child(${i+1}) input[onchange*="kosten"]`)?.value);
+    if (!isNaN(preis)) p.preis = preis;
+    if (!isNaN(kosten)) p.kosten = kosten;
+  });
+  bizSavePizzaCalc(d);
+  bizShowToast('✅ Pizza-Kalkulation gespeichert');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MONATSBERICHT
@@ -7343,7 +7353,7 @@ function renderSearchResults() {
       </div>`;
     }
 
-    const isAdded = SUCHE_STATE.addedIds.has(idx);
+    const isAdded = SUCHE_STATE.addedIds.includes(idx);
 
     html += `
       <div class="result-card-new">
@@ -7416,7 +7426,7 @@ function addResultToInventory(idx, btn) {
     quelle:      'suche',
   });
 
-  SUCHE_STATE.addedIds.add(idx);
+  SUCHE_STATE.addedIds.push(idx);
 
   // Update button in-place without full re-render
   btn.classList.add('added', 'adding');
