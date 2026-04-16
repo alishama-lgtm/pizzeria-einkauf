@@ -6409,10 +6409,12 @@ const CATEGORY_BG = {
 function renderProductsTab() {
   const low = getLowStockProducts();
   const categories = [...new Set(PRODUCTS.map(p => p.category))];
+  if (typeof window._produkteFilter === 'undefined') window._produkteFilter = 'alle';
+  const currentFilter = window._produkteFilter;
 
   let html = _pageHdr('inventory_2', 'Produkte', PRODUCTS.length + ' Artikel · ' + low.length + ' niedriger Bestand', '');
   html += `
-    <div style="display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap">
+    <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px;background:#fff0ee;border:1px solid #e3beb8;border-radius:16px;padding:16px 20px">
         <div style="font-size:28px;font-weight:800;color:#261816">${PRODUCTS.length}</div>
         <div style="font-size:12px;color:#5a403c;margin-top:4px">Produkte gesamt</div>
@@ -6429,8 +6431,25 @@ function renderProductsTab() {
     return;
   }
 
-  for (const cat of categories) {
-    const catProducts = PRODUCTS.filter(p => p.category === cat);
+  const chipCategories = ['alle', ...categories];
+  const chipHtml = chipCategories.map(cat => {
+    const active = currentFilter === cat;
+    const label = cat === 'alle' ? 'Alle' : cat;
+    return `<button onclick="window._produkteFilter='${cat}';renderProductsTab()" style="padding:7px 12px;border-radius:999px;border:1.5px solid ${active ? '#610000' : '#e3beb8'};background:${active ? '#610000' : '#fff'};color:${active ? '#fff' : '#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${label}</button>`;
+  }).join('');
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px">${chipHtml}</div>`;
+
+  const visibleCategories = currentFilter === 'alle' ? categories : categories.filter(cat => cat === currentFilter);
+
+  for (const cat of visibleCategories) {
+    const catProducts = PRODUCTS
+      .filter(p => p.category === cat)
+      .sort((a, b) => {
+        const aLow = stockLevels[a.id] < a.minStock;
+        const bLow = stockLevels[b.id] < b.minStock;
+        if (aLow !== bLow) return aLow ? -1 : 1;
+        return a.name.localeCompare(b.name, 'de');
+      });
     const bg = CATEGORY_BG[cat] || '#fff0ee';
     html += `
       <div style="margin-bottom:28px">
@@ -6441,6 +6460,7 @@ function renderProductsTab() {
       const stock = stockLevels[p.id];
       const isLow = stock < p.minStock;
       const pct = Math.min(100, (stock / p.minStock) * 100);
+      const pctText = Math.round(pct) + '% vom Minimum';
       const barColor = isLow ? '#ba1a1a' : '#386a20';
       const fifoWarn = typeof fifoCheckWarning === 'function' ? fifoCheckWarning(p.id) : null;
       html += `
@@ -6454,13 +6474,16 @@ function renderProductsTab() {
               <span style="font-size:14px;font-weight:600;color:#261816;line-height:1.3">${p.name}</span>
               ${isLow ? '<span class="material-symbols-outlined" style="font-size:18px;color:#ba1a1a;flex-shrink:0">warning</span>' : ''}
             </div>
-            <div style="height:6px;background:#e3beb866;border-radius:3px;margin-bottom:10px;overflow:hidden">
+            <div style="height:6px;background:#e3beb866;border-radius:3px;margin-bottom:8px;overflow:hidden">
               <div class="progress-fill" style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5a403c">
               <span>Min: ${p.minStock} ${p.unit}</span>
               <span id="stock-${p.id}" style="font-weight:700;color:${isLow?'#ba1a1a':'#386a20'}">${stock.toLocaleString('de-DE')} ${p.unit}</span>
             </div>
+            <div style="font-size:11px;font-weight:700;color:${isLow?'#ba1a1a':'#2e7d32'};margin-top:6px">${pctText}</div>
+            ${isLow ? `<div style="font-size:11px;font-weight:700;color:#ba1a1a;margin-top:4px">Bestellen: ${p.orderQuantity} ${p.unit}</div>` : ''}
+            ${isLow ? `<div onclick="event.stopPropagation();switchTab('kombis')" style="font-size:11px;font-weight:700;color:#610000;margin-top:5px;text-decoration:underline;cursor:pointer;display:inline-flex;align-items:center;gap:3px">→ Zur Einkaufs-Kombi</div>` : ''}
           </div>
           ${fifoWarn ? `
             <div style="background:#fff8e1;border-top:1px solid #ffe082;padding:7px 14px;
@@ -6490,6 +6513,10 @@ function renderProductsTab() {
         </div>`;
     }
     html += `</div></div>`;
+  }
+
+  if (visibleCategories.length === 0) {
+    html += '<div class="ws-card" style="text-align:center;padding:28px 20px;color:#8e706b;font-size:13px">Keine Produkte für diesen Filter gefunden.</div>';
   }
 
   if (typeof renderPortionskontrolleSection === 'function') {
@@ -7109,6 +7136,102 @@ function tsSidebarToggle(grpId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// RENDER — HEUTE TAB
+// ═══════════════════════════════════════════════════════════════
+
+function renderHeuteTab() {
+  const panel = document.getElementById('panel-heute');
+  if (!panel) return;
+  let dienstplan = {}; let aufgaben = []; let schichtcheck = {}; let mitarbeiter = [];
+  try { dienstplan   = JSON.parse(localStorage.getItem('pizzeria_dienstplan')   || '{}'); } catch(_) {}
+  try { aufgaben     = JSON.parse(localStorage.getItem('pizzeria_aufgaben')     || '[]'); } catch(_) {}
+  try { schichtcheck = JSON.parse(localStorage.getItem('pizzeria_schichtcheck') || '{}'); } catch(_) {}
+  try { mitarbeiter  = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')  || '[]'); } catch(_) {}
+  const today = new Date();
+  const weekKey = weekKeyFromDate(today);
+  const dayIndex = today.getDay() === 0 ? 6 : today.getDay() - 1;
+  const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const dayKey = DAYS[dayIndex];
+  const wochentagDE = today.toLocaleDateString('de-DE', { weekday: 'long' });
+  const datumDE = today.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+  const SCHICHT_ZEITEN = {
+    'Früh (08-16)':  { label: 'Frühschicht',  von: '08:00', bis: '16:00', farbe: '#2e7d32', bg: '#f0fdf4', dot: '#22c55e' },
+    'Spät (14-22)':  { label: 'Spätschicht',  von: '14:00', bis: '22:00', farbe: '#b45309', bg: '#fffbeb', dot: '#f59e0b' },
+    'Nacht (20-04)': { label: 'Nachtschicht', von: '20:00', bis: '04:00', farbe: '#1e40af', bg: '#eff6ff', dot: '#3b82f6' },
+    'Frei':          { label: 'Frei',          von: null,    bis: null,    farbe: '#6b7280', bg: '#f9fafb', dot: '#9ca3af' },
+  };
+  const wochenplanRaw = {};
+  try { Object.assign(wochenplanRaw, JSON.parse(localStorage.getItem('pizzeria_wochenplan') || '{}')); } catch(_) {}
+  const weekPlanRaw = wochenplanRaw[weekKey] || {};
+  const tagPlan = (dienstplan[weekKey] || {})[dayKey] || {};
+  const heutigeTeam = [];
+  for (const ma of mitarbeiter) {
+    const schichtName = tagPlan[ma.id];
+    if (schichtName && schichtName !== 'Frei') heutigeTeam.push({ ma, schichtName, info: SCHICHT_ZEITEN[schichtName] || null });
+  }
+  const wochenplanTeam = [];
+  for (const ma of mitarbeiter) {
+    const shift = (weekPlanRaw[ma.id] || {})[dayIndex];
+    if (shift && shift.von && shift.bis) wochenplanTeam.push({ ma, von: shift.von, bis: shift.bis });
+  }
+  const ersteSchicht = heutigeTeam[0] || null;
+  const ersteWpSchicht = wochenplanTeam[0] || null;
+  const offeneAufgaben = aufgaben.filter(a => !a.erledigt);
+  const dringendCount = offeneAufgaben.filter(a => a.prioritaet === 'dringend' || a.dringend).length;
+  const normalCount = offeneAufgaben.filter(a => !a.prioritaet || a.prioritaet === 'normal' || (!a.dringend && a.prioritaet !== 'dringend')).length;
+  const top3Aufgaben = offeneAufgaben.slice(0, 3);
+  const ckOeffnung = schichtcheck['oeffnung'] || {};
+  const ckSchliessung = schichtcheck['schliessung'] || {};
+  const ckItems = schichtcheck['items'] || { oeffnung: [], schliessung: [] };
+  const defaultOeffnung = ['Kasse öffnen','Herd vorheizen','Zutaten prüfen','Teig vorbereiten','Getränke auffüllen','Sauberkeit prüfen','Beleuchtung','Öffnungszeit eintragen'];
+  const defaultSchliessung = ['Kasse abrechnen','Reste einräumen','Herd ausschalten','Reinigung','Abfall entsorgen','Kühlschrank prüfen','Türen schließen','Schichtübergabe'];
+  const oeffItems = (ckItems.oeffnung && ckItems.oeffnung.length) ? ckItems.oeffnung : defaultOeffnung;
+  const schlItems = (ckItems.schliessung && ckItems.schliessung.length) ? ckItems.schliessung : defaultSchliessung;
+  const oeffDone = oeffItems.filter((_, i) => ckOeffnung[i]).length;
+  const schlDone = schlItems.filter((_, i) => ckSchliessung[i]).length;
+  function _hProgressStatus(done, total) {
+    if (total === 0) return { label: '—', farbe: '#9ca3af', bg: '#f3f4f6' };
+    const p = done / total;
+    if (p === 1)  return { label: '✅ Fertig',    farbe: '#16a34a', bg: '#f0fdf4' };
+    if (p >= 0.5) return { label: '🟡 In Arbeit', farbe: '#d97706', bg: '#fffbeb' };
+    if (p > 0)    return { label: '🟠 Begonnen',  farbe: '#ea580c', bg: '#fff7ed' };
+    return              { label: '⚪ Noch nicht', farbe: '#6b7280', bg: '#f9fafb' };
+  }
+  function _hProgressBar(done, total, farbe) {
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    return `<div style="height:10px;background:#e5e7eb;border-radius:5px;overflow:hidden;margin:6px 0"><div style="height:100%;width:${pct}%;background:${farbe};border-radius:5px;transition:width .3s"></div></div>`;
+  }
+  const oeffStatus = _hProgressStatus(oeffDone, oeffItems.length);
+  const schlStatus = _hProgressStatus(schlDone, schlItems.length);
+  if (typeof _renderInboxSection === 'function') {
+    _renderInboxSection().then(inboxHtml => {
+      const el = document.getElementById('_heute-inbox-container');
+      if (el && inboxHtml) el.innerHTML = inboxHtml;
+    });
+  }
+  let kachel1Html = '';
+  if (ersteSchicht) {
+    const info = ersteSchicht.info || {};
+    kachel1Html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:50%;background:${info.dot||'#8B0000'};display:inline-block;flex-shrink:0"></span><span style="font-size:20px;font-weight:800;color:${info.farbe||'#8B0000'}">${info.label||ersteSchicht.schichtName}</span></div>${info.von?`<p style="font-size:18px;font-weight:700;color:#261816;margin:0 0 14px">${info.von} – ${info.bis} Uhr</p>`:''}`;
+  } else if (ersteWpSchicht) {
+    kachel1Html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0"></span><span style="font-size:20px;font-weight:800;color:#2e7d32">Schicht heute</span></div><p style="font-size:18px;font-weight:700;color:#261816;margin:0 0 14px">${ersteWpSchicht.von} – ${ersteWpSchicht.bis} Uhr</p>`;
+  } else {
+    kachel1Html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:50%;background:#9ca3af;display:inline-block;flex-shrink:0"></span><span style="font-size:18px;font-weight:700;color:#6b7280">Kein Schichtplan eingetragen</span></div><p style="font-size:14px;color:#9ca3af;margin:0 0 14px">Dienstplan im Mitarbeiter-Tab pflegen</p>`;
+  }
+  const teamAnzeige = wochenplanTeam.length > 0 ? wochenplanTeam : heutigeTeam.map(h => ({ ma: h.ma }));
+  kachel1Html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:14px;color:#5a403c;font-weight:600">Team heute:</span>${teamAnzeige.length === 0 ? '<span style="font-size:14px;color:#9ca3af">Noch nicht geplant</span>' : teamAnzeige.map(t=>`<span style="background:${t.ma.farbe||'#8B0000'}22;color:${t.ma.farbe||'#8B0000'};border:1px solid ${t.ma.farbe||'#8B0000'}44;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600">${escHtml(t.ma.name)}</span>`).join('')}</div>`;
+  let html = `<div id="_heute-inbox-container"></div><div style="margin-bottom:24px"><h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px">Guten Tag — ${wochentagDE}, ${datumDE}</h2><p style="font-size:15px;color:#5a403c;margin:0">Übersicht für heute</p></div><div style="display:flex;flex-direction:column;gap:16px">`;
+  html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">👤</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Meine Schicht heute</h3></div>${kachel1Html}</div>`;
+  const aufgabenBody = offeneAufgaben.length === 0
+    ? `<div style="text-align:center;padding:16px 0"><span style="font-size:32px">✅</span><p style="font-size:15px;font-weight:700;color:#16a34a;margin:8px 0 4px">Alle Aufgaben erledigt!</p></div>`
+    : `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">${dringendCount>0?`<span style="background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#dc2626">🔴 ${dringendCount} dringend</span>`:''} ${normalCount>0?`<span style="background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#d97706">🟡 ${normalCount} normal</span>`:''}</div><ul style="margin:0 0 16px;padding:0;list-style:none">${top3Aufgaben.map(a=>{const d=a.prioritaet==='dringend'||a.dringend;return`<li style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6"><span style="flex-shrink:0">${d?'🔴':'🟡'}</span><span style="font-size:15px;color:#261816;font-weight:600">${escHtml(a.titel||a.name||'Aufgabe')}${d?' <span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px">DRINGEND</span>':''}</span></li>`;}).join('')}</ul>`;
+  html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">📋</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Aufgaben</h3></div>${aufgabenBody}<button onclick="switchTab('aufgaben')" style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'"><span style="font-size:18px">→</span> Alle Aufgaben anzeigen</button></div>`;
+  html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">☑️</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Schicht-Checkliste</h3></div><div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px"><div style="background:${oeffStatus.bg};border-radius:12px;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:16px;font-weight:700;color:#261816">Öffnung</span><span style="font-size:15px;font-weight:700;color:${oeffStatus.farbe}">${oeffStatus.label}</span></div><div style="font-size:14px;color:#5a403c;margin-bottom:6px">${oeffDone} / ${oeffItems.length} erledigt</div>${_hProgressBar(oeffDone,oeffItems.length,oeffStatus.farbe)}</div><div style="background:${schlStatus.bg};border-radius:12px;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:16px;font-weight:700;color:#261816">Schließung</span><span style="font-size:15px;font-weight:700;color:${schlStatus.farbe}">${schlStatus.label}</span></div><div style="font-size:14px;color:#5a403c;margin-bottom:6px">${schlDone} / ${schlItems.length} erledigt</div>${_hProgressBar(schlDone,schlItems.length,schlStatus.farbe)}</div></div><button onclick="switchTab('schichtcheck')" style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'"><span style="font-size:18px">→</span> Zur Checkliste</button></div>`;
+  html += `</div>`;
+  panel.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
 
 function switchTab(tab) {
   const isBiz = tab === 'business';
@@ -7175,7 +7298,7 @@ function switchTab(tab) {
   if (tab === 'buchhaltung')   renderBuchhaltungTab();
   if (tab === 'konkurrenz')    renderKonkurrenzTab();
   if (tab === 'bewertungen')   renderBewertungenTab();
-  if (tab === 'heute')         renderHeuteTab();
+  if (tab === 'heute')         { if (typeof renderHeuteTab === 'function') renderHeuteTab(); }
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
