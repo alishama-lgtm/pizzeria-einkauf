@@ -505,7 +505,7 @@
       margin-bottom: 24px;
     }
     @media (max-width: 640px) {
-      .bento-grid { grid-template-columns: 1fr; }
+      .bento-grid { grid-template-columns: 1fr !important; }
     }
     @media (max-width: 640px) {
       .dashboard-grid { grid-template-columns: 1fr !important; }
@@ -6335,12 +6335,26 @@ function calcTwoShopCombo(shopA, shopB, lowProducts) {
   if (usedIds.size < 2) return null; // degenerate – same as single shop
   const totalCost = items.reduce((s, i) => s + i.totalCost, 0);
   const shops = SHOPS.filter(s => usedIds.has(s.id));
-  return { id: 'two-' + shopA.id + '-' + shopB.id, shops, items, totalCost, numShops: 2, isRecommended: false };
+  const bestSingle = SHOPS
+    .map(s => calcSingleShopCombo(s, lowProducts))
+    .filter(Boolean)
+    .sort((a, b) => a.totalCost - b.totalCost)[0] || null;
+  const savings = bestSingle ? Math.max(0, bestSingle.totalCost - totalCost) : 0;
+  const savingsPct = bestSingle && bestSingle.totalCost > 0 ? (savings / bestSingle.totalCost) * 100 : 0;
+  return { id: 'two-' + shopA.id + '-' + shopB.id, shops, items, totalCost, numShops: 2, isRecommended: false, savings, savingsPct };
 }
 
 function calculateCombinations() {
   const low = getLowStockProducts();
-  if (low.length === 0) return { single: [], two: [], hasLow: false };
+  if (low.length === 0) return { single: [], two: [], hasLow: false, missingPrices: [] };
+
+  const missingSet = new Set();
+  for (const p of low) {
+    for (const s of SHOPS) {
+      if (getPrice(s.id, p.id) === null) missingSet.add(p.name + ' @ ' + s.name);
+    }
+  }
+  const missingPrices = Array.from(missingSet);
 
   // Single shop
   const single = SHOPS
@@ -6348,6 +6362,7 @@ function calculateCombinations() {
     .filter(Boolean)
     .sort((a, b) => a.totalCost - b.totalCost)
     .slice(0, 3);
+  const bestSingle = single.length > 0 ? single[0] : null;
 
   // Two shop
   const two = [];
@@ -6357,17 +6372,27 @@ function calculateCombinations() {
       if (c) two.push(c);
     }
   }
-  two.sort((a, b) => a.totalCost - b.totalCost);
-  const top3Two = two.slice(0, 3);
+  two.sort((a, b) => {
+    if (b.savings !== a.savings) return b.savings - a.savings;
+    return a.totalCost - b.totalCost;
+  });
+  const top3Two = two.filter(c => c.savings >= 2 && c.savingsPct >= 3).slice(0, 3);
 
-  // Mark globally cheapest as EMPFOHLEN
-  const all = [...top3Two, ...single];
+  const all = [...top3Two, ...single].sort((a, b) => a.totalCost - b.totalCost);
   if (all.length > 0) {
-    all.sort((a, b) => a.totalCost - b.totalCost);
-    all[0].isRecommended = true;
+    if (top3Two.length > 0) {
+      const bestTwo = top3Two.slice().sort((a, b) => a.totalCost - b.totalCost)[0];
+      const recommendTwo = !bestSingle || bestTwo.totalCost <= bestSingle.totalCost;
+      if (recommendTwo) bestTwo.isRecommended = true;
+      else if (bestSingle) bestSingle.isRecommended = true;
+    } else if (bestSingle) {
+      bestSingle.isRecommended = true;
+    } else {
+      all[0].isRecommended = true;
+    }
   }
 
-  return { single, two: top3Two, hasLow: true };
+  return { single, two: top3Two, hasLow: true, missingPrices };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -6679,7 +6704,7 @@ function renderShopsTab() {
 
 function renderKombisTab() {
   const low = getLowStockProducts();
-  const { single, two, hasLow } = calculateCombinations();
+  const { single, two, hasLow, missingPrices } = calculateCombinations();
 
   // ── Mini Dashboard ────────────────────────────────────────────
   const fmOpen = typeof FM_DATA !== 'undefined' ? FM_DATA.filter(x=>x.status==='offen').length : 0;
@@ -6732,7 +6757,7 @@ function renderKombisTab() {
         </div>
       </div>
       <div class="bento-side">
-        <div class="bento-small bento-small-yellow" onclick="void(0)">
+        <div class="bento-small bento-small-yellow" onclick="switchTab('lager')" style="cursor:pointer">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <span class="material-symbols-outlined" style="font-size:18px;color:#f59e0b">water_drop</span>
             <span style="font-size:12px;font-weight:700;color:#5a403c">Mozzarella Status</span>
@@ -6785,6 +6810,15 @@ function renderKombisTab() {
       <span style="font-size:12px;font-weight:700;color:#93000a;flex-shrink:0">${low.length} nachbestellen:</span>
       <span style="font-size:12px;color:#5a403c">${low.map(p => p.name).join(' · ')}</span>
     </div>`;
+
+  if (missingPrices.length > 0) {
+    html += `
+      <div style="background:#fff8e1;border-left:3px solid #f59e0b;border-radius:6px;padding:8px 12px;margin:-8px 0 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="material-symbols-outlined" style="font-size:15px;color:#f59e0b;flex-shrink:0">report</span>
+        <span style="font-size:12px;font-weight:700;color:#7c5a00;flex-shrink:0">Preis-Lücken (${missingPrices.length}):</span>
+        <span style="font-size:12px;color:#5a403c">${missingPrices.slice(0, 4).join(' · ')}${missingPrices.length > 4 ? ' …' : ''}</span>
+      </div>`;
+  }
 
   // Best combo = first two-shop combo, or first single-shop if none
   const bestCombo = two.length > 0 ? two[0] : (single.length > 0 ? single[0] : null);
@@ -6888,14 +6922,24 @@ function renderFeaturedCombo(combo) {
       </div>
       <div style="padding:0 0 4px">${shopSections}</div>
       <div style="padding:14px 16px;border-top:1px solid #f0e8e6;display:flex;justify-content:space-between;align-items:center;background:#fafafa">
-        <button onclick="printCombo('${combo.id}')"
-          style="padding:8px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"
-          onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
-          <span class="material-symbols-outlined" style="font-size:15px">print</span> Drucken
-        </button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="addComboToList('${combo.id}')"
+            style="padding:8px 12px;border-radius:10px;border:1.5px solid #d1d5db;background:#fff;font-size:12px;font-weight:600;color:#374151;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"
+            onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='#fff'">
+            <span class="material-symbols-outlined" style="font-size:15px">playlist_add</span> Zur Liste
+          </button>
+          <button onclick="printCombo('${combo.id}')"
+            style="padding:8px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"
+            onmouseover="this.style.background='#fff0ee'" onmouseout="this.style.background='#fff'">
+            <span class="material-symbols-outlined" style="font-size:15px">print</span> Drucken
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          ${combo.savings > 0 ? `<span style="font-size:12px;font-weight:700;color:#15803d;background:#dcfce7;border:1px solid #86efac;border-radius:999px;padding:3px 10px">💰 Spart ${eur(combo.savings)} vs. Einzel-Shop</span>` : ''}
         <div style="display:flex;align-items:baseline;gap:6px">
           <span style="font-size:13px;color:#8e706b;font-weight:600">Gesamt</span>
           <span style="font-size:26px;font-weight:800;color:#610000;font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:-.02em">${eur(combo.totalCost)}</span>
+        </div>
         </div>
       </div>
     </div>`;
