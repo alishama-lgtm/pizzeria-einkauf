@@ -2280,6 +2280,20 @@ if (typeof Notification !== 'undefined' && Notification.permission === 'granted'
   scheduleNotificationCheck();
 }
 
+// Checkliste-Erinnerung: wenn Morgen-CL nach 10:00 Uhr noch nicht ausgefüllt
+function checkChecklisteReminder() {
+  const h = new Date().getHours();
+  if (h < 10) return;
+  const today = new Date().toISOString().slice(0,10);
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem('pizzeria_cl_history') || '[]'); } catch(_) {}
+  const morgenDone = hist.find(e => e.datum === today && e.typ === 'morgen');
+  if (!morgenDone && typeof notifAdd === 'function') {
+    notifAdd('cl_remind_morgen_' + today, '⏰ Morgen-Checkliste offen!', 'Die Morgen-Checkliste für heute wurde noch nicht ausgefüllt.', 'warning', 'checkliste');
+  }
+}
+setTimeout(checkChecklisteReminder, 3000);
+
 // ========== NOTIFICATION CENTER ==========
 
 // Notifications laden/speichern
@@ -2490,6 +2504,17 @@ function fmAdd(form) {
   });
   fmSave();
   fmUpdateBadge();
+  // ── Notification ──
+  if (typeof notifAdd === 'function') {
+    const isDringend = form.prioritaet === 'dringend';
+    notifAdd(
+      'fehlmaterial_neu_' + form.produktName,
+      (isDringend ? '🔴 Dringend: ' : '⚠️ ') + form.produktName + ' fehlt!',
+      form.menge + ' ' + form.einheit + (form.bemerkung ? ' — ' + form.bemerkung : '') + (form.eingetragenVon ? ' · ' + form.eingetragenVon : ''),
+      isDringend ? 'critical' : 'warning',
+      'fehlmaterial'
+    );
+  }
 }
 
 function fmSetStatus(id, newStatus) {
@@ -2500,6 +2525,14 @@ function fmSetStatus(id, newStatus) {
   if (newStatus === 'erledigt') e.erledigungsDatum = new Date().toISOString();
   fmSave();
   fmUpdateBadge();
+  // ── Notification ──
+  if (typeof notifAdd === 'function') {
+    if (newStatus === 'erledigt') {
+      notifAdd('fm_erledigt_' + e.produktName, '✅ ' + e.produktName + ' erledigt', 'Fehlmaterial wurde behoben', 'info', 'fehlmaterial');
+    } else if (newStatus === 'bestellt') {
+      notifAdd('fm_bestellt_' + e.produktName, '📦 ' + e.produktName + ' bestellt', 'Wird geliefert', 'info', 'fehlmaterial');
+    }
+  }
   renderFehlmaterialTab();
 }
 
@@ -3517,7 +3550,17 @@ function clAbschliessen(typ) {
   clSaveHistory();
   clCheckedItems = {};
   if (person) _safeLocalSet('fm_last_person', person);
-  _showToast((typ==='morgen'?'Morgen':'Abend')+'-Checkliste abgeschlossen', 'success');
+  const allChecked = items.every(i => i.checked);
+  _showToast((typ==='morgen'?'Morgen':'Abend')+'-Checkliste abgeschlossen' + (allChecked ? ' ✅' : ' ⚠️ Nicht alle Punkte erledigt'), allChecked ? 'success' : 'warning');
+  // ── Notification ──
+  if (typeof notifAdd === 'function') {
+    if (allChecked) {
+      notifAdd('checkliste_ok_'+typ+'_'+today, (typ==='morgen'?'☀️ Morgen':'🌙 Abend')+'-Checkliste abgeschlossen', 'Alle Punkte erledigt · ' + person, 'info', 'checkliste');
+    } else {
+      const offen = items.filter(i => !i.checked).length;
+      notifAdd('checkliste_warn_'+typ+'_'+today, (typ==='morgen'?'☀️ Morgen':'🌙 Abend')+'-Checkliste unvollständig', offen + ' Punkt' + (offen!==1?'e':'') + ' nicht erledigt · ' + person, 'warning', 'checkliste');
+    }
+  }
   renderChecklisteTab();
 }
 
