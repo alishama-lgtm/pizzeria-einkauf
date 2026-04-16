@@ -106,6 +106,137 @@
       --r-xl:  20px;
     }
 
+    /* ════ THEME: DARK NAVY ════ */
+    html[data-theme="dark"] {
+      --red:        #e05555;
+      --red-dark:   #c83c3c;
+      --red-soft:   #2a1010;
+      --red-border: #4a2020;
+      --bg:         #0f0f1a;
+      --surface:    #1a1a2e;
+      --text:       #e8e8ff;
+      --text-2:     #a0a0c8;
+      --text-3:     #6868aa;
+      --border:     #2d2d4a;
+      --border-2:   #232342;
+      --shadow-sm:  0 1px 4px rgba(0,0,0,.4), 0 2px 12px rgba(0,0,0,.3);
+      --shadow-md:  0 4px 20px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.4);
+    }
+
+    /* ════ THEME: DARK RED ════ */
+    html[data-theme="dark-red"] {
+      --red:        #ff4444;
+      --red-dark:   #dd2222;
+      --red-soft:   #2d0808;
+      --red-border: #5a1010;
+      --bg:         #110808;
+      --surface:    #1e0c0c;
+      --text:       #ffe8e8;
+      --text-2:     #c89090;
+      --text-3:     #886060;
+      --border:     #3a1818;
+      --border-2:   #2e1010;
+      --shadow-sm:  0 1px 4px rgba(139,0,0,.3), 0 2px 12px rgba(0,0,0,.3);
+      --shadow-md:  0 4px 20px rgba(139,0,0,.4), 0 2px 8px rgba(0,0,0,.4);
+    }
+
+    /* ════ DARK THEMES — GLOBAL OVERRIDES ════ */
+    html[data-theme="dark"] body,
+    html[data-theme="dark-red"] body {
+      background-color: var(--bg) !important;
+      background-image: radial-gradient(circle at 1px 1px, rgba(255,100,100,0.03) 1px, transparent 0) !important;
+      color: var(--text) !important;
+    }
+    /* Header */
+    html[data-theme="dark"] #app-header,
+    html[data-theme="dark-red"] #app-header {
+      background: var(--surface) !important;
+      border-bottom-color: var(--border) !important;
+    }
+    html[data-theme="dark"] .header-logo-text,
+    html[data-theme="dark-red"] .header-logo-text { color: var(--red) !important; }
+    html[data-theme="dark"] .header-logo-sub,
+    html[data-theme="dark-red"] .header-logo-sub { color: var(--text-3) !important; }
+    html[data-theme="dark"] .header-bell-btn,
+    html[data-theme="dark-red"] .header-bell-btn { color: var(--red) !important; }
+    html[data-theme="dark"] .header-bell-btn:hover,
+    html[data-theme="dark-red"] .header-bell-btn:hover { background: var(--red-soft) !important; }
+    /* Nav bar */
+    html[data-theme="dark"] #staff-tab-bar,
+    html[data-theme="dark-red"] #staff-tab-bar {
+      background: var(--surface) !important;
+      border-bottom-color: var(--border) !important;
+    }
+    html[data-theme="dark"] #staff-tab-bar .tab-btn,
+    html[data-theme="dark-red"] #staff-tab-bar .tab-btn { color: var(--text-2) !important; }
+    html[data-theme="dark"] #staff-tab-bar .tab-btn:hover,
+    html[data-theme="dark-red"] #staff-tab-bar .tab-btn:hover { color: var(--red) !important; background: var(--red-soft) !important; }
+    html[data-theme="dark"] #staff-tab-bar .tab-btn.tab-active,
+    html[data-theme="dark-red"] #staff-tab-bar .tab-btn.tab-active { color: var(--red) !important; border-bottom-color: var(--red) !important; }
+    html[data-theme="dark"] .nav-grp-dd,
+    html[data-theme="dark-red"] .nav-grp-dd { background: var(--surface) !important; border-color: var(--border) !important; }
+    html[data-theme="dark"] .dd-item,
+    html[data-theme="dark-red"] .dd-item { color: var(--text-2) !important; }
+    html[data-theme="dark"] .dd-item:hover,
+    html[data-theme="dark-red"] .dd-item:hover { background: var(--red-soft) !important; color: var(--red) !important; }
+    /* Tablet sidebar */
+    html[data-theme="dark"] #tablet-sidebar,
+    html[data-theme="dark-red"] #tablet-sidebar { background: var(--surface) !important; border-right-color: var(--border) !important; }
+    html[data-theme="dark"] .ts-direct-btn,html[data-theme="dark"] .ts-grp-btn,
+    html[data-theme="dark-red"] .ts-direct-btn,html[data-theme="dark-red"] .ts-grp-btn { color: var(--text-2) !important; }
+    html[data-theme="dark"] .ts-direct-btn:hover,html[data-theme="dark"] .ts-grp-btn:hover,
+    html[data-theme="dark-red"] .ts-direct-btn:hover,html[data-theme="dark-red"] .ts-grp-btn:hover { color: var(--red) !important; background: var(--red-soft) !important; }
+    html[data-theme="dark"] .ts-sub-item,
+    html[data-theme="dark-red"] .ts-sub-item { color: var(--text-2) !important; background: transparent !important; }
+    html[data-theme="dark"] .ts-sub-item:hover,
+    html[data-theme="dark-red"] .ts-sub-item:hover { color: var(--red) !important; background: var(--red-soft) !important; }
+    html[data-theme="dark"] .ts-sub-item.tab-active,
+    html[data-theme="dark-red"] .ts-sub-item.tab-active { color: var(--red) !important; background: var(--red-soft) !important; }
+    /* Cards */
+    html[data-theme="dark"] .ws-card,html[data-theme="dark"] .stat-card,html[data-theme="dark"] .stitch-card,html[data-theme="dark"] .bento-hero,
+    html[data-theme="dark-red"] .ws-card,html[data-theme="dark-red"] .stat-card,html[data-theme="dark-red"] .stitch-card,html[data-theme="dark-red"] .bento-hero {
+      background: var(--surface) !important; border-color: var(--border) !important; color: var(--text) !important;
+    }
+    html[data-theme="dark"] .stat-num,
+    html[data-theme="dark-red"] .stat-num { color: var(--text) !important; }
+    html[data-theme="dark"] .stat-label,html[data-theme="dark"] .stat-sub,
+    html[data-theme="dark-red"] .stat-label,html[data-theme="dark-red"] .stat-sub { color: var(--text-3) !important; }
+    /* Tables */
+    html[data-theme="dark"] .ws-table thead tr,
+    html[data-theme="dark-red"] .ws-table thead tr { background: rgba(255,255,255,.04) !important; }
+    html[data-theme="dark"] .ws-table thead th,
+    html[data-theme="dark-red"] .ws-table thead th { color: var(--text-3) !important; border-bottom-color: var(--border) !important; }
+    html[data-theme="dark"] .ws-table tbody tr,
+    html[data-theme="dark-red"] .ws-table tbody tr { border-bottom-color: var(--border-2) !important; }
+    html[data-theme="dark"] .ws-table tbody tr:hover,
+    html[data-theme="dark-red"] .ws-table tbody tr:hover { background: rgba(255,255,255,.04) !important; }
+    html[data-theme="dark"] .ws-table tbody td,
+    html[data-theme="dark-red"] .ws-table tbody td { color: var(--text) !important; }
+    html[data-theme="dark"] .ws-table tbody tr:nth-child(even) td,
+    html[data-theme="dark-red"] .ws-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.02) !important; }
+    /* All panels */
+    html[data-theme="dark"] [id^="panel-"],
+    html[data-theme="dark-red"] [id^="panel-"] { background: var(--bg) !important; color: var(--text) !important; }
+    /* Main area */
+    html[data-theme="dark"] #app-main,
+    html[data-theme="dark-red"] #app-main { background: var(--bg) !important; }
+    /* Notification panel */
+    html[data-theme="dark"] .notif-panel,
+    html[data-theme="dark-red"] .notif-panel { background: var(--surface) !important; border-color: var(--border) !important; }
+    html[data-theme="dark"] .notif-panel-header,
+    html[data-theme="dark-red"] .notif-panel-header { color: var(--text) !important; border-bottom-color: var(--border) !important; }
+    html[data-theme="dark"] .notif-item,
+    html[data-theme="dark-red"] .notif-item { border-bottom-color: var(--border-2) !important; }
+    html[data-theme="dark"] .notif-item:hover,
+    html[data-theme="dark-red"] .notif-item:hover { background: var(--red-soft) !important; }
+    /* Mobile bottom nav */
+    html[data-theme="dark"] #mobile-bottom-nav,
+    html[data-theme="dark-red"] #mobile-bottom-nav { background: var(--surface) !important; border-top-color: var(--border) !important; }
+    /* Footer */
+    html[data-theme="dark"] #app-footer,
+    html[data-theme="dark-red"] #app-footer { background: var(--surface) !important; border-top-color: var(--border) !important; color: var(--text-3) !important; }
+    /* Login stays light always (intentional) */
+
     /* ════ RESET & BASE ════ */
     *, *::before, *::after { box-sizing: border-box; }
     .material-symbols-outlined {
@@ -12689,6 +12820,8 @@ async function loadPricesFromDB() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Theme als erstes laden — vor allem anderen
+  loadSavedTheme();
   // Preise aus SQLite laden (im Hintergrund, blockiert Login nicht)
   loadPricesFromDB();
   // 1. Persistenter Login (localStorage, "Angemeldet bleiben")
@@ -12708,6 +12841,28 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════
 // SETTINGS MODAL
 // ═══════════════════════════════════════════════════════════════
+/* ══════════ THEME SYSTEM ══════════ */
+function applyTheme(theme) {
+  const html = document.documentElement;
+  if (theme === 'dark' || theme === 'dark-red') {
+    html.setAttribute('data-theme', theme);
+  } else {
+    html.removeAttribute('data-theme');
+  }
+  _safeLocalSet('pizzeria_theme', theme);
+  // Update theme picker buttons if settings modal is open
+  const btns = document.querySelectorAll('.theme-pick-btn');
+  btns.forEach(b => {
+    const active = b.dataset.theme === theme || (theme === 'classic' && !b.dataset.theme);
+    b.style.outline = active ? '3px solid #610000' : 'none';
+    b.style.transform = active ? 'scale(1.05)' : 'scale(1)';
+  });
+}
+function loadSavedTheme() {
+  const t = localStorage.getItem('pizzeria_theme') || 'classic';
+  applyTheme(t);
+}
+
 function openSettings() {
   const existing = document.getElementById('settings-modal');
   if (existing) { existing.remove(); return; }
@@ -12792,6 +12947,34 @@ function openSettings() {
           style="width:100%;padding:10px 14px;border:1.5px solid ${localStorage.getItem('pizzeria_gemini_key')?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none"
           onfocusin="this.style.borderColor='#1a73e8'" onblur="this.style.borderColor='${localStorage.getItem('pizzeria_gemini_key')?'#a5d6a7':'#e3beb8'}'"/>
         <p style="font-size:11px;color:#8d6562;margin:5px 0 0">Google Gemini API Key — <strong>aistudio.google.com</strong> → Get API Key (kostenlos)</p>
+      </div>
+
+      <!-- Theme Picker -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🎨</span> Design-Stil
+        </label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <button class="theme-pick-btn" data-theme="classic" onclick="applyTheme('classic')"
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${(localStorage.getItem('pizzeria_theme')||'classic')==='classic'?'3px solid #610000':'none'};transform:${(localStorage.getItem('pizzeria_theme')||'classic')==='classic'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#fff8f6,#ffe8e3)">
+            <div style="font-size:22px;margin-bottom:6px">☀️</div>
+            <div style="font-size:12px;font-weight:700;color:#610000">Classic</div>
+            <div style="font-size:10px;color:#9c8680;margin-top:2px">Rot &amp; Creme</div>
+          </button>
+          <button class="theme-pick-btn" data-theme="dark" onclick="applyTheme('dark')"
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('pizzeria_theme')==='dark'?'3px solid #610000':'none'};transform:${localStorage.getItem('pizzeria_theme')==='dark'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#1a1a2e,#0f0f1a)">
+            <div style="font-size:22px;margin-bottom:6px">🌙</div>
+            <div style="font-size:12px;font-weight:700;color:#e05555">Dark Navy</div>
+            <div style="font-size:10px;color:#6868aa;margin-top:2px">Dunkel &amp; Blau</div>
+          </button>
+          <button class="theme-pick-btn" data-theme="dark-red" onclick="applyTheme('dark-red')"
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('pizzeria_theme')==='dark-red'?'3px solid #610000':'none'};transform:${localStorage.getItem('pizzeria_theme')==='dark-red'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#1e0c0c,#110808)">
+            <div style="font-size:22px;margin-bottom:6px">🔥</div>
+            <div style="font-size:12px;font-weight:700;color:#ff4444">Dark Red</div>
+            <div style="font-size:10px;color:#886060;margin-top:2px">Dunkel &amp; Rot</div>
+          </button>
+        </div>
+        <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Design-Stil wird sofort angewendet und gespeichert.</p>
       </div>
 
       <div style="display:flex;gap:10px">
