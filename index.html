@@ -237,6 +237,138 @@
     html[data-theme="dark-red"] #app-footer { background: var(--surface) !important; border-top-color: var(--border) !important; color: var(--text-3) !important; }
     /* Login stays light always (intentional) */
 
+    /* ════ DARK THEMES — DEEP OVERRIDES (inputs, cards, text) ════ */
+
+    /* ── Inputs / Selects / Textareas ── */
+    html[data-theme="dark"] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),
+    html[data-theme="dark"] select,
+    html[data-theme="dark"] textarea,
+    html[data-theme="dark-red"] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),
+    html[data-theme="dark-red"] select,
+    html[data-theme="dark-red"] textarea {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+      color-scheme: dark;
+    }
+    html[data-theme="dark"] input::placeholder,
+    html[data-theme="dark"] textarea::placeholder,
+    html[data-theme="dark-red"] input::placeholder,
+    html[data-theme="dark-red"] textarea::placeholder { color: var(--text-3) !important; }
+    html[data-theme="dark"] select option,
+    html[data-theme="dark-red"] select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    /* ── Panel headings ── */
+    html[data-theme="dark"] [id^="panel-"] h1,
+    html[data-theme="dark"] [id^="panel-"] h2,
+    html[data-theme="dark"] [id^="panel-"] h3,
+    html[data-theme="dark"] [id^="panel-"] h4,
+    html[data-theme="dark-red"] [id^="panel-"] h1,
+    html[data-theme="dark-red"] [id^="panel-"] h2,
+    html[data-theme="dark-red"] [id^="panel-"] h3,
+    html[data-theme="dark-red"] [id^="panel-"] h4 { color: var(--text) !important; }
+
+    /* ── White / very-light inline backgrounds in panels ── */
+    /* Matches: #fff, #ffffff, #fff0ee, #fff8f6, #fff3e0, #fffde7 etc. */
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#fff"],
+    html[data-theme="dark"] [id^="panel-"] button[style*="background:#fff"],
+    html[data-theme="dark"] [id^="panel-"] a[style*="background:#fff"],
+    html[data-theme="dark"] [id^="panel-"] td[style*="background:#fff"],
+    html[data-theme="dark"] [id^="panel-"] label[style*="background:#fff"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#fff"],
+    html[data-theme="dark-red"] [id^="panel-"] button[style*="background:#fff"],
+    html[data-theme="dark-red"] [id^="panel-"] a[style*="background:#fff"],
+    html[data-theme="dark-red"] [id^="panel-"] td[style*="background:#fff"],
+    html[data-theme="dark-red"] [id^="panel-"] label[style*="background:#fff"] {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+    /* Same for #fafafa, #f8f8fa, #f0f0f5 */
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#faf"],
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#f8f"],
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#f0f"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#faf"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#f8f"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#f0f"] {
+      background: var(--surface) !important;
+    }
+
+    /* ── Dark text on dark bg — fix inline dark color values ── */
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#1a1210"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#1e1e2e"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#1a1210"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#1e1e2e"] { color: var(--text) !important; }
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#5a403c"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#5c4a46"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#6b7280"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#5a403c"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#5c4a46"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#6b7280"] { color: var(--text-2) !important; }
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#8d6562"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#9c8680"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#9ca3af"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#8d6562"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#9c8680"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#9ca3af"] { color: var(--text-3) !important; }
+
+    /* ── Lager status cards (light gradient backgrounds) ── */
+    html[data-theme="dark"] #panel-lager div[style*="linear-gradient(135deg,#ffebee"],
+    html[data-theme="dark-red"] #panel-lager div[style*="linear-gradient(135deg,#ffebee"] {
+      background: rgba(198,40,40,.15) !important;
+      border-color: rgba(198,40,40,.4) !important;
+    }
+    html[data-theme="dark"] #panel-lager div[style*="linear-gradient(135deg,#fff8e1"],
+    html[data-theme="dark-red"] #panel-lager div[style*="linear-gradient(135deg,#fff8e1"] {
+      background: rgba(245,127,23,.15) !important;
+      border-color: rgba(245,127,23,.4) !important;
+    }
+    html[data-theme="dark"] #panel-lager div[style*="linear-gradient(135deg,#e8f5e9"],
+    html[data-theme="dark-red"] #panel-lager div[style*="linear-gradient(135deg,#e8f5e9"] {
+      background: rgba(46,125,50,.15) !important;
+      border-color: rgba(46,125,50,.4) !important;
+    }
+
+    /* ── Angebote store-buttons inner info-area ── */
+    html[data-theme="dark"] #panel-angebote button[style*="background:#fff"],
+    html[data-theme="dark-red"] #panel-angebote button[style*="background:#fff"] {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+    html[data-theme="dark"] #panel-angebote button[style*="background:#fff"] div[style*="padding:7px"],
+    html[data-theme="dark-red"] #panel-angebote button[style*="background:#fff"] div[style*="padding:7px"] {
+      background: var(--surface) !important;
+    }
+
+    /* ── Dashboard & Business stat tiles ── */
+    html[data-theme="dark"] #panel-dashboard .stat-card,
+    html[data-theme="dark"] #panel-business .stat-card,
+    html[data-theme="dark-red"] #panel-dashboard .stat-card,
+    html[data-theme="dark-red"] #panel-business .stat-card {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+
+    /* ── Toast / snackbar ── */
+    html[data-theme="dark"] #_toast,
+    html[data-theme="dark-red"] #_toast { background: var(--surface) !important; color: var(--text) !important; }
+
+    /* ── Modals opened via JS (settings, confirm) ── */
+    html[data-theme="dark"] #settings-modal > div,
+    html[data-theme="dark-red"] #settings-modal > div {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+    }
+    html[data-theme="dark"] #_confirm-box,
+    html[data-theme="dark-red"] #_confirm-box {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+    }
+
     /* ════ RESET & BASE ════ */
     *, *::before, *::after { box-sizing: border-box; }
     .material-symbols-outlined {
