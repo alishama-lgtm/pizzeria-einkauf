@@ -311,10 +311,10 @@
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#6b7280"] { color: var(--text-2) !important; }
     html[data-theme="dark"] [id^="panel-"] [style*="color:#8d6562"],
     html[data-theme="dark"] [id^="panel-"] [style*="color:#9c8680"],
-    html[data-theme="dark"] [id^="panel-"] [style*="color:#9ca3af"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#5a6472"],
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#8d6562"],
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#9c8680"],
-    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#9ca3af"] { color: var(--text-3) !important; }
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#5a6472"] { color: var(--text-3) !important; }
 
     /* ── Lager status cards (light gradient backgrounds) ── */
     html[data-theme="dark"] #panel-lager div[style*="linear-gradient(135deg,#ffebee"],
@@ -521,7 +521,7 @@
       letter-spacing: -0.03em; line-height: 1.1;
     }
     .header-logo-sub {
-      font-size: 11px; color: #9ca3af; font-weight: 500;
+      font-size: 11px; color: #5a6472; font-weight: 500;
       letter-spacing: 0.05em; text-transform: uppercase;
     }
     .header-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
@@ -724,7 +724,7 @@
       border-top: 1px solid #e8e8ed;
       padding: 16px 40px;
       display: flex; align-items: center; justify-content: space-between;
-      font-size: 12px; color: #9ca3af; flex-wrap: wrap; gap: 8px;
+      font-size: 12px; color: #5a6472; flex-wrap: wrap; gap: 8px;
     }
     #app-footer strong { color: #6b7280; }
     body.biz-mode #app-footer { display: none; }
@@ -1160,7 +1160,7 @@
     .ts-sub-item {
       display:flex; align-items:center; gap:9px;
       padding:8px 12px 8px 30px; border:none; background:none;
-      cursor:pointer; font-size:12px; font-weight:600; color:#9ca3af;
+      cursor:pointer; font-size:12px; font-weight:600; color:#5a6472;
       font-family:inherit; text-align:left; width:100%; white-space:nowrap;
       transition:all .15s; flex-shrink:0;
     }
@@ -1193,7 +1193,7 @@
     }
     #mehr-drawer.drawer-open { transform:translateY(0) }
     .bs-section { margin-bottom:14px }
-    .bs-title { font-size:10px; font-weight:800; color:#9ca3af; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; padding:0 2px }
+    .bs-title { font-size:10px; font-weight:800; color:#5a6472; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; padding:0 2px }
     .bs-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px }
     .bs-btn {
       display:flex; flex-direction:column; align-items:center; gap:4px;
@@ -3002,7 +3002,7 @@ function renderFmEingabe() {
 
   // Card-based list (mobile-friendly, no table)
   const cardsHtml = rows.length === 0
-    ? '<div style="text-align:center;padding:48px 20px;color:#9ca3af;font-size:14px">Keine Einträge gefunden</div>'
+    ? '<div style="text-align:center;padding:48px 20px;color:#5a6472;font-size:14px">Keine Einträge gefunden</div>'
     : rows.map(e => {
         const prio = FM_PRIO[e.prioritaet] || FM_PRIO.normal;
         const stat = FM_STATUS[e.status]   || FM_STATUS.offen;
@@ -3020,9 +3020,9 @@ function renderFmEingabe() {
 
           '<div style="font-size:16px;font-weight:800;color:#1e1e2e;margin-bottom:4px;'+
           (e.status==='erledigt'?'text-decoration:line-through;':'')+'">'+_esc(e.produktName)+'</div>' +
-          (e.bemerkung ? '<div style="font-size:12px;color:#9ca3af;margin-bottom:4px">'+_esc(e.bemerkung)+'</div>' : '') +
+          (e.bemerkung ? '<div style="font-size:12px;color:#5a6472;margin-bottom:4px">'+_esc(e.bemerkung)+'</div>' : '') +
 
-          '<div style="font-size:11px;color:#9ca3af;margin-bottom:10px">' +
+          '<div style="font-size:11px;color:#5a6472;margin-bottom:10px">' +
           _esc(e.eingetragenVon||'—') + ' · ' + _esc(e.datum) + ' ' + _esc(e.uhrzeit) +
           ' · <span style="background:#f0f0f5;color:#6b7280;border-radius:5px;padding:1px 6px">'+_esc(e.kategorie)+'</span>' +
           '</div>' +
@@ -3034,7 +3034,7 @@ function renderFmEingabe() {
           (e.status!=='erledigt'
             ? '<button onclick="fmSetStatus(\''+e.id+'\',\'erledigt\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex:1"><span class="material-symbols-outlined" style="font-size:15px">check_circle</span>✅ Erledigt</button>'
             : '') +
-          '<button onclick="_showConfirm(\'Löschen?\',function(){fmDelete(\''+e.id+'\')})" style="min-height:44px;width:44px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
+          '<button onclick="_showConfirm(\'Löschen?\',function(){fmDelete(\''+e.id+'\')})" style="min-height:44px;width:44px;border-radius:8px;border:1.5px solid #e8e8ed;background:#fff;color:#5a6472;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="material-symbols-outlined" style="font-size:16px">delete</span></button>' +
           (e.status!=='erledigt'
             ? '<button onclick="fmSendToN8n(\''+e.id+'\')" style="min-height:44px;padding:8px 12px;border-radius:8px;border:none;background:#e3f2fd;color:#1565c0;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0" title="An n8n senden"><span style="font-size:14px">📤</span> n8n</button>'
             : '') +
@@ -3203,7 +3203,7 @@ function renderFmHistorie() {
   const sortedDates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
 
   const groupsHtml = sortedDates.length === 0
-    ? '<div class="ws-card" style="text-align:center;padding:60px 20px;color:#9ca3af;font-size:14px">Keine Einträge gefunden</div>'
+    ? '<div class="ws-card" style="text-align:center;padding:60px 20px;color:#5a6472;font-size:14px">Keine Einträge gefunden</div>'
     : sortedDates.map(date => {
         const entries = grouped[date];
         const dateLabel = fmFormatDatum(date);
@@ -3218,10 +3218,10 @@ function renderFmHistorie() {
             '<div style="flex:1;min-width:100px">' +
             '<span style="font-weight:700;font-size:14px">'+e.produktName+'</span>' +
             '<span style="font-size:13px;color:#6b7280;margin-left:6px">'+e.menge+' '+e.einheit+'</span>' +
-            (e.bemerkung?'<span style="font-size:12px;color:#9ca3af;margin-left:6px">'+e.bemerkung+'</span>':'') +
+            (e.bemerkung?'<span style="font-size:12px;color:#5a6472;margin-left:6px">'+e.bemerkung+'</span>':'') +
             '</div>' +
-            '<span style="font-size:11px;color:#9ca3af;flex-shrink:0">'+e.kategorie+'</span>' +
-            '<span style="font-size:12px;color:#9ca3af;flex-shrink:0">'+(e.eingetragenVon||'—')+' · '+e.uhrzeit+'</span>' +
+            '<span style="font-size:11px;color:#5a6472;flex-shrink:0">'+e.kategorie+'</span>' +
+            '<span style="font-size:12px;color:#5a6472;flex-shrink:0">'+(e.eingetragenVon||'—')+' · '+e.uhrzeit+'</span>' +
             '<span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;' +
             'font-weight:700;background:'+stat.bg+';color:'+stat.color+';border:1px solid '+stat.border+';flex-shrink:0;white-space:nowrap">'+stat.label+'</span>' +
             '</div>';
@@ -3229,7 +3229,7 @@ function renderFmHistorie() {
         return '<div class="ws-card ws-card-sm" style="margin-bottom:16px">' +
           '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">' +
           '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:16px;font-weight:800;color:#1e1e2e">'+dateLabel+
-          '<span style="font-size:13px;font-weight:500;color:#9ca3af;margin-left:8px">'+wochentag+'</span></div>' +
+          '<span style="font-size:13px;font-weight:500;color:#5a6472;margin-left:8px">'+wochentag+'</span></div>' +
           '<span class="ws-badge" style="background:#f0f0f5;color:#6b7280">'+entries.length+' Meldung'+(entries.length!==1?'en':'')+'</span>' +
           '</div>' +
           '<div style="border:1px solid #e8e8ed;border-radius:10px;overflow:hidden">'+itemsHtml+'</div>' +
@@ -3320,7 +3320,7 @@ function renderFmAuswertung() {
       '<div style="font-size:12px;font-weight:700;color:'+(isMax?'#8B0000':'#6b7280')+'">'+(count||'')+'</div>' +
       '<div style="width:100%;max-width:36px;height:64px;display:flex;align-items:flex-end">' +
       '<div style="width:100%;height:'+h+'px;border-radius:4px 4px 0 0;background:'+(isMax?'#8B0000':'#e2e2e8')+';min-height:'+(count>0?4:0)+'px;transition:height .3s"></div>' +
-      '</div><div style="font-size:11px;color:#9ca3af">'+dayNames[i]+'</div></div>';
+      '</div><div style="font-size:11px;color:#5a6472">'+dayNames[i]+'</div></div>';
   }).join('');
 
   // Kritische Artikel (3×+)
@@ -3337,7 +3337,7 @@ function renderFmAuswertung() {
     avgDaysHtml = '<div style="padding:14px;border-radius:12px;background:#e3f2fd;text-align:center;margin-top:12px">' +
       '<div style="font-size:24px;font-weight:800;color:#1565c0">' + avg.toFixed(1) + ' Tage</div>' +
       '<div style="font-size:12px;color:#6b7280;margin-top:2px">Ø Zeit bis Erledigung</div>' +
-      '<div style="font-size:11px;color:#9ca3af;margin-top:2px">aus ' + erledigte.length + ' erledigten Fällen</div>' +
+      '<div style="font-size:11px;color:#5a6472;margin-top:2px">aus ' + erledigte.length + ' erledigten Fällen</div>' +
       '</div>';
   }
 
@@ -3345,7 +3345,7 @@ function renderFmAuswertung() {
 
     '<div class="ws-card">' +
     '<div class="ws-section-title" style="font-size:16px;margin-bottom:16px"><span class="material-symbols-outlined">trending_up</span>Top 5 Fehlmaterialien</div>' +
-    (top5Html || '<div style="color:#9ca3af;text-align:center;padding:20px">Keine Daten</div>') +
+    (top5Html || '<div style="color:#5a6472;text-align:center;padding:20px">Keine Daten</div>') +
     '</div>' +
 
     '<div class="ws-card">' +
@@ -3355,9 +3355,9 @@ function renderFmAuswertung() {
     '</div>' +
 
     '<div class="ws-card" style="grid-column:1/-1">' +
-    '<div class="ws-section-title" style="font-size:16px;margin-bottom:16px"><span class="material-symbols-outlined" style="color:#c62828">warning</span>Kritische Artikel <span style="font-size:13px;font-weight:500;color:#9ca3af">(3× oder öfter)</span></div>' +
+    '<div class="ws-section-title" style="font-size:16px;margin-bottom:16px"><span class="material-symbols-outlined" style="color:#c62828">warning</span>Kritische Artikel <span style="font-size:13px;font-weight:500;color:#5a6472">(3× oder öfter)</span></div>' +
     (critical.length===0
-      ? '<div style="text-align:center;padding:24px;color:#9ca3af;font-size:14px"><span style="font-size:32px">✅</span><br>Keine kritischen Artikel — sehr gut!</div>'
+      ? '<div style="text-align:center;padding:24px;color:#5a6472;font-size:14px"><span style="font-size:32px">✅</span><br>Keine kritischen Artikel — sehr gut!</div>'
       : '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">' +
         critical.map(item =>
           '<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:#fde8e8;border:1.5px solid #f5c6c6">' +
@@ -3649,7 +3649,7 @@ function renderPortionskontrolleSection() {
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div style="font-size:12px;color:#9ca3af;margin-top:12px">
+      <div style="font-size:12px;color:#5a6472;margin-top:12px">
         💡 Portionsmengen anpassen: direkt in der Tabelle klicken und neue Zahl eingeben
       </div>
     </div>`;
@@ -3791,9 +3791,9 @@ function renderClForm(typ, alreadyDone) {
     '<div class="ws-section-title" style="font-size:17px;margin-bottom:6px">' +
     '<span class="material-symbols-outlined">'+(typ==='morgen'?'wb_sunny':'nights_stay')+'</span>' +
     (typ==='morgen'?'Morgen-Checkliste':'Abend-Checkliste') +
-    '<span style="font-size:13px;font-weight:500;color:#9ca3af;margin-left:8px">'+today+'</span>' +
+    '<span style="font-size:13px;font-weight:500;color:#5a6472;margin-left:8px">'+today+'</span>' +
     '</div>' +
-    '<div style="font-size:13px;color:#9ca3af;margin-bottom:20px">Tippe zum Abhaken — am Ende mit Namen abschließen</div>' +
+    '<div style="font-size:13px;color:#5a6472;margin-bottom:20px">Tippe zum Abhaken — am Ende mit Namen abschließen</div>' +
     '<div style="display:grid;gap:8px;margin-bottom:20px" id="cl-list-'+typ+'">' + checkboxes + '</div>' +
     '<div style="border-top:1px solid #e8e8ed;padding-top:16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">' +
     '<div style="flex:1;min-width:180px">' +
@@ -3921,7 +3921,7 @@ function renderClHistorie() {
     const wochentag = new Date(date+'T12:00:00').toLocaleDateString('de-AT',{weekday:'long'});
     return '<div class="ws-card ws-card-sm" style="margin-bottom:14px">' +
       '<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-size:15px;font-weight:800;margin-bottom:12px">' +
-      label + '<span style="font-size:13px;font-weight:500;color:#9ca3af;margin-left:8px">'+wochentag+'</span></div>' +
+      label + '<span style="font-size:13px;font-weight:500;color:#5a6472;margin-left:8px">'+wochentag+'</span></div>' +
       '<div style="display:grid;gap:8px">' +
       entries.map(h => {
         const done  = (h.items||[]).filter(i=>i.checked).length;
@@ -7032,7 +7032,7 @@ function renderProductsTab() {
     </div>`;
 
   if (PRODUCTS.length === 0) {
-    html += '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">inventory_2</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Keine Produkte vorhanden</div><div style="font-size:13px;color:#9ca3af">Produkte werden über die Preisdatenbank geladen.</div></div>';
+    html += '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">inventory_2</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Keine Produkte vorhanden</div><div style="font-size:13px;color:#5a6472">Produkte werden über die Preisdatenbank geladen.</div></div>';
     document.getElementById('panel-produkte').innerHTML = html;
     return;
   }
@@ -7186,12 +7186,12 @@ function renderShopsTab() {
   const einheitLabel = menge === 1 ? 'pro kg' : `für ${menge} kg`;
 
   if (productsWithPrices.length === 0) {
-    document.getElementById('panel-geschaefte').innerHTML = _shopHdr + '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">store</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Noch keine Preise vorhanden</div><div style="font-size:13px;color:#9ca3af">Lade Preise über den Preisserver oder trage sie manuell ein.</div></div>';
+    document.getElementById('panel-geschaefte').innerHTML = _shopHdr + '<div class="ws-card" style="text-align:center;padding:60px 20px"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:12px">store</span><div style="font-size:16px;font-weight:700;color:#5a403c;margin-bottom:6px">Noch keine Preise vorhanden</div><div style="font-size:13px;color:#5a6472">Lade Preise über den Preisserver oder trage sie manuell ein.</div></div>';
     return;
   }
 
   const thCols = SHOPS.map(s =>
-    `<th style="padding:8px 14px;font-size:11px;font-weight:700;color:#5a403c;text-align:right;white-space:nowrap;border-bottom:2px solid #e3beb8;min-width:90px">${s.name}<br><span style="font-weight:400;color:#9ca3af">${einheitLabel}</span></th>`
+    `<th style="padding:8px 14px;font-size:11px;font-weight:700;color:#5a403c;text-align:right;white-space:nowrap;border-bottom:2px solid #e3beb8;min-width:90px">${s.name}<br><span style="font-weight:400;color:#5a6472">${einheitLabel}</span></th>`
   ).join('');
 
   const tRows = productsWithPrices.map(p => {
@@ -7223,7 +7223,7 @@ function renderShopsTab() {
             ${lowIds.has(p.id) ? '<span class="material-symbols-outlined" style="font-size:12px;color:#ba1a1a;flex-shrink:0">warning</span>' : ''}
             <span style="font-size:13px;font-weight:600;color:#261816">${p.name}</span>
             <span style="font-size:10px;color:#8e706b">/${p.unit}</span>
-            ${menge > 1 ? `<span style="font-size:10px;color:#aaa">(${eur(calcPreis(priceStats[p.id].min))} günstigst)</span>` : ''}
+            ${menge > 1 ? `<span style="font-size:10px;color:#777">(${eur(calcPreis(priceStats[p.id].min))} günstigst)</span>` : ''}
           </div>
         </td>
         ${cells}
@@ -7822,10 +7822,10 @@ function renderHeuteTab() {
   } else if (ersteWpSchicht) {
     kachel1Html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0"></span><span style="font-size:20px;font-weight:800;color:#2e7d32">Schicht heute</span></div><p style="font-size:18px;font-weight:700;color:#261816;margin:0 0 14px">${ersteWpSchicht.von} – ${ersteWpSchicht.bis} Uhr</p>`;
   } else {
-    kachel1Html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:50%;background:#9ca3af;display:inline-block;flex-shrink:0"></span><span style="font-size:18px;font-weight:700;color:#6b7280">Kein Schichtplan eingetragen</span></div><p style="font-size:14px;color:#9ca3af;margin:0 0 14px">Dienstplan im Mitarbeiter-Tab pflegen</p>`;
+    kachel1Html = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span style="width:14px;height:14px;border-radius:50%;background:#9ca3af;display:inline-block;flex-shrink:0"></span><span style="font-size:18px;font-weight:700;color:#6b7280">Kein Schichtplan eingetragen</span></div><p style="font-size:14px;color:#5a6472;margin:0 0 14px">Dienstplan im Mitarbeiter-Tab pflegen</p>`;
   }
   const teamAnzeige = wochenplanTeam.length > 0 ? wochenplanTeam : heutigeTeam.map(h => ({ ma: h.ma }));
-  kachel1Html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:14px;color:#5a403c;font-weight:600">Team heute:</span>${teamAnzeige.length === 0 ? '<span style="font-size:14px;color:#9ca3af">Noch nicht geplant</span>' : teamAnzeige.map(t=>`<span style="background:${t.ma.farbe||'#8B0000'}22;color:${t.ma.farbe||'#8B0000'};border:1px solid ${t.ma.farbe||'#8B0000'}44;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600">${escHtml(t.ma.name)}</span>`).join('')}</div>`;
+  kachel1Html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:14px;color:#5a403c;font-weight:600">Team heute:</span>${teamAnzeige.length === 0 ? '<span style="font-size:14px;color:#5a6472">Noch nicht geplant</span>' : teamAnzeige.map(t=>`<span style="background:${t.ma.farbe||'#8B0000'}22;color:${t.ma.farbe||'#8B0000'};border:1px solid ${t.ma.farbe||'#8B0000'}44;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600">${escHtml(t.ma.name)}</span>`).join('')}</div>`;
   let html = `<div id="_heute-inbox-container"></div><div style="margin-bottom:24px"><h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px">Guten Tag — ${wochentagDE}, ${datumDE}</h2><p style="font-size:15px;color:#5a403c;margin:0">Übersicht für heute</p></div><div style="display:flex;flex-direction:column;gap:16px">`;
   html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">👤</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Meine Schicht heute</h3></div>${kachel1Html}</div>`;
   const aufgabenBody = offeneAufgaben.length === 0
@@ -11334,7 +11334,7 @@ function printEinkaufsliste() {
   html += '.total-box{margin-top:24px;padding:14px 16px;background:#fff0ee;border-radius:8px;border-left:4px solid #610000;display:flex;justify-content:space-between;align-items:center}';
   html += '.total-label{font-size:13px;color:#5a403c}';
   html += '.total-amt{font-size:20px;font-weight:bold;color:#610000}';
-  html += 'footer{margin-top:28px;font-size:11px;color:#aaa;text-align:center}';
+  html += 'footer{margin-top:28px;font-size:11px;color:#777;text-align:center}';
   html += '@media print{body{padding:12px}button{display:none}}';
   html += '</style></head><body>';
 
@@ -11932,7 +11932,7 @@ function renderDashboardTab() {
         <span style="font-size:12px;font-weight:700;color:#8d6562">${aufgabenOffen.length} offen</span>
       </div>`;
     if (aufgabenOffen.length === 0) {
-      html += `<div style="text-align:center;padding:24px 16px;color:#9e9e9e;font-size:13px">✅ Alle Aufgaben erledigt!</div>`;
+      html += `<div style="text-align:center;padding:24px 16px;color:#6b6b6b;font-size:13px">✅ Alle Aufgaben erledigt!</div>`;
     } else {
       html += `<div style="display:flex;flex-direction:column;gap:6px">`;
       for (const a of aufgabenOffen) {
@@ -11982,7 +11982,7 @@ function renderDashboardTab() {
             <span style="color:${mColor}">${pctM}%</span>
           </div>
           ${bar(pctM, mColor)}
-        </div>` : '<div style="font-size:12px;color:#9e9e9e;text-align:center;padding:4px 0">Kein Monatsziel gesetzt</div>'}
+        </div>` : '<div style="font-size:12px;color:#6b6b6b;text-align:center;padding:4px 0">Kein Monatsziel gesetzt</div>'}
       </div>`;
     }
 
@@ -13276,7 +13276,7 @@ function renderDienstplanTab() {
         <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#e3f2fd;color:#0d47a1;font-weight:600">🌅 Früh 08–16</span>
         <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#fff3e0;color:#e65100;font-weight:600">🌆 Spät 14–22</span>
         <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#1a1a2e;color:#D4AF37;font-weight:600">🌙 Nacht 20–04</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#f5f5f5;color:#9e9e9e;font-weight:600">🏖️ Frei</span>
+        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#f5f5f5;color:#6b6b6b;font-weight:600">🏖️ Frei</span>
       </div>
     </div>`;
 }
@@ -13399,7 +13399,7 @@ function renderAufgabenTab() {
 
   // Karten HTML
   const kartenHtml = filtered.length === 0
-    ? `<div style="text-align:center;padding:48px 20px;color:#9e9e9e">
+    ? `<div style="text-align:center;padding:48px 20px;color:#6b6b6b">
         <div style="font-size:40px;margin-bottom:12px">🎉</div>
         <div style="font-size:16px;font-weight:700;color:#261816;margin-bottom:6px">Keine Aufgaben gefunden</div>
         <div style="font-size:13px">${fs.status==='offen'?'Alles erledigt! Super gemacht.':'Kein Eintrag passt zu diesem Filter.'}</div>
@@ -13423,7 +13423,7 @@ function renderAufgabenTab() {
               <span style="font-size:11px;font-weight:700;color:${st.color};background:${st.bg};border:1px solid ${st.border};padding:2px 8px;border-radius:10px">${st.icon} ${st.label}</span>
               ${ueberfaellig?'<span style="font-size:11px;font-weight:700;color:#c62828;background:#ffebee;border:1px solid #ef9a9a;padding:2px 8px;border-radius:10px">⚠️ Überfällig</span>':''}
             </div>
-            <div style="font-size:16px;font-weight:800;color:#261816;margin-bottom:6px;${a.status==='erledigt'?'text-decoration:line-through;color:#9e9e9e':''}">${_esc(a.titel)}</div>
+            <div style="font-size:16px;font-weight:800;color:#261816;margin-bottom:6px;${a.status==='erledigt'?'text-decoration:line-through;color:#6b6b6b':''}">${_esc(a.titel)}</div>
             <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:#5a403c;margin-bottom:${a.notiz?'6px':'0'}">
               <span>👤 ${maLabel}</span>
               ${a.faellig?`<span style="color:${ueberfaellig?'#c62828':'#5a403c'}">📅 ${a.faellig}</span>`:''}
@@ -13582,7 +13582,7 @@ function renderSchichtCheckTab() {
     return `<div onclick="schichtCheckToggle('${typ}',${i})" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:${done?'#e8f5e9':'#fff8f6'};border:1.5px solid ${done?'#a5d6a7':'#e3beb8'};margin-bottom:8px;cursor:pointer;transition:all .2s">
       <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${done?'#2e7d32':'#e3beb8'};background:${done?'#2e7d32':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0">${done?'<span style="color:#fff;font-size:13px;font-weight:700">✓</span>':''}</div>
       <span style="flex:1;font-size:13px;font-weight:600;color:${done?'#1b5e20':'#261816'};text-decoration:${done?'line-through':'none'}">${item}</span>
-      ${zeit?`<span style="font-size:11px;color:#9e9e9e;white-space:nowrap">${zeit}</span>`:''}
+      ${zeit?`<span style="font-size:11px;color:#6b6b6b;white-space:nowrap">${zeit}</span>`:''}
     </div>`;
   }).join('');
 
@@ -13663,7 +13663,7 @@ function renderBestellungTab() {
       <button onclick="bestellungDringlich(${a.id})" title="Dringend" style="padding:5px 8px;border-radius:8px;border:1px solid ${a.dringlich?'#ef9a9a':'#e3beb8'};background:${a.dringlich?'#ffebee':'#fff8f6'};font-size:12px;cursor:pointer">${a.dringlich?'🔴':'⚪'}</button>
       <button onclick="bestellungDelete(${a.id})" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
     </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Keine Artikel gefunden</div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#6b6b6b;font-size:14px">Keine Artikel gefunden</div>`;
 
   const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton'];
   p.innerHTML = `
@@ -13868,7 +13868,7 @@ function renderLagerTab() {
         html += '<div style="font-weight:700;font-size:13px;color:#261816;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(a.name) + '</div>';
         html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px">';
         html += '<div style="flex:1;height:5px;border-radius:3px;background:' + barBg + ';max-width:120px"><div style="height:100%;border-radius:3px;background:' + barClr + ';width:' + barW + '%;transition:width .3s"></div></div>';
-        html += '<span style="font-size:11px;color:#9e9e9e;flex-shrink:0">Min: ' + a.mindest + '</span>';
+        html += '<span style="font-size:11px;color:#6b6b6b;flex-shrink:0">Min: ' + a.mindest + '</span>';
         html += '</div></div>';
         // Bestand
         html += '<div style="text-align:right;min-width:70px;flex-shrink:0">';
@@ -14119,7 +14119,7 @@ function renderKonkurrenzTab() {
       html += '<td style="padding:8px 14px;text-align:right;font-weight:800;color:#610000;border-bottom:1px solid #f5efed">' + eur(KK_EIGENE_PREISE[pk]) + '</td>';
       list.forEach(function(k){
         var kp = (k.preise||{})[pk] || 0;
-        if (kp <= 0) { html += '<td style="padding:8px 14px;text-align:right;color:#ccc;border-bottom:1px solid #f5efed">–</td>'; return; }
+        if (kp <= 0) { html += '<td style="padding:8px 14px;text-align:right;color:#888;border-bottom:1px solid #f5efed">–</td>'; return; }
         var diff = KK_EIGENE_PREISE[pk] - kp;
         var clr = diff > 0 ? '#c62828' : diff < 0 ? '#2e7d32' : '#5a403c';
         var arrow = diff > 0 ? '\u2191' : diff < 0 ? '\u2193' : '';
@@ -14558,7 +14558,7 @@ function renderWareneinsatzTab() {
     const zutatenHtml = g.zutaten.map((z,i) =>
       `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
         <span style="font-size:12px;color:#5a403c;flex:1">${_esc(z.name)}</span>
-        <span style="font-size:12px;color:#9e9e9e">${z.menge} ${_esc(z.einheit)}</span>
+        <span style="font-size:12px;color:#6b6b6b">${z.menge} ${_esc(z.einheit)}</span>
         <span style="font-size:12px;font-weight:600;color:#261816">${(z.menge*z.preis).toFixed(2)} €</span>
         <button onclick="weZutatDelete(${g.id},${i})" style="padding:1px 5px;border-radius:4px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:11px;cursor:pointer">✕</button>
       </div>`).join('');
@@ -14570,15 +14570,15 @@ function renderWareneinsatzTab() {
         </div>
         <div style="text-align:right">
           <div style="font-size:22px;font-weight:800;color:${st.clr}">${m}%</div>
-          <div style="font-size:11px;color:#9e9e9e">Marge</div>
+          <div style="font-size:11px;color:#6b6b6b">Marge</div>
         </div>
       </div>
       <div style="height:6px;border-radius:4px;background:#f0e4e1;margin-bottom:12px">
         <div style="height:100%;border-radius:4px;background:${st.clr};width:${Math.min(m,100)}%;transition:width .3s"></div>
       </div>
       <div style="margin-bottom:8px;padding:10px;background:#f8f8f8;border-radius:8px">
-        <div style="font-size:11px;font-weight:700;color:#9e9e9e;margin-bottom:6px">ZUTATEN</div>
-        ${zutatenHtml || '<div style="font-size:12px;color:#9e9e9e">Noch keine Zutaten</div>'}
+        <div style="font-size:11px;font-weight:700;color:#6b6b6b;margin-bottom:6px">ZUTATEN</div>
+        ${zutatenHtml || '<div style="font-size:12px;color:#6b6b6b">Noch keine Zutaten</div>'}
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <input id="wez-name-${g.id}" placeholder="Zutat" style="flex:2;min-width:80px;padding:6px 8px;border-radius:8px;border:1px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff8f6">
@@ -14588,7 +14588,7 @@ function renderWareneinsatzTab() {
         <button onclick="weGericht(${g.id},'delete')" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
       </div>
     </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Noch keine Gerichte — füge dein erstes Gericht hinzu</div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#6b6b6b;font-size:14px">Noch keine Gerichte — füge dein erstes Gericht hinzu</div>`;
 
   const besteMarge = sorted.length ? marge(sorted[0]) : 0;
   const avgMarge = gerichte.length ? Math.round(gerichte.reduce((s,g)=>s+marge(g),0)/gerichte.length) : 0;
@@ -14666,7 +14666,7 @@ function renderPreisalarmTab() {
     const isAlarm = alarm(e);
     const diff = ((e.aktuell - e.ziel) / e.ziel * 100).toFixed(1);
     const histHtml = (e.historie||[]).slice(-5).reverse().map(h =>
-      `<div style="display:flex;justify-content:space-between;font-size:11px;color:#9e9e9e;padding:2px 0"><span>${h.datum}</span><span style="font-weight:600;color:#261816">${h.preis.toFixed(2)} €</span></div>`
+      `<div style="display:flex;justify-content:space-between;font-size:11px;color:#6b6b6b;padding:2px 0"><span>${h.datum}</span><span style="font-weight:600;color:#261816">${h.preis.toFixed(2)} €</span></div>`
     ).join('');
     return `<div style="background:#fff;border-radius:14px;border:1.5px solid ${isAlarm?'#ef9a9a':'#e3beb8'};padding:16px;margin-bottom:10px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
@@ -14676,7 +14676,7 @@ function renderPreisalarmTab() {
         </div>
         <div style="text-align:right">
           <div style="font-size:18px;font-weight:800;color:${isAlarm?'#c62828':'#1b5e20'}">${e.aktuell.toFixed(2)} €</div>
-          <div style="font-size:11px;color:#9e9e9e">Ziel: ${e.ziel.toFixed(2)} €${isAlarm?' <span style="color:#c62828;font-weight:700">(+'+diff+'%)</span>':' ✓'}</div>
+          <div style="font-size:11px;color:#6b6b6b">Ziel: ${e.ziel.toFixed(2)} €${isAlarm?' <span style="color:#c62828;font-weight:700">(+'+diff+'%)</span>':' ✓'}</div>
         </div>
       </div>
       ${isAlarm?`<div style="padding:8px 12px;border-radius:8px;background:#ffebee;border:1px solid #ef9a9a;font-size:12px;font-weight:700;color:#c62828;margin-bottom:10px">⚠️ ALARM: Preis um ${diff}% über Zielpreis!</div>`:''}
@@ -14686,9 +14686,9 @@ function renderPreisalarmTab() {
         <button onclick="preisUpdate(${e.id})" style="padding:5px 12px;border-radius:8px;border:none;background:#8B0000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Speichern</button>
         <button onclick="preisDelete(${e.id})" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
       </div>
-      ${(e.historie||[]).length ? `<div style="padding:8px;background:#f8f8f8;border-radius:8px"><div style="font-size:10px;font-weight:700;color:#9e9e9e;margin-bottom:4px">PREISHISTORIE</div>${histHtml}</div>` : ''}
+      ${(e.historie||[]).length ? `<div style="padding:8px;background:#f8f8f8;border-radius:8px"><div style="font-size:10px;font-weight:700;color:#6b6b6b;margin-bottom:4px">PREISHISTORIE</div>${histHtml}</div>` : ''}
     </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:#9e9e9e;font-size:14px">Noch keine Preisalarme — füge Produkte hinzu</div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#6b6b6b;font-size:14px">Noch keine Preisalarme — füge Produkte hinzu</div>`;
 
   p.innerHTML = `
     ${_pageHdr('notifications_active', 'Preisalarm', eintraege.length + ' Produkte überwacht' + (alarmCount ? ' · <span style="color:#c62828;font-weight:700">' + alarmCount + ' Alarm(e) aktiv</span>' : ' · Alles im Rahmen ✓'))}
@@ -14863,7 +14863,7 @@ function renderStatistikTab() {
         '<h3 style="margin:0;color:#8B0000;font-size:16px;">&#128200; Umsatz-Verlauf</h3>' +
       '</div>' +
       (days.length === 0
-        ? '<p style="color:#aaa;font-size:13px;margin:0">Noch keine Daten — Einträge hinzufügen oder Demo laden.</p>'
+        ? '<p style="color:#777;font-size:13px;margin:0">Noch keine Daten — Einträge hinzufügen oder Demo laden.</p>'
         : '<canvas id="stat-chart" style="max-height:220px"></canvas>') +
     '</div>' +
     '<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;">' +
@@ -14898,7 +14898,7 @@ function renderStatistikTab() {
     '<div id="preisverlauf-section" style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
       '<h3 style="margin:0 0 6px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
       '<p style="font-size:12px;color:#8d6562;margin:0 0 14px">Wird aus gescannten Rechnungen automatisch befüllt (braucht <strong>node server.js</strong>)</p>' +
-      '<div style="color:#aaa;font-size:13px">Lade...</div>' +
+      '<div style="color:#777;font-size:13px">Lade...</div>' +
     '</div>' +
     '</div>';
   loadPreisverlaufSection();
@@ -14936,7 +14936,7 @@ async function loadPreisverlaufSection() {
     const recent = await recentResp.json();
 
     if (!stats.length) {
-      el.querySelector('div:last-child').innerHTML = '<p style="color:#aaa;font-size:13px;margin:0">Noch keine Daten — Rechnungen scannen um Preise zu speichern.</p>';
+      el.querySelector('div:last-child').innerHTML = '<p style="color:#777;font-size:13px;margin:0">Noch keine Daten — Rechnungen scannen um Preise zu speichern.</p>';
       return;
     }
 
@@ -14989,7 +14989,7 @@ async function loadPreisverlaufSection() {
       '</div>';
   } catch(_) {
     const inner = el.querySelector('div:last-child');
-    if (inner) inner.innerHTML = '<p style="color:#aaa;font-size:12px;margin:0">Server nicht aktiv — <code>node server.js</code> starten um Preishistorie zu sehen.</p>';
+    if (inner) inner.innerHTML = '<p style="color:#777;font-size:12px;margin:0">Server nicht aktiv — <code>node server.js</code> starten um Preishistorie zu sehen.</p>';
   }
 }
 
@@ -15880,7 +15880,7 @@ function renderBuchhaltungTab() {
       html += '</select>';
       // Buttons
       html += '<button onclick="buchDownload(\'' + d.id + '\',\'' + _esc(d.name) + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Download"><span class="material-symbols-outlined" style="font-size:16px;color:#610000">download</span></button>';
-      html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:16px;color:#9ca3af">delete</span></button>';
+      html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:16px;color:#5a6472">delete</span></button>';
       html += '</div>';
     });
   }
