@@ -561,3 +561,25 @@
       color: #fff;
       margin-bottom: 6px;
     }
+
+    /* ════ DARK THEME OVERRIDES FOR CSS CLASSES ════ */
+    html[data-theme="dark"] .mob-nav-btn,
+    html[data-theme="dark-red"] .mob-nav-btn { color: var(--text-3) !important; }
+    html[data-theme="dark"] .mob-nav-btn.mob-active,
+    html[data-theme="dark-red"] .mob-nav-btn.mob-active { color: var(--red) !important; }
+    html[data-theme="dark"] #app-footer strong,
+    html[data-theme="dark-red"] #app-footer strong { color: var(--text-2) !important; }
+    html[data-theme="dark"] .ws-label,
+    html[data-theme="dark-red"] .ws-label { color: var(--text-3) !important; }
+    html[data-theme="dark"] .ws-section-title,
+    html[data-theme="dark-red"] .ws-section-title { color: var(--text) !important; }
+    html[data-theme="dark"] .ws-table thead th,
+    html[data-theme="dark-red"] .ws-table thead th { color: var(--text-3) !important; }
+    html[data-theme="dark"] .filter-chip,
+    html[data-theme="dark-red"] .filter-chip { background: var(--surface) !important; border-color: var(--border) !important; color: var(--text-2) !important; }
+    html[data-theme="dark"] .drawer-item,
+    html[data-theme="dark-red"] .drawer-item { background: var(--surface) !important; border-color: var(--border) !important; color: var(--text-2) !important; }
+    html[data-theme="dark"] #mehr-drawer,
+    html[data-theme="dark-red"] #mehr-drawer { background: var(--surface) !important; }
+    html[data-theme="dark"] .bs-title,
+    html[data-theme="dark-red"] .bs-title { color: var(--text-3) !important; }

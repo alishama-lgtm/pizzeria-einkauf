@@ -232,6 +232,10 @@
     /* Mobile bottom nav */
     html[data-theme="dark"] #mobile-bottom-nav,
     html[data-theme="dark-red"] #mobile-bottom-nav { background: var(--surface) !important; border-top-color: var(--border) !important; }
+    html[data-theme="dark"] .mob-nav-btn,
+    html[data-theme="dark-red"] .mob-nav-btn { color: var(--text-3) !important; }
+    html[data-theme="dark"] .mob-nav-btn.mob-active,
+    html[data-theme="dark-red"] .mob-nav-btn.mob-active { color: var(--red) !important; }
     /* Footer */
     html[data-theme="dark"] #app-footer,
     html[data-theme="dark-red"] #app-footer { background: var(--surface) !important; border-top-color: var(--border) !important; color: var(--text-3) !important; }
@@ -312,9 +316,15 @@
     html[data-theme="dark"] [id^="panel-"] [style*="color:#8d6562"],
     html[data-theme="dark"] [id^="panel-"] [style*="color:#9c8680"],
     html[data-theme="dark"] [id^="panel-"] [style*="color:#5a6472"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#6b6b6b"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#777"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#888"],
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#8d6562"],
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#9c8680"],
-    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#5a6472"] { color: var(--text-3) !important; }
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#5a6472"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#6b6b6b"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#777"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#888"] { color: var(--text-3) !important; }
 
     /* ── Lager status cards (light gradient backgrounds) ── */
     html[data-theme="dark"] #panel-lager div[style*="linear-gradient(135deg,#ffebee"],
