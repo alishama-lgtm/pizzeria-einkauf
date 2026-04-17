@@ -583,3 +583,5 @@
     html[data-theme="dark-red"] #mehr-drawer { background: var(--surface) !important; }
     html[data-theme="dark"] .bs-title,
     html[data-theme="dark-red"] .bs-title { color: var(--text-3) !important; }
+    html[data-theme="dark"] .ws-btn-ghost,
+    html[data-theme="dark-red"] .ws-btn-ghost { color: var(--text-2) !important; border-color: var(--border) !important; }
