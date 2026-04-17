@@ -123,6 +123,23 @@
       --shadow-md:  0 4px 20px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.4);
     }
 
+    /* ════ THEME: GLASS (Stitch) ════ */
+    html[data-theme="glass"] {
+      --red:        #e05555;
+      --red-dark:   #c83c3c;
+      --red-soft:   rgba(139,0,0,0.15);
+      --red-border: rgba(139,0,0,0.3);
+      --bg:         #0a0b0d;
+      --surface:    rgba(255,255,255,0.04);
+      --text:       #e5e7eb;
+      --text-2:     #9ca3af;
+      --text-3:     #6b7280;
+      --border:     rgba(255,255,255,0.08);
+      --border-2:   rgba(255,255,255,0.04);
+      --shadow-sm:  0 1px 4px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.5);
+      --shadow-md:  0 4px 20px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.5);
+    }
+
     /* ════ THEME: DARK RED ════ */
     html[data-theme="dark-red"] {
       --red:        #ff4444;
@@ -139,6 +156,134 @@
       --shadow-sm:  0 1px 4px rgba(139,0,0,.3), 0 2px 12px rgba(0,0,0,.3);
       --shadow-md:  0 4px 20px rgba(139,0,0,.4), 0 2px 8px rgba(0,0,0,.4);
     }
+
+    /* ════ THEME: GLASS — BODY & BASE ════ */
+    html[data-theme="glass"] body {
+      background-color: #0a0b0d !important;
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(139,0,0,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(30,30,60,0.15) 0%, transparent 50%) !important;
+      color: #e5e7eb !important;
+    }
+    html[data-theme="glass"] #app-header {
+      background: rgba(10,11,13,0.8) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-bottom-color: rgba(255,255,255,0.06) !important;
+    }
+    html[data-theme="glass"] .header-logo-text { color: var(--red) !important; }
+    html[data-theme="glass"] .header-logo-sub  { color: #6b7280 !important; }
+    html[data-theme="glass"] .header-bell-btn  { color: var(--red) !important; }
+    html[data-theme="glass"] #staff-tab-bar {
+      background: rgba(10,11,13,0.7) !important;
+      backdrop-filter: blur(20px) !important;
+      border-bottom-color: rgba(255,255,255,0.06) !important;
+    }
+    html[data-theme="glass"] #staff-tab-bar .tab-btn { color: #6b7280 !important; }
+    html[data-theme="glass"] #staff-tab-bar .tab-btn:hover { color: var(--red) !important; background: rgba(139,0,0,0.1) !important; }
+    html[data-theme="glass"] #staff-tab-bar .tab-btn.tab-active { color: var(--red) !important; border-bottom-color: var(--red) !important; }
+    html[data-theme="glass"] .ws-card, html[data-theme="glass"] .stat-card,
+    html[data-theme="glass"] .stitch-card, html[data-theme="glass"] .bento-hero,
+    html[data-theme="glass"] .bento-small {
+      background: rgba(255,255,255,0.04) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+      color: #e5e7eb !important;
+    }
+    html[data-theme="glass"] .ws-card:hover, html[data-theme="glass"] .stat-card:hover {
+      border-color: rgba(139,0,0,0.3) !important;
+      box-shadow: 0 4px 20px rgba(139,0,0,0.15) !important;
+    }
+    html[data-theme="glass"] .stat-num  { color: #e5e7eb !important; }
+    html[data-theme="glass"] .stat-label { color: #9ca3af !important; }
+    html[data-theme="glass"] .ws-table thead tr { background: rgba(255,255,255,0.04) !important; }
+    html[data-theme="glass"] .ws-table thead th { color: #6b7280 !important; border-bottom-color: rgba(255,255,255,0.08) !important; }
+    html[data-theme="glass"] .ws-table tbody tr { border-bottom-color: rgba(255,255,255,0.04) !important; }
+    html[data-theme="glass"] .ws-table tbody tr:hover { background: rgba(255,255,255,0.03) !important; }
+    html[data-theme="glass"] .ws-table tbody td { color: #e5e7eb !important; }
+    html[data-theme="glass"] [id^="panel-"] { background: transparent !important; color: #e5e7eb !important; }
+    html[data-theme="glass"] #app-main { background: transparent !important; }
+    html[data-theme="glass"] #mobile-bottom-nav {
+      background: rgba(10,11,13,0.85) !important;
+      backdrop-filter: blur(20px) !important;
+      border-top-color: rgba(255,255,255,0.06) !important;
+    }
+    html[data-theme="glass"] .mob-nav-btn { color: #6b7280 !important; }
+    html[data-theme="glass"] .mob-nav-btn.mob-active { color: var(--red) !important; background: rgba(139,0,0,0.1) !important; }
+    html[data-theme="glass"] #app-footer { background: rgba(10,11,13,0.7) !important; border-top-color: rgba(255,255,255,0.06) !important; color: #6b7280 !important; }
+    html[data-theme="glass"] input:not([type=checkbox]):not([type=radio]),
+    html[data-theme="glass"] select, html[data-theme="glass"] textarea {
+      background: rgba(255,255,255,0.06) !important;
+      color: #e5e7eb !important;
+      border-color: rgba(255,255,255,0.1) !important;
+      color-scheme: dark;
+    }
+    /* Glass: inline white backgrounds → glass surface */
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff"],
+    html[data-theme="glass"] [id^="panel-"] button[style*="background:#fff"],
+    html[data-theme="glass"] [id^="panel-"] td[style*="background:#fff"],
+    html[data-theme="glass"] [id^="panel-"] label[style*="background:#fff"] {
+      background: rgba(255,255,255,0.05) !important;
+      backdrop-filter: blur(12px) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+    }
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#faf"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f8f"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f0f"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f9f"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e9e"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e5e"] {
+      background: rgba(255,255,255,0.03) !important;
+    }
+    /* Glass: dark text → light */
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#1a1210"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#1e1e2e"] { color: #e5e7eb !important; }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#5a403c"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#5c4a46"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b7280"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#374151"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#4b5563"] { color: #9ca3af !important; }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#8d6562"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#7a6460"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b4844"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#5a6472"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b6b6b"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#777"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#888"] { color: #6b7280 !important; }
+    html[data-theme="glass"] [id^="panel-"] h1,
+    html[data-theme="glass"] [id^="panel-"] h2,
+    html[data-theme="glass"] [id^="panel-"] h3,
+    html[data-theme="glass"] [id^="panel-"] h4 { color: #e5e7eb !important; }
+    html[data-theme="glass"] .nav-grp-dd {
+      background: rgba(15,15,20,0.92) !important;
+      backdrop-filter: blur(20px) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+    }
+    html[data-theme="glass"] .dd-item { color: #9ca3af !important; }
+    html[data-theme="glass"] .dd-item:hover { background: rgba(139,0,0,0.1) !important; color: var(--red) !important; }
+    html[data-theme="glass"] #tablet-sidebar {
+      background: rgba(10,11,13,0.85) !important;
+      backdrop-filter: blur(20px) !important;
+      border-right-color: rgba(255,255,255,0.06) !important;
+    }
+    html[data-theme="glass"] .ts-direct-btn, html[data-theme="glass"] .ts-grp-btn { color: #9ca3af !important; }
+    html[data-theme="glass"] .ts-sub-item { color: #6b7280 !important; }
+    html[data-theme="glass"] .ts-sub-item:hover,
+    html[data-theme="glass"] .ts-sub-item.tab-active { color: var(--red) !important; background: rgba(139,0,0,0.1) !important; }
+    html[data-theme="glass"] .notif-panel {
+      background: rgba(15,15,20,0.95) !important;
+      backdrop-filter: blur(20px) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+    }
+    html[data-theme="glass"] .filter-chip {
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+      color: #9ca3af !important;
+    }
+    html[data-theme="glass"] .ws-label { color: #6b7280 !important; }
+    html[data-theme="glass"] .ws-section-title { color: #e5e7eb !important; }
 
     /* ════ DARK THEMES — GLOBAL OVERRIDES ════ */
     html[data-theme="dark"] body,
@@ -13080,7 +13225,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ══════════ THEME SYSTEM ══════════ */
 function applyTheme(theme) {
   const html = document.documentElement;
-  if (theme === 'dark' || theme === 'dark-red') {
+  if (theme === 'dark' || theme === 'dark-red' || theme === 'glass') {
     html.setAttribute('data-theme', theme);
   } else {
     html.removeAttribute('data-theme');
@@ -13204,7 +13349,7 @@ function openSettings() {
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
           <span style="font-size:18px">🎨</span> Design-Stil
         </label>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
           <button class="theme-pick-btn" data-theme="classic" onclick="applyTheme('classic')"
             style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${(localStorage.getItem('pizzeria_theme')||'classic')==='classic'?'3px solid #610000':'none'};transform:${(localStorage.getItem('pizzeria_theme')||'classic')==='classic'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#fff8f6,#ffe8e3)">
             <div style="font-size:22px;margin-bottom:6px">☀️</div>
@@ -13222,6 +13367,12 @@ function openSettings() {
             <div style="font-size:22px;margin-bottom:6px">🔥</div>
             <div style="font-size:12px;font-weight:700;color:#ff4444">Dark Red</div>
             <div style="font-size:10px;color:#886060;margin-top:2px">Dunkel &amp; Rot</div>
+          </button>
+          <button class="theme-pick-btn" data-theme="glass" onclick="applyTheme('glass')"
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('pizzeria_theme')==='glass'?'3px solid #e05555':'none'};transform:${localStorage.getItem('pizzeria_theme')==='glass'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#0a0b0d,#1a1020);border:1px solid rgba(255,255,255,0.08)">
+            <div style="font-size:22px;margin-bottom:6px">💎</div>
+            <div style="font-size:12px;font-weight:700;color:#e5e7eb">Glass</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px">Stitch &amp; Dark</div>
           </button>
         </div>
         <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Design-Stil wird sofort angewendet und gespeichert.</p>
