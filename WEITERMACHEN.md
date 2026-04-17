@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-15 (Session 4)
+# Pizzeria San Carino — Weitermachen ab 2026-04-17 (Session 5)
 
 ## Arbeitsverzeichnis
 
@@ -14,8 +14,7 @@ cd pizzeria-einkauf
 node server.js        # → http://localhost:8080
 ```
 
-**Kein `npm install` nötig** — server.js nutzt jetzt `node:sqlite` (eingebaut in Node 22+).
-Node.js Version: mind. **Node 22** erforderlich.
+**Node.js Version: mind. Node 22** erforderlich (`node:sqlite` eingebaut).
 
 ---
 
@@ -44,27 +43,33 @@ Node.js Version: mind. **Node 22** erforderlich.
 
 ### Session 4 (2026-04-15 nachmittag)
 - **Einkauf loggen Modal** — Header-Button + Shop-Auswahl + Artikel-Zeilen + Gesamtsumme + Speichern
-  - Speichert in `HISTORY[]` (localStorage `pizzeria_history`)
-  - Speichert Preise in SQLite via `/api/preisverlauf`
-  - Toast-Bestätigung
 - **server.js Migration**: `better-sqlite3` → `node:sqlite` (kein Python/npm nötig)
-- **DB-Schema Migration**: alte `geschaeft`-Tabelle wird automatisch auf neues Schema migriert
-- **Bug fix**: `panel-bewertungen` war doppelt im HTML — entfernt
+- **DB-Schema Migration**: automatisch auf neues Schema
+- **Bug fix**: `panel-bewertungen` war doppelt im HTML
+
+### Session 5 (2026-04-17)
+- Einkauf-Button immer sichtbar (`display:flex`)
+- Git-Config: `user.email = alishama@gmx.at`, `user.name = Ali Shama`
+- **Lesbarkeit komplett gefixt** — alle Modi:
+  - Normal: `#9ca3af` → `#5a6472`, `#9e9e9e` → `#6b6b6b`, `#aaa` → `#777`
+  - Dark + Dark-Red: Overrides für alle neuen Farben + `background:#e9ecef/#e5e7eb/#f9fafb`
+  - Business Mode: Overrides auf ALLE Panels erweitert (nicht nur `#panel-business`)
+  - Schichtcheck "⚪ Noch nicht": `#374151` auf `#e9ecef` (gut lesbar)
+- **Aufgabe #9 ✅**: Inbox Lieferanten-Import Button + `_inboxImportLieferanten()` Funktion
 
 ---
 
 ## Offene Aufgaben
 
 ### Priorität Hoch
-| # | Aufgabe | Zeile ca. |
+| # | Aufgabe | Datei |
 |---|---|---|
-| 9 | Inbox: Lieferanten-Import — Import-Button fehlt noch | ~11884 |
 | 10 | N8N Workflow 2 — `/api/umsatz/heute` Endpunkt testen + N8N-seitig einrichten | server.js |
 
 ### Priorität Mittel
 | # | Aufgabe |
 |---|---|
-| 11 | Geschäfte-Tab leer wenn kein Server läuft — Hinweis einbauen "Server starten für Preise" |
+| 11 | Geschäfte-Tab leer wenn kein Server läuft — Hinweis einbauen |
 | 12 | Statistik-Tab: echte Verlaufsdaten aus `pizzeria_history` statt Demo-Daten |
 
 ---
@@ -73,12 +78,12 @@ Node.js Version: mind. **Node 22** erforderlich.
 
 | Datei | Was |
 |---|---|
-| `index.html` | Haupt-App (~15.400 Zeilen, Vanilla JS SPA) |
-| `js/config.js` | ANTHROPIC_API_KEY + GEMINI_API_KEY + PRODUCTS/SHOPS/PRICE_MAP + HISTORY |
-| `js/tabs.js` | renderHeuteTab, renderBewertungenTab, renderSucheTab, renderShopsTab etc. |
-| `js/business.js` | Business-Charts + Lohnabrechnung PDF + Demo-Daten |
-| `js/angebote.js` | Angebots-System KW16/KW17 + Gemini Support |
-| `server.js` | Express + node:sqlite + WebSocket + Inbox-API + Preishistorie |
+| `index.html` | Haupt-App (~15.500 Zeilen, Vanilla JS SPA) |
+| `js/config.js` | API Keys + PRODUCTS/SHOPS/PRICE_MAP + HISTORY |
+| `js/tabs.js` | renderHeuteTab, renderBewertungenTab, renderSucheTab etc. |
+| `js/business.js` | Business-Charts + Lohnabrechnung PDF |
+| `js/angebote.js` | Angebots-System KW16/KW17 + Gemini |
+| `server.js` | Express + node:sqlite + WebSocket + Inbox-API |
 | `server/watcher.js` | File-Watcher für inbox/ Ordner |
 | `ANLEITUNG/` | Vollständige Dokumentation |
 
@@ -86,12 +91,14 @@ Node.js Version: mind. **Node 22** erforderlich.
 
 ## Technischer Stack
 
-- **Frontend:** Vanilla JS SPA, Tailwind CDN, Chart.js, jsPDF
-- **Backend:** Node.js (Express), `node:sqlite` (eingebaut), WebSocket
-- **DB:** `pizzeria.db` — SQLite lokal (gitignored)
-- **AI:** Claude API (Anthropic) + Google Gemini (optional)
-- **Shops:** Metro, Billa, Lidl, Spar (Österreich)
-- **Business-Passwort:** ali2024
+| Bereich | Technologie |
+|---|---|
+| Frontend | Vanilla JS SPA, Tailwind CDN, Chart.js, jsPDF |
+| Backend | Node.js (Express), `node:sqlite` (eingebaut), WebSocket |
+| DB | `pizzeria.db` — SQLite lokal (gitignored) |
+| AI | Claude API (Anthropic) + Google Gemini (optional) |
+| Shops | Metro, Billa, Lidl, Spar (Österreich) |
+| Business-Passwort | ali2024 |
 
 ---
 
@@ -106,6 +113,8 @@ Node.js Version: mind. **Node 22** erforderlich.
 | Key | Was |
 |---|---|
 | `pizzeria_history` | Einkaufs-Verlauf (HISTORY[]) |
+| `pizzeria_lieferanten` | Lieferanten-Liste |
+| `pizzeria_lager` | Lagerbestand |
 | `pizzeria_n8n_enabled` | N8N aktiv (1/0) |
 | `pizzeria_n8n_url` | N8N Server URL |
 | `pizzeria_ai_provider` | `claude` oder `gemini` |
@@ -116,3 +125,14 @@ Node.js Version: mind. **Node 22** erforderlich.
 | Tabelle | Felder |
 |---|---|
 | `preishistorie` | id, produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle |
+
+---
+
+## Inbox-Ordner & Import-Funktionen
+
+| Ordner | Button | Funktion |
+|---|---|---|
+| `rechnungen` | + Verlauf | `_inboxAddRechnung()` |
+| `preise` | Importieren | `_inboxImportPreise()` |
+| `lager` | Importieren | `_inboxImportLager()` |
+| `lieferanten` | Importieren ✅ NEU | `_inboxImportLieferanten()` |
