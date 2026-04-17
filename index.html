@@ -116,7 +116,7 @@
       --surface:    #1a1a2e;
       --text:       #e8e8ff;
       --text-2:     #a0a0c8;
-      --text-3:     #6868aa;
+      --text-3:     #8888cc;
       --border:     #2d2d4a;
       --border-2:   #232342;
       --shadow-sm:  0 1px 4px rgba(0,0,0,.4), 0 2px 12px rgba(0,0,0,.3);
@@ -133,7 +133,7 @@
       --surface:    #1e0c0c;
       --text:       #ffe8e8;
       --text-2:     #c89090;
-      --text-3:     #886060;
+      --text-3:     #b09090;
       --border:     #3a1818;
       --border-2:   #2e1010;
       --shadow-sm:  0 1px 4px rgba(139,0,0,.3), 0 2px 12px rgba(0,0,0,.3);
@@ -1478,7 +1478,7 @@
 <header id="app-header">
   <div class="header-inner">
     <!-- Logo -->
-    <div class="header-logo">
+    <div class="header-logo" onclick="switchTab('kombis')" style="cursor:pointer" title="Zurück zur Hauptseite">
       <span class="header-logo-icon">🍕</span>
       <div>
         <div class="header-logo-text">Pizzeria San Carino</div>
@@ -1605,7 +1605,7 @@
 
 <!-- ═══ TABLET SIDEBAR 768-1199px ═══ -->
 <aside id="tablet-sidebar">
-  <div class="ts-logo">🍕</div>
+  <div class="ts-logo" onclick="switchTab('kombis')" style="cursor:pointer" title="Zurück zur Hauptseite">🍕</div>
   <button class="ts-direct-btn" data-nav-tab="kombis" onclick="switchTab('kombis')">
     <span class="ts-icon">🧮</span><span class="ts-label">Kombis</span>
   </button>
@@ -5716,6 +5716,11 @@ function renderBizLocked() {
         </button>
         <div id="biz-pw-error" style="color:#ba1a1a;font-size:12px;margin-top:10px;display:none">Falsches Passwort</div>
         <p style="font-size:11px;color:#8d6562;margin-top:20px">Session bleibt aktiv bis Browser geschlossen</p>
+        <button onclick="switchTab('kombis')"
+          style="margin-top:14px;width:100%;padding:9px;border-radius:10px;border:1.5px solid #e3beb8;background:transparent;color:#5a403c;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">
+          <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+          Zurück zur App
+        </button>
       </div>
     </div>`;
   setTimeout(() => document.getElementById('biz-pw-input')?.focus(), 50);
@@ -6877,7 +6882,9 @@ function bizLogout() {
   sessionStorage.removeItem(BIZ_AUTH_KEY);
   const lockIcon = document.getElementById('biz-lock-icon');
   if (lockIcon) lockIcon.textContent = 'lock';
-  renderBizLocked();
+  const mobLockIcon = document.getElementById('mob-biz-lock');
+  if (mobLockIcon) mobLockIcon.textContent = 'lock';
+  switchTab('kombis');
 }
 
 function bizClearAll() {
