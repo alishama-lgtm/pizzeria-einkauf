@@ -16086,6 +16086,8 @@ async function _renderInboxSection() {
         html += '<button onclick="_inboxImportPreise(\'' + _esc(e.id) + '\')" style="padding:6px 12px;background:#1565c0;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Importieren</button>';
       } else if (e.folder === 'lager') {
         html += '<button onclick="_inboxImportLager(\'' + _esc(e.id) + '\')" style="padding:6px 12px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Importieren</button>';
+      } else if (e.folder === 'lieferanten') {
+        html += '<button onclick="_inboxImportLieferanten(\'' + _esc(e.id) + '\')" style="padding:6px 12px;background:#2e7d32;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Importieren</button>';
       }
       html += '<button onclick="_inboxDone(\'' + _esc(e.id) + '\')" style="padding:6px 10px;background:#f0f0f5;color:#8d6562;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">✓</button>';
       html += '</div></div>';
@@ -16211,6 +16213,53 @@ async function _inboxImportLager(id) {
     localStorage.setItem('pizzeria_lager', JSON.stringify(lager));
     await _inboxDone(id);
     _showToast('✅ Lager: ' + updated + ' aktualisiert, ' + added + ' neu', 'success');
+  } catch(e) {
+    _showToast('Fehler: ' + e.message, 'error');
+  }
+}
+
+// Lieferanten aus Inbox importieren → pizzeria_lieferanten localStorage
+async function _inboxImportLieferanten(id) {
+  try {
+    const r = await fetch('/api/inbox');
+    const data = await r.json();
+    const entry = (data.items || []).find(e => e.id === id);
+    if (!entry || !entry.data || !entry.data.rows) { _showToast('Kein CSV gefunden', 'error'); return; }
+    const rows = entry.data.rows;
+    const liste = lfLoad();
+    let updated = 0, added = 0;
+    for (const row of rows) {
+      const name = (row.name || row.lieferant || '').trim();
+      if (!name) continue;
+      const existing = liste.find(l => l.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        if (row.tel)       existing.tel       = row.tel;
+        if (row.email)     existing.email     = row.email;
+        if (row.notiz)     existing.notiz     = row.notiz;
+        if (row.typ)       existing.typ       = row.typ;
+        if (row.kat)       existing.kat       = row.kat;
+        if (row.bewertung) existing.bewertung = parseInt(row.bewertung) || existing.bewertung;
+        if (row.farbe)     existing.farbe     = row.farbe;
+        updated++;
+      } else {
+        liste.push({
+          id: 'lf' + Date.now() + '_' + added,
+          name,
+          typ:       row.typ       || 'Sonstiges',
+          kat:       row.kat       || 'Lebensmittel',
+          tel:       row.tel       || '',
+          email:     row.email     || '',
+          notiz:     row.notiz     || '',
+          bewertung: parseInt(row.bewertung) || 3,
+          farbe:     row.farbe     || '#610000',
+        });
+        added++;
+      }
+    }
+    lfSave(liste);
+    await _inboxDone(id);
+    _showToast('✅ ' + updated + ' aktualisiert, ' + added + ' neu hinzugefügt', 'success');
+    if (typeof renderLieferantenTab === 'function') renderLieferantenTab();
   } catch(e) {
     _showToast('Fehler: ' + e.message, 'error');
   }
