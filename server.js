@@ -53,6 +53,13 @@ db.exec(`
 `);
 db.exec('CREATE INDEX IF NOT EXISTS idx_ue_datum ON umsatz_einnahmen(datum)');
 db.exec(`
+  CREATE TABLE IF NOT EXISTS app_data (
+    key        TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now'))
+  )
+`);
+db.exec(`
   CREATE TABLE IF NOT EXISTS rechnungen (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     dateiname    TEXT NOT NULL,
@@ -662,6 +669,30 @@ app.post('/api/notion/tagesbericht', express.json(), async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: e.response?.data?.message || e.message });
   }
+});
+
+// ── Universeller App-Datenspeicher (localStorage Backup) ─────────────────────
+app.get('/api/data/:key', (req, res) => {
+  try {
+    const row = db.prepare('SELECT data FROM app_data WHERE key=?').get(req.params.key);
+    res.json(row ? JSON.parse(row.data) : null);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/data/:key', express.json(), (req, res) => {
+  try {
+    const data = JSON.stringify(req.body);
+    db.prepare('INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime("now")) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at')
+      .run(req.params.key, data);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/data', (_req, res) => {
+  try {
+    const rows = db.prepare('SELECT key, data, updated_at FROM app_data ORDER BY updated_at DESC').all();
+    const result = {};
+    rows.forEach(r => { result[r.key] = JSON.parse(r.data); });
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 function wsBroadcastRechnung(dateiname) {

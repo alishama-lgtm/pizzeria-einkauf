@@ -9514,7 +9514,7 @@ function getMitarbeiter() {
   try { return JSON.parse(localStorage.getItem('pizzeria_mitarbeiter') || '[]'); } catch(_) { return []; }
 }
 function saveMitarbeiterList(list) {
-  try { localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(list)); } catch(_) {}
+  dbSave('pizzeria_mitarbeiter', list);
 }
 function _syncMitarbeiterFromDB() {
   fetch('/api/mitarbeiter').then(r => r.ok ? r.json() : Promise.reject()).then(data => {
@@ -13268,20 +13268,60 @@ async function loadPricesFromDB() {
   }
 }
 
+// ── DB ↔ localStorage Sync ────────────────────────────────────────────────────
+const DB_SYNC_KEYS = new Set([
+  'pizzeria_mitarbeiter','pizzeria_wochenplan','pizzeria_lager','pizzeria_lieferanten',
+  'pizzeria_aufgaben','pizzeria_fehlmaterial','pizzeria_einkaufsliste',
+  'pizzeria_bestellungen','pizzeria_umsatz_einnahmen','pizzeria_umsatz_ausgaben',
+  'pizzeria_umsatz_ziel','pizzeria_kassa','pizzeria_fixkosten','pizzeria_personal',
+  'pizzeria_dienstplan','pizzeria_wareneinsatz','pizzeria_preisalarm','pizzeria_history',
+  'pizzeria_lieferanten','pizzeria_konkurrenz','pizzeria_bewertungen','pizzeria_speisekarte'
+]);
+
+// localStorage.setItem automatisch mit DB synchronisieren
+const _origSetItem = localStorage.setItem.bind(localStorage);
+localStorage.setItem = function(key, value) {
+  _origSetItem(key, value);
+  if (DB_SYNC_KEYS.has(key)) {
+    try {
+      const parsed = JSON.parse(value);
+      fetch('/api/data/' + key, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(parsed) }).catch(()=>{});
+    } catch(_) {}
+  }
+};
+
+function dbSave(key, value) {
+  try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); } catch(_) {}
+}
+
+function dbSyncAll(cb) {
+  fetch('/api/data').then(r => r.ok ? r.json() : Promise.reject()).then(all => {
+    DB_SYNC_KEYS.forEach(key => {
+      if (all[key] !== undefined && all[key] !== null) {
+        const current = localStorage.getItem(key);
+        if (!current || current === '[]' || current === '{}') {
+          localStorage.setItem(key, JSON.stringify(all[key]));
+        }
+      }
+    });
+    if (cb) cb();
+  }).catch(() => { if (cb) cb(); });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Theme als erstes laden — vor allem anderen
   loadSavedTheme();
   // Preise aus SQLite laden (im Hintergrund, blockiert Login nicht)
   loadPricesFromDB();
   // 1. Persistenter Login (localStorage, "Angemeldet bleiben")
-  if (checkPersistentLogin()) { showApp(); return; }
+  if (checkPersistentLogin()) { dbSyncAll(); showApp(); return; }
   // 2. Session wiederherstellen (sessionStorage, Tab noch offen)
   try {
     const saved = sessionStorage.getItem('pizzeria_user');
     if (saved) {
       const u = JSON.parse(saved);
       const found = PIZZERIA_USERS.find(x => x.username === u.username);
-      if (found) { currentUser = found; showApp(); return; }
+      if (found) { currentUser = found; dbSyncAll(); showApp(); return; }
     }
   } catch(_) {}
   // 3. Login-Screen anzeigen (default)
