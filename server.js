@@ -53,6 +53,19 @@ db.exec(`
 `);
 db.exec('CREATE INDEX IF NOT EXISTS idx_ue_datum ON umsatz_einnahmen(datum)');
 db.exec(`
+  CREATE TABLE IF NOT EXISTS rechnungen (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    dateiname    TEXT NOT NULL,
+    dateipfad    TEXT NOT NULL,
+    lieferant    TEXT DEFAULT '',
+    betrag       REAL DEFAULT 0,
+    datum        TEXT DEFAULT '',
+    typ          TEXT DEFAULT 'pdf',
+    notiz        TEXT DEFAULT '',
+    created_at   TEXT DEFAULT (date('now'))
+  )
+`);
+db.exec(`
   CREATE TABLE IF NOT EXISTS mitarbeiter (
     id           TEXT PRIMARY KEY,
     name         TEXT NOT NULL,
@@ -651,6 +664,99 @@ app.post('/api/notion/tagesbericht', express.json(), async (req, res) => {
   }
 });
 
+function wsBroadcastRechnung(dateiname) {
+  if (typeof syncClients === 'undefined') return;
+  const msg = JSON.stringify({ type:'neue_rechnung', dateiname });
+  for (const c of syncClients) { if (c.readyState === 1) c.send(msg); }
+}
+
+// ── Rechnungen Ordner beobachten ─────────────────────────────────────────────
+const DATENBANK_DIR  = path.join(__dirname, 'datenbank');
+const RECHNUNGEN_DIR = path.join(DATENBANK_DIR, 'rechnungen');
+if (!fs.existsSync(RECHNUNGEN_DIR)) fs.mkdirSync(RECHNUNGEN_DIR, { recursive: true });
+if (!fs.existsSync(path.join(DATENBANK_DIR,'mitarbeiter'))) fs.mkdirSync(path.join(DATENBANK_DIR,'mitarbeiter'), { recursive: true });
+
+function rechnungFromFile(dateiname) {
+  const ext = path.extname(dateiname).toLowerCase().replace('.','');
+  // Lieferant aus Dateiname raten (z.B. "Metro_2026-04-19.pdf" → "Metro")
+  const ohneExt = path.basename(dateiname, path.extname(dateiname));
+  const parts = ohneExt.split(/[_\-\s]+/);
+  const lieferant = parts[0] || '';
+  // Datum aus Dateiname raten
+  const datumMatch = ohneExt.match(/(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4}|\d{8})/);
+  let datum = new Date().toISOString().slice(0,10);
+  if (datumMatch) {
+    const d = datumMatch[1].replace(/\./g,'-');
+    datum = d.length === 8 ? d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8) : d;
+  }
+  return { dateiname, lieferant, datum, typ: ext };
+}
+
+fs.watch(RECHNUNGEN_DIR, (event, filename) => {
+  if (!filename) return;
+  if (filename.endsWith('.json') || filename.endsWith('.md')) return;
+  const filepath = path.join(RECHNUNGEN_DIR, filename);
+  if (!fs.existsSync(filepath)) return;
+  const stat = fs.statSync(filepath);
+  if (!stat.isFile()) return;
+  // Prüfen ob schon in DB
+  const exists = db.prepare('SELECT id FROM rechnungen WHERE dateiname=?').get(filename);
+  if (exists) return;
+  const info = rechnungFromFile(filename);
+  db.prepare('INSERT INTO rechnungen (dateiname,dateipfad,lieferant,datum,typ) VALUES (?,?,?,?,?)')
+    .run(filename, filepath, info.lieferant, info.datum, info.typ);
+  // JSON-Spiegel in datenbank/rechnungen/
+  const jsonPath = path.join(DATENBANK_DIR,'rechnungen', filename.replace(/\.[^.]+$/,'')+'.json');
+  fs.writeFileSync(jsonPath, JSON.stringify({dateiname:filename,lieferant:info.lieferant,datum:info.datum,typ:info.typ,pfad:filepath}, null, 2));
+  console.log('  Neue Rechnung erkannt:', filename);
+  wsBroadcastRechnung(filename);
+});
+
+// Beim Start: bestehende Dateien einlesen die noch nicht in DB sind
+fs.readdirSync(RECHNUNGEN_DIR).forEach(filename => {
+  if (filename.endsWith('.json') || filename.endsWith('.md')) return;
+  const filepath = path.join(RECHNUNGEN_DIR, filename);
+  if (!fs.statSync(filepath).isFile()) return;
+  const exists = db.prepare('SELECT id FROM rechnungen WHERE dateiname=?').get(filename);
+  if (exists) return;
+  const info = rechnungFromFile(filename);
+  db.prepare('INSERT INTO rechnungen (dateiname,dateipfad,lieferant,datum,typ) VALUES (?,?,?,?,?)')
+    .run(filename, filepath, info.lieferant, info.datum, info.typ);
+  const jsonPath = path.join(DATENBANK_DIR,'rechnungen', filename.replace(/\.[^.]+$/,'')+'.json');
+  fs.writeFileSync(jsonPath, JSON.stringify({dateiname:filename,lieferant:info.lieferant,datum:info.datum,typ:info.typ,pfad:filepath}, null, 2));
+});
+
+// ── Rechnungen API ────────────────────────────────────────────────────────────
+app.get('/api/rechnungen', (_req, res) => {
+  try { res.json(db.prepare('SELECT * FROM rechnungen ORDER BY created_at DESC').all()); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.patch('/api/rechnungen/:id', express.json(), (req, res) => {
+  try {
+    const { lieferant='', betrag=0, datum='', notiz='' } = req.body || {};
+    db.prepare('UPDATE rechnungen SET lieferant=?,betrag=?,datum=?,notiz=? WHERE id=?')
+      .run(lieferant, parseFloat(betrag)||0, datum, notiz, req.params.id);
+    // Spiegel aktualisieren
+    const r = db.prepare('SELECT * FROM rechnungen WHERE id=?').get(req.params.id);
+    if (r) {
+      const jsonPath = path.join(DATENBANK_DIR,'rechnungen', r.dateiname.replace(/\.[^.]+$/,'')+'.json');
+      fs.writeFileSync(jsonPath, JSON.stringify(r, null, 2));
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/rechnungen/:id', (req, res) => {
+  try {
+    const r = db.prepare('SELECT * FROM rechnungen WHERE id=?').get(req.params.id);
+    db.prepare('DELETE FROM rechnungen WHERE id=?').run(req.params.id);
+    if (r) {
+      const jsonPath = path.join(DATENBANK_DIR,'rechnungen', r.dateiname.replace(/\.[^.]+$/,'')+'.json');
+      if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Mitarbeiter API ──────────────────────────────────────────────────────────
 app.get('/api/mitarbeiter', (_req, res) => {
   try { res.json(db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all()); }
@@ -662,12 +768,17 @@ app.post('/api/mitarbeiter', express.json(), (req, res) => {
     if (!id || !name) return res.status(400).json({ error: 'id und name erforderlich' });
     db.prepare(`INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)`)
       .run(id, name, rolle, parseFloat(stunden)||0, parseFloat(lohn)||0, farbe);
+    // Spiegel in datenbank/mitarbeiter/
+    const jsonPath = path.join(DATENBANK_DIR,'mitarbeiter', id+'.json');
+    fs.writeFileSync(jsonPath, JSON.stringify({id,name,rolle,stunden,lohn,farbe,gespeichert:new Date().toISOString()}, null, 2));
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.delete('/api/mitarbeiter/:id', (req, res) => {
   try {
     db.prepare('DELETE FROM mitarbeiter WHERE id = ?').run(req.params.id);
+    const jsonPath = path.join(DATENBANK_DIR,'mitarbeiter', req.params.id+'.json');
+    if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
