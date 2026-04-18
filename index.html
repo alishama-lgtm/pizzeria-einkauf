@@ -15239,15 +15239,17 @@ async function loadPreisverlaufSection() {
   if (!el) return;
   try {
     const [statsResp, recentResp] = await Promise.all([
-      fetch('http://localhost:8080/api/preisverlauf/stats'),
-      fetch('http://localhost:8080/api/preisverlauf?limit=20'),
+      fetch('/api/preisverlauf/stats'),
+      fetch('/api/preisverlauf?limit=20'),
     ]);
     if (!statsResp.ok) throw new Error('Server nicht erreichbar');
     const stats  = await statsResp.json();
     const recent = await recentResp.json();
 
     if (!stats.length) {
-      el.querySelector('div:last-child').innerHTML = '<p style="color:#777;font-size:13px;margin:0">Noch keine Daten — Rechnungen scannen um Preise zu speichern.</p>';
+      el.innerHTML =
+        '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
+        '<p style="color:#777;font-size:13px;margin:0">Noch keine Daten — Rechnungen scannen um Preise zu speichern.</p>';
       return;
     }
 
@@ -15270,6 +15272,16 @@ async function loadPreisverlaufSection() {
         <td style="padding:5px 10px;font-size:13px;text-align:right;font-weight:700;color:#8B0000">€${parseFloat(r.preis).toFixed(2)}</td>
       </tr>`
     ).join('');
+
+    const uniqueProducts = [];
+    const seenProducts = new Set();
+    stats.forEach(r => {
+      const produkt = (r.produkt || '').trim();
+      if (!produkt || seenProducts.has(produkt)) return;
+      seenProducts.add(produkt);
+      uniqueProducts.push(produkt);
+    });
+    const optionsHtml = uniqueProducts.map(p => `<option value="${_esc(p)}">${_esc(p)}</option>`).join('');
 
     el.innerHTML =
       '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
@@ -15297,10 +15309,108 @@ async function loadPreisverlaufSection() {
           '</tr></thead>' +
           '<tbody>' + recentRows + '</tbody>' +
         '</table>' +
+      '</div>' +
+      '<div style="margin-top:18px;background:#fff;border:1.5px solid #e3beb8;border-radius:12px;padding:14px">' +
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px">' +
+          '<label for="preisverlauf-chart-select" style="font-size:12px;font-weight:700;color:#5a403c">Produkt wählen für Chart</label>' +
+          '<select id="preisverlauf-chart-select" onchange="loadPreisverlaufChart(this.value)" style="min-width:240px;max-width:100%;padding:8px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:13px;color:#261816;background:#fff;font-family:inherit">' +
+            optionsHtml +
+          '</select>' +
+        '</div>' +
+        '<div id="preisverlauf-chart-wrap" style="position:relative">' +
+          '<canvas id="preisverlauf-chart-canvas" style="width:100%;height:260px"></canvas>' +
+        '</div>' +
       '</div>';
+
+    if (uniqueProducts.length > 0) {
+      const selectEl = document.getElementById('preisverlauf-chart-select');
+      if (selectEl) selectEl.value = uniqueProducts[0];
+      loadPreisverlaufChart(uniqueProducts[0]);
+    }
   } catch(_) {
-    const inner = el.querySelector('div:last-child');
-    if (inner) inner.innerHTML = '<p style="color:#777;font-size:12px;margin:0">Server nicht aktiv — <code>node server.js</code> starten um Preishistorie zu sehen.</p>';
+    el.innerHTML =
+      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
+      '<p style="color:#777;font-size:12px;margin:0">Server nicht aktiv — <code>node server.js</code> starten um Preishistorie zu sehen.</p>';
+  }
+}
+
+async function loadPreisverlaufChart(produkt) {
+  const wrap = document.getElementById('preisverlauf-chart-wrap');
+  const canvas = document.getElementById('preisverlauf-chart-canvas');
+  if (!wrap || !canvas || !produkt) return;
+
+  if (window._chartPreisverlaufShop) {
+    window._chartPreisverlaufShop.destroy();
+    window._chartPreisverlaufShop = null;
+  }
+
+  try {
+    const resp = await fetch('/api/preisverlauf?produkt=' + encodeURIComponent(produkt) + '&limit=500');
+    if (!resp.ok) throw new Error('Serverfehler');
+    const rows = await resp.json();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      wrap.innerHTML = '<div style="height:260px;display:flex;align-items:center;justify-content:center;color:#7a6460;font-size:13px">Keine Preisdaten für dieses Produkt vorhanden.</div>';
+      return;
+    }
+
+    wrap.innerHTML = '<canvas id="preisverlauf-chart-canvas" style="width:100%;height:260px"></canvas>';
+    const canvasNew = document.getElementById('preisverlauf-chart-canvas');
+    if (!canvasNew || !window.Chart) return;
+
+    const labels = Array.from(new Set(rows.map(r => r.datum).filter(Boolean))).sort();
+    const byShop = {};
+    rows.forEach(r => {
+      const shop = (r.shop || 'Andere').trim() || 'Andere';
+      if (!byShop[shop]) byShop[shop] = [];
+      byShop[shop].push({ datum: r.datum, preis: parseFloat(r.preis) });
+    });
+    Object.keys(byShop).forEach(shop => byShop[shop].sort((a, b) => a.datum.localeCompare(b.datum)));
+
+    const colorMap = { 'Metro': '#1565c0', 'Billa': '#8B0000', 'Lidl': '#f57f17', 'Spar': '#2e7d32', 'Andere': '#6b7280' };
+
+    const datasets = Object.keys(byShop).sort().map(shop => {
+      const m = {};
+      byShop[shop].forEach(p => { m[p.datum] = isNaN(p.preis) ? null : p.preis; });
+      return {
+        label: shop,
+        data: labels.map(d => m[d] != null ? m[d] : null),
+        borderColor: colorMap[shop] || colorMap.Andere,
+        backgroundColor: colorMap[shop] || colorMap.Andere,
+        tension: 0.3,
+        fill: false,
+        pointRadius: 3,
+        borderWidth: 2,
+        spanGaps: false
+      };
+    });
+
+    window._chartPreisverlaufShop = new window.Chart(canvasNew, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': €' + Number(context.parsed.y || 0).toFixed(2);
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+          y: {
+            min: 0,
+            ticks: { stepSize: 0.5, callback: function(v) { return '€' + Number(v).toFixed(2); } }
+          }
+        }
+      }
+    });
+  } catch(_) {
+    wrap.innerHTML = '<div style="height:260px;display:flex;align-items:center;justify-content:center;color:#b52619;font-size:13px">Server nicht erreichbar — Preisverlauf-Chart konnte nicht geladen werden.</div>';
   }
 }
 
