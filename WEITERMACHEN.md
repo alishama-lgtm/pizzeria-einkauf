@@ -63,10 +63,10 @@ node server.js        # → http://localhost:8080
 ### Priorität Hoch
 *(keine aktuell)*
 
+- **Aufgabe #14 ✅**: POST `/api/umsatz/heute` — neue Tabelle `umsatz_einnahmen` in SQLite, `umsatzAddEinnahme()` speichert fire-and-forget auch in DB, GET-Endpoint gibt jetzt auch `einnahmen` zurück
+
 ### Priorität Mittel
-| # | Aufgabe |
-|---|---|
-| 14 | POST `/api/umsatz/heute` — Umsatz-Einnahmen auch in DB speichern (momentan nur localStorage) |
+*(keine aktuell)*
 
 ---
 
