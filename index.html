@@ -6246,6 +6246,12 @@ function bizSaveKassaEntry() {
   bizSaveKassa(kassa);
   renderBusinessTab();
   showBizSection('biz-kassabuch');
+  // Auch in DB speichern (fire-and-forget)
+  fetch('/api/umsatz/heute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ datum: today, kasse: bar, lieferdienst: karte })
+  }).catch(function() {});
 }
 
 function bizDeleteKassaEntry(date) {
