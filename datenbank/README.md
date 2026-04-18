@@ -1,21 +1,38 @@
 # Datenbank — Pizzeria San Carino
 
-Alle Daten die in SQLite (pizzeria.db) gespeichert werden.
-Server muss laufen: `node server.js`
+Server starten: `node server.js` → http://localhost:8080
 
-## Tabellen
+## Ordner-Übersicht
 
-| Ordner | Tabelle | Beschreibung |
+| Ordner | Was wird gespeichert | Status |
 |---|---|---|
-| mitarbeiter/ | mitarbeiter | Mitarbeiter-Liste |
-| umsatz/ | umsatz_einnahmen | Tägliche Kassenbuch-Einträge |
+| 📄 rechnungen/ | PDF & Foto-Rechnungen | ✅ Aktiv |
+| 👥 mitarbeiter/ | Mitarbeiter-Liste | ✅ Aktiv |
+| 💰 kassabuch/ | Tägliche Einnahmen | ✅ Aktiv |
+| 📊 umsatz/ | Umsatz-Daten | ✅ Aktiv |
+| 🛒 einkaufsliste/ | Einkaufslisten | 🔜 Geplant |
+| 📦 lager/ | Lagerbestand | 🔜 Geplant |
+| 🚚 lieferanten/ | Lieferanten-Daten | 🔜 Geplant |
+| 💲 preise/ | Preishistorie (Metro/Billa/Lidl/Spar) | 🔜 Geplant |
+| 📋 bestellungen/ | Bestellungen | 🔜 Geplant |
+| 📅 dienstplan/ | Wochenpläne | 🔜 Geplant |
+| ✅ aufgaben/ | Aufgaben & Checklisten | 🔜 Geplant |
+| ⚠️ fehlmaterial/ | Fehlende Materialien | 🔜 Geplant |
 
-## API-Übersicht
+## Wie es funktioniert
+
+- **Rechnungen:** PDF in `rechnungen/` legen → erscheint in App + JSON wird erstellt
+- **Mitarbeiter:** In App hinzufügen → JSON in `mitarbeiter/` wird erstellt
+- **Kassabuch:** In App speichern → DB + Datei wird aktualisiert
+
+## API-Endpoints
 
 | Methode | URL | Was |
 |---|---|---|
-| GET | /api/mitarbeiter | Alle Mitarbeiter laden |
-| POST | /api/mitarbeiter | Neuen Mitarbeiter speichern |
+| GET | /api/mitarbeiter | Alle Mitarbeiter |
+| POST | /api/mitarbeiter | Mitarbeiter speichern |
 | DELETE | /api/mitarbeiter/:id | Mitarbeiter löschen |
-| GET | /api/umsatz/heute | Heutiger Umsatz + Einkauf |
-| POST | /api/umsatz/heute | Kassenbuch in DB speichern |
+| GET | /api/umsatz/alle | Alle Kassabuch-Einträge |
+| GET | /api/umsatz/heute | Heutiger Umsatz |
+| POST | /api/umsatz/heute | Kassenbuch speichern |
+| GET | /api/rechnungen | Alle Rechnungen |
