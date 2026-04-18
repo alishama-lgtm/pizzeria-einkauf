@@ -483,6 +483,32 @@
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#374151"],
     html[data-theme="dark-red"] [id^="panel-"] [style*="color:#4b5563"] { color: var(--text-2) !important; }
 
+    /* ── Dark accent colors invisible on dark backgrounds (Business Tab + all panels) ── */
+    /* Dark red / crimson text → light red */
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#610000"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#8B0000"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#610000"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#8B0000"] { color: #ff8a80 !important; }
+    /* Dark green → light green */
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#386a20"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#386a20"] { color: #81c784 !important; }
+    /* Low-margin red → softer red */
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#ba1a1a"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#ba1a1a"] { color: #ef9a9a !important; }
+    /* Amber warning → bright amber */
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#c8860a"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#c8860a"] { color: #ffcc80 !important; }
+    /* Table rows with inline background:#fff / #fffbfa / #fffde7 etc. */
+    html[data-theme="dark"] [id^="panel-"] tr[style*="background:#fff"],
+    html[data-theme="dark-red"] [id^="panel-"] tr[style*="background:#fff"] { background: var(--surface) !important; }
+    /* Glass theme — same accent color fixes + text-shadow for legibility */
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#610000"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#8B0000"] { color: #ff8a80 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#386a20"] { color: #81c784 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#ba1a1a"] { color: #ef9a9a !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#c8860a"] { color: #ffcc80 !important; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+    html[data-theme="glass"] [id^="panel-"] tr[style*="background:#fff"] { background: rgba(255,255,255,0.03) !important; }
+
     /* ── Brown accent class-based text (dark mode) ── */
     html[data-theme="dark"] .product-row-name span,
     html[data-theme="dark"] .product-row-price .qty,
@@ -946,6 +972,13 @@
     body.biz-mode [id^="panel-"] [style*="color:#6b6b6b"],
     body.biz-mode [id^="panel-"] [style*="color:#777"],
     body.biz-mode [id^="panel-"] [style*="color:#888"] { color: #8899bb !important; }
+    /* Business Mode — dark accent colors (pizza table profit/margin) */
+    body.biz-mode [id^="panel-"] [style*="color:#610000"],
+    body.biz-mode [id^="panel-"] [style*="color:#8B0000"] { color: #ff8a80 !important; }
+    body.biz-mode [id^="panel-"] [style*="color:#386a20"] { color: #81c784 !important; }
+    body.biz-mode [id^="panel-"] [style*="color:#ba1a1a"] { color: #ef9a9a !important; }
+    body.biz-mode [id^="panel-"] [style*="color:#c8860a"] { color: #ffcc80 !important; }
+    body.biz-mode [id^="panel-"] tr[style*="background:#fff"] { background: #1a1a2e !important; }
     body:not(.biz-mode) #staff-tab-bar { display: block; }
 
     /* ════ RESPONSIVE ════ */
