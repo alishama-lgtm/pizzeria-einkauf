@@ -5816,7 +5816,7 @@ function bizSaveSettings(d) { bizSave('settings', d); }
 
 // ── Utility ──
 function bizEur(n) { return '€\u00A0' + (+n||0).toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function bizToday() { return new Date().toISOString().slice(0,10); }
+function bizToday() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function bizDayName(dateStr) {
   const days = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
   return days[new Date(dateStr).getDay()];
