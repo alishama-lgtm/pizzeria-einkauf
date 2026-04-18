@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-17 (Session 5)
+# Pizzeria San Carino — Weitermachen ab 2026-04-18 (Session 6)
 
 ## Arbeitsverzeichnis
 
@@ -48,20 +48,24 @@ node server.js        # → http://localhost:8080
 - **Aufgabe #9 ✅**: Inbox Lieferanten-Import Button + `_inboxImportLieferanten()`
 - **💎 Glass Theme** (Stitch-Design) als 4. Modus eingebaut
 
+### Session 6 (2026-04-18)
+- Analyse: alle 31 Panel-IDs OK (je genau 1x), keine doppelten Funktionen, Chart.js destroy OK, jsPDF korrekt
+- **Aufgabe #10 ✅**: DB-Banner im Umsatz-Tab — lädt `/api/umsatz/heute` und zeigt heutigen Einkaufsstand
+- **Aufgabe #11 ✅**: Server-offline-Banner im Geschäfte-Tab wenn `loadPricesFromDB()` fehlschlägt
+- **Aufgabe #12 ✅**: Einkaufsausgaben-Chart (letzte 30 Tage) aus `pizzeria_history` in Statistik-Tab; Fallback Demo-Daten
+
 ---
 
 ## Offene Aufgaben
 
 ### Priorität Hoch
-| # | Aufgabe | Datei |
-|---|---|---|
-| 10 | N8N Workflow 2 — `/api/umsatz/heute` Endpunkt testen | server.js |
+*(keine aktuell)*
 
 ### Priorität Mittel
 | # | Aufgabe |
 |---|---|
-| 11 | Geschäfte-Tab leer wenn kein Server läuft — Hinweis einbauen |
-| 12 | Statistik-Tab: echte Verlaufsdaten aus `pizzeria_history` |
+| 13 | POST `/api/umsatz/heute` — Umsatz-Einnahmen auch in DB speichern (momentan nur localStorage) |
+| 14 | Preisverlauf-Chart in Statistik: Shop-Vergleich über Zeit (mehrere Datasets) |
 
 ---
 
