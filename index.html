@@ -8133,7 +8133,7 @@ function switchTab(tab) {
   if (tab === 'suche')          renderSucheTab();
   if (tab === 'upload')      renderUploadTab();
   if (tab === 'verlauf')     renderVerlaufTab();
-  if (tab === 'mitarbeiter')   renderMitarbeiterTab();
+  if (tab === 'mitarbeiter')   { _syncMitarbeiterFromDB(); renderMitarbeiterTab(); }
   if (tab === 'fehlmaterial') renderFehlmaterialTab();
   if (tab === 'checkliste')    renderChecklisteTab();
   if (tab === 'dienstplan')    renderDienstplanTab();
@@ -9503,6 +9503,12 @@ function getMitarbeiter() {
 function saveMitarbeiterList(list) {
   try { localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(list)); } catch(_) {}
 }
+function _syncMitarbeiterFromDB() {
+  fetch('/api/mitarbeiter').then(r => r.ok ? r.json() : Promise.reject()).then(data => {
+    localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(data));
+    renderMitarbeiterTab();
+  }).catch(() => {});
+}
 function getWochenplan() {
   try { return JSON.parse(localStorage.getItem('pizzeria_wochenplan') || '{}'); } catch(_) { return {}; }
 }
@@ -9554,14 +9560,17 @@ function maHinzufuegen() {
   const stunden = stundenEl ? parseFloat(stundenEl.value) || 0 : 0;
   const lohn    = lohnEl   ? parseFloat(lohnEl.value)    || 0 : 0;
   const list = getMitarbeiter();
-  list.push({ id: 'ma_' + Date.now(), name, rolle, stunden, lohn, farbe: MA_FARBEN[list.length % MA_FARBEN.length] });
+  const newMa = { id: 'ma_' + Date.now(), name, rolle, stunden, lohn, farbe: MA_FARBEN[list.length % MA_FARBEN.length] };
+  list.push(newMa);
   saveMitarbeiterList(list);
+  fetch('/api/mitarbeiter', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newMa) }).catch(()=>{});
   renderMitarbeiterTab();
 }
 
 function maLoeschen(id) {
   _showConfirm('Mitarbeiter wirklich löschen?', function() {
     saveMitarbeiterList(getMitarbeiter().filter(m => m.id !== id));
+    fetch('/api/mitarbeiter/' + id, { method:'DELETE' }).catch(()=>{});
     renderMitarbeiterTab();
   });
 }

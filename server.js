@@ -52,6 +52,17 @@ db.exec(`
   )
 `);
 db.exec('CREATE INDEX IF NOT EXISTS idx_ue_datum ON umsatz_einnahmen(datum)');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS mitarbeiter (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    rolle        TEXT DEFAULT 'Küche',
+    stunden      REAL DEFAULT 0,
+    lohn         REAL DEFAULT 0,
+    farbe        TEXT DEFAULT '#8B0000',
+    created_at   TEXT DEFAULT (date('now'))
+  )
+`);
 const phInsert = db.prepare(`
   INSERT INTO preishistorie (produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle)
   VALUES ($produkt_id, $produkt, $preis, $normalpreis, $shop, $shop_id, $datum, $quelle)
@@ -638,6 +649,27 @@ app.post('/api/notion/tagesbericht', express.json(), async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: e.response?.data?.message || e.message });
   }
+});
+
+// ── Mitarbeiter API ──────────────────────────────────────────────────────────
+app.get('/api/mitarbeiter', (_req, res) => {
+  try { res.json(db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all()); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/mitarbeiter', express.json(), (req, res) => {
+  try {
+    const { id, name, rolle='Küche', stunden=0, lohn=0, farbe='#8B0000' } = req.body || {};
+    if (!id || !name) return res.status(400).json({ error: 'id und name erforderlich' });
+    db.prepare(`INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)`)
+      .run(id, name, rolle, parseFloat(stunden)||0, parseFloat(lohn)||0, farbe);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/mitarbeiter/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM mitarbeiter WHERE id = ?').run(req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // GET /api/umsatz/heute — Tages-Report (Einkauf aus preishistorie + Einnahmen aus DB)
