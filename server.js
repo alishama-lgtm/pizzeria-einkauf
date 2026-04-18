@@ -647,13 +647,13 @@ app.get('/api/umsatz/heute', (_req, res) => {
     const einkaufRows = db.prepare(`
       SELECT shop, shop_id, COUNT(*) AS artikel, ROUND(SUM(preis),2) AS gesamt
       FROM preishistorie WHERE datum = ? GROUP BY shop_id ORDER BY gesamt DESC
-    `).all([heute]);
+    `).all(heute);
     const einkaufTotal = einkaufRows.reduce((s, r) => s + (r.gesamt || 0), 0);
     const einnahmen = db.prepare(`
       SELECT datum, ROUND(SUM(kasse),2) AS kasse, ROUND(SUM(lieferdienst),2) AS lieferdienst,
              ROUND(SUM(kasse)+SUM(lieferdienst),2) AS gesamt
       FROM umsatz_einnahmen WHERE datum = ?
-    `).get([heute]);
+    `).get(heute);
     res.json({
       datum: heute,
       gesamt: Math.round(einkaufTotal * 100) / 100,
@@ -668,10 +668,11 @@ app.post('/api/umsatz/heute', express.json(), (req, res) => {
   try {
     const { datum, kasse = 0, lieferdienst = 0, notiz = '' } = req.body || {};
     if (!datum) return res.status(400).json({ error: 'datum fehlt' });
+    db.prepare(`DELETE FROM umsatz_einnahmen WHERE datum = ?`).run(datum);
     db.prepare(`
       INSERT INTO umsatz_einnahmen (datum, kasse, lieferdienst, notiz)
       VALUES (?, ?, ?, ?)
-    `).run([datum, parseFloat(kasse) || 0, parseFloat(lieferdienst) || 0, notiz]);
+    `).run(datum, parseFloat(kasse) || 0, parseFloat(lieferdienst) || 0, notiz);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
