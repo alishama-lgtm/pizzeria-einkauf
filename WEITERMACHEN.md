@@ -53,6 +53,7 @@ node server.js        # → http://localhost:8080
 - **Aufgabe #10 ✅**: DB-Banner im Umsatz-Tab — lädt `/api/umsatz/heute` und zeigt heutigen Einkaufsstand
 - **Aufgabe #11 ✅**: Server-offline-Banner im Geschäfte-Tab wenn `loadPricesFromDB()` fehlschlägt
 - **Aufgabe #12 ✅**: Einkaufsausgaben-Chart (letzte 30 Tage) aus `pizzeria_history` in Statistik-Tab; Fallback Demo-Daten
+- **Aufgabe #13 ✅**: Kontrast-Fix alle Themes — Business-Tab "Gewinn pro Pizza" Tabelle + alle 31 Panels: `#610000`, `#8B0000` → `#ff8a80`, `#386a20` → `#81c784`, `#ba1a1a` → `#ef9a9a`, `#c8860a` → `#ffcc80`; Table-`<tr>` Backgrounds in dark/glass/biz-mode; Glass-Theme mit text-shadow
 
 ---
 
@@ -64,8 +65,8 @@ node server.js        # → http://localhost:8080
 ### Priorität Mittel
 | # | Aufgabe |
 |---|---|
-| 13 | POST `/api/umsatz/heute` — Umsatz-Einnahmen auch in DB speichern (momentan nur localStorage) |
-| 14 | Preisverlauf-Chart in Statistik: Shop-Vergleich über Zeit (mehrere Datasets) |
+| 14 | POST `/api/umsatz/heute` — Umsatz-Einnahmen auch in DB speichern (momentan nur localStorage) |
+| 15 | Preisverlauf-Chart in Statistik: Shop-Vergleich über Zeit (mehrere Datasets) |
 
 ---
 
