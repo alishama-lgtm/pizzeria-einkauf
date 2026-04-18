@@ -783,6 +783,12 @@ app.delete('/api/mitarbeiter/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// GET /api/umsatz/alle — Alle Kassabuch-Einträge aus DB
+app.get('/api/umsatz/alle', (_req, res) => {
+  try { res.json(db.prepare('SELECT * FROM umsatz_einnahmen ORDER BY datum DESC').all()); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/umsatz/heute — Tages-Report (Einkauf aus preishistorie + Einnahmen aus DB)
 app.get('/api/umsatz/heute', (_req, res) => {
   try {

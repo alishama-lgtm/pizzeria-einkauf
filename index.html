@@ -5988,6 +5988,19 @@ function bizLogin() {
 // KASSABUCH
 // ═══════════════════════════════════════════════════════════════
 
+function _syncKassaFromDB(cb) {
+  fetch('/api/umsatz/alle').then(r => r.ok ? r.json() : Promise.reject()).then(rows => {
+    const existing = bizGetKassa();
+    rows.forEach(row => {
+      if (!existing.find(e => e.date === row.datum)) {
+        existing.push({ date: row.datum, bar: row.kasse||0, karte: row.lieferdienst||0, gesamt: (row.kasse||0)+(row.lieferdienst||0), speiseAnteil: 80 });
+      }
+    });
+    bizSaveKassa(existing);
+    if (cb) cb();
+  }).catch(() => { if (cb) cb(); });
+}
+
 function renderBizKassabuch() {
   const kassa = bizGetKassa();
   const today = bizToday();
@@ -8160,7 +8173,7 @@ function switchTab(tab) {
       if (lockIcon)    lockIcon.textContent = 'lock';
       if (mobLockIcon) mobLockIcon.textContent = 'lock';
     } else {
-      renderBusinessTab();
+      _syncKassaFromDB(renderBusinessTab);
       if (lockIcon)    lockIcon.textContent = 'lock_open';
       if (mobLockIcon) mobLockIcon.textContent = 'lock_open';
     }
