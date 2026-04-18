@@ -40,6 +40,18 @@ db.exec(`
 `);
 db.exec('CREATE INDEX IF NOT EXISTS idx_ph_produkt ON preishistorie(produkt_id)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_ph_datum   ON preishistorie(datum)');
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS umsatz_einnahmen (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    datum        TEXT NOT NULL,
+    kasse        REAL DEFAULT 0,
+    lieferdienst REAL DEFAULT 0,
+    notiz        TEXT DEFAULT '',
+    created_at   TEXT DEFAULT (date('now'))
+  )
+`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_ue_datum ON umsatz_einnahmen(datum)');
 const phInsert = db.prepare(`
   INSERT INTO preishistorie (produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle)
   VALUES ($produkt_id, $produkt, $preis, $normalpreis, $shop, $shop_id, $datum, $quelle)
@@ -628,16 +640,39 @@ app.post('/api/notion/tagesbericht', express.json(), async (req, res) => {
   }
 });
 
-// GET /api/umsatz/heute — Tages-Report für N8N
+// GET /api/umsatz/heute — Tages-Report (Einkauf aus preishistorie + Einnahmen aus DB)
 app.get('/api/umsatz/heute', (_req, res) => {
   try {
     const heute = new Date().toISOString().slice(0, 10);
-    const rows  = db.prepare(`
+    const einkaufRows = db.prepare(`
       SELECT shop, shop_id, COUNT(*) AS artikel, ROUND(SUM(preis),2) AS gesamt
       FROM preishistorie WHERE datum = ? GROUP BY shop_id ORDER BY gesamt DESC
     `).all([heute]);
-    const total = rows.reduce((s, r) => s + (r.gesamt || 0), 0);
-    res.json({ datum: heute, gesamt: Math.round(total * 100) / 100, shops: rows });
+    const einkaufTotal = einkaufRows.reduce((s, r) => s + (r.gesamt || 0), 0);
+    const einnahmen = db.prepare(`
+      SELECT datum, ROUND(SUM(kasse),2) AS kasse, ROUND(SUM(lieferdienst),2) AS lieferdienst,
+             ROUND(SUM(kasse)+SUM(lieferdienst),2) AS gesamt
+      FROM umsatz_einnahmen WHERE datum = ?
+    `).get([heute]);
+    res.json({
+      datum: heute,
+      gesamt: Math.round(einkaufTotal * 100) / 100,
+      shops: einkaufRows,
+      einnahmen: einnahmen || { kasse: 0, lieferdienst: 0, gesamt: 0 }
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/umsatz/heute — Einnahme in DB speichern
+app.post('/api/umsatz/heute', express.json(), (req, res) => {
+  try {
+    const { datum, kasse = 0, lieferdienst = 0, notiz = '' } = req.body || {};
+    if (!datum) return res.status(400).json({ error: 'datum fehlt' });
+    db.prepare(`
+      INSERT INTO umsatz_einnahmen (datum, kasse, lieferdienst, notiz)
+      VALUES (?, ?, ?, ?)
+    `).run([datum, parseFloat(kasse) || 0, parseFloat(lieferdienst) || 0, notiz]);
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

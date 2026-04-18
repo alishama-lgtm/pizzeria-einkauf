@@ -15814,6 +15814,12 @@ function umsatzAddEinnahme() {
   document.getElementById('ein-lieferdienst').value = '';
   _showToast('Einnahme gespeichert \u2713', 'success');
   renderUmsatzTab();
+  // Auch in DB speichern (fire-and-forget — kein Fehler wenn Server offline)
+  fetch('/api/umsatz/heute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ datum: datum, kasse: kasse, lieferdienst: lieferdienst })
+  }).catch(function() {});
 }
 
 function umsatzAddAusgabe() {
