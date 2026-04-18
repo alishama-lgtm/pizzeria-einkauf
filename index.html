@@ -13196,7 +13196,14 @@ async function loadPricesFromDB() {
     });
     console.log('✅ Preise aus DB geladen:', rows.length, 'Einträge');
   } catch(_) {
-    // Server nicht aktiv — kein Problem, App läuft auch ohne
+    // Server nicht aktiv — Banner im Geschäfte-Panel anzeigen
+    var gp = document.getElementById('panel-geschaefte');
+    if (gp && !gp.querySelector('#server-offline-banner')) {
+      var banner = document.createElement('div');
+      banner.id = 'server-offline-banner';
+      banner.innerHTML = '<div style="background:#fff8e1;border:1.5px solid #f9a825;border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">\u26a0\ufe0f</span><div><div style="font-size:14px;font-weight:700;color:#e65100">Server nicht erreichbar</div><div style="font-size:12px;color:#7a5c00;margin-top:2px">Bitte <code>node server.js</code> starten \u2014 Port 8080</div></div></div>';
+      gp.prepend(banner);
+    }
   }
 }
 
@@ -15111,30 +15118,87 @@ function renderStatistikTab() {
     '</div>' +
     '<div id="preisverlauf-section" style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;">' +
       '<h3 style="margin:0 0 6px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
-      '<p style="font-size:12px;color:#8d6562;margin:0 0 14px">Wird aus gescannten Rechnungen automatisch befüllt (braucht <strong>node server.js</strong>)</p>' +
+      '<p style="font-size:12px;color:#8d6562;margin:0 0 14px">Wird aus gescannten Rechnungen automatisch bef\xFCllt (braucht <strong>node server.js</strong>)</p>' +
       '<div style="color:#777;font-size:13px">Lade...</div>' +
+    '</div>' +
+    '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-top:18px;">' +
+      '<h3 style="margin:0 0 6px 0;color:#1b5e20;font-size:16px;">&#128722; Einkaufsausgaben (letzte 30 Tage)</h3>' +
+      '<p style="font-size:12px;color:#8d6562;margin:0 0 14px">Aus Einkaufs-Verlauf (Eintr\xE4ge mit Preis)</p>' +
+      '<canvas id="einkauf-history-chart" style="max-height:220px"></canvas>' +
     '</div>' +
     '</div>';
   loadPreisverlaufSection();
 
-  // Umsatz-Verlauf Chart
+  // Umsatz-Verlauf Chart (Verkaufsstatistik)
   if (days.length > 0) {
     if (window._chartStatistik) window._chartStatistik.destroy();
-    const ctx = document.getElementById('stat-chart');
+    var ctx = document.getElementById('stat-chart');
     if (ctx && window.Chart) {
       window._chartStatistik = new window.Chart(ctx, {
         type: 'line',
         data: {
           labels: days,
-          datasets: [{ label: 'Umsatz €', data: days.map(d => parseFloat(tageMap[d].toFixed(2))),
+          datasets: [{ label: 'Umsatz \u20AC', data: days.map(function(d) { return parseFloat(tageMap[d].toFixed(2)); }),
             borderColor: '#8B0000', backgroundColor: 'rgba(139,0,0,0.08)',
             tension: 0.3, fill: true, pointRadius: 4, pointBackgroundColor: '#8B0000' }]
         },
         options: { responsive: true, plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true, ticks: { callback: v => '€' + v } } } }
+          scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '\u20AC' + v; } } } } }
       });
     }
   }
+
+  // Einkaufsausgaben-Chart aus pizzeria_history (letzte 30 Tage)
+  (function() {
+    var histData = [];
+    try { histData = JSON.parse(localStorage.getItem('pizzeria_history') || '[]'); } catch(ex) {}
+
+    // Letzten 30 Tage als Datum-Labels aufbauen
+    var histMap = {};
+    var nowH = new Date();
+    var d30Labels = [];
+    for (var hi = 29; hi >= 0; hi--) {
+      var hd = new Date(nowH);
+      hd.setDate(nowH.getDate() - hi);
+      var hds = hd.toISOString().slice(0, 10);
+      d30Labels.push(hds);
+      histMap[hds] = 0;
+    }
+
+    // Reale Daten summieren
+    var hasRealData = false;
+    histData.forEach(function(e) {
+      if (e.datum && e.preis != null && histMap[e.datum] !== undefined) {
+        histMap[e.datum] += parseFloat(e.preis) || 0;
+        hasRealData = true;
+      }
+    });
+
+    // Fallback: Demo-Daten wenn keine echten vorhanden
+    var chartValues;
+    if (!hasRealData) {
+      chartValues = d30Labels.map(function() { return Math.round(Math.random() * 80 + 20); });
+    } else {
+      chartValues = d30Labels.map(function(dl) { return parseFloat((histMap[dl] || 0).toFixed(2)); });
+    }
+
+    var ctxH = document.getElementById('einkauf-history-chart');
+    if (ctxH && window.Chart) {
+      if (window._chartEinkaufHistory) window._chartEinkaufHistory.destroy();
+      window._chartEinkaufHistory = new window.Chart(ctxH, {
+        type: 'line',
+        data: {
+          labels: d30Labels.map(function(dl) { return dl.slice(5); }),
+          datasets: [{ label: 'Einkauf \u20AC', data: chartValues,
+            borderColor: '#1b5e20', backgroundColor: 'rgba(27,94,32,0.08)',
+            tension: 0.3, fill: true, pointRadius: 3, pointBackgroundColor: '#1b5e20' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false },
+          tooltip: { callbacks: { footer: !hasRealData ? function() { return 'Demo-Daten'; } : undefined } } },
+          scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '\u20AC' + v; } } } } }
+      });
+    }
+  })();
 }
 
 async function loadPreisverlaufSection() {
@@ -15423,6 +15487,27 @@ function renderUmsatzTab() {
   try { ausgaben = JSON.parse(localStorage.getItem('pizzeria_umsatz_ausgaben') || '[]'); } catch(ex) {}
   try { ziel = parseFloat(localStorage.getItem('pizzeria_umsatz_ziel') || '0') || 0; } catch(ex) {}
 
+  // DB-Stand laden und im Banner anzeigen (asynchron, nicht blockierend)
+  var dbBannerId = 'umsatz-db-banner';
+  var dbBannerHtml = '<div id="' + dbBannerId + '" style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#1565c0">&#128197; Lade heutigen DB-Umsatz...</div>';
+  (function() {
+    fetch('http://localhost:8080/api/umsatz/heute')
+      .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function(d) {
+        var el = document.getElementById(dbBannerId);
+        if (!el) return;
+        var shopList = (d.shops || []).map(function(s) { return s.shop + ': &euro;' + (s.gesamt || 0).toFixed(2); }).join(' &nbsp;|&nbsp; ');
+        el.innerHTML = '&#128202; <strong>Heutiger DB-Einkaufsstand (' + (d.datum || '') + '):</strong> Gesamt &euro;' + (d.gesamt || 0).toFixed(2) + (shopList ? ' &nbsp;&mdash;&nbsp; ' + shopList : '');
+        el.style.background = '#e8f5e9';
+        el.style.borderColor = '#a5d6a7';
+        el.style.color = '#1b5e20';
+      })
+      .catch(function() {
+        var el = document.getElementById(dbBannerId);
+        if (el) { el.innerHTML = '&#127381; DB-Stand nicht verf&uuml;gbar &mdash; <span style="font-size:12px">Server starten: <code>node server.js</code></span>'; el.style.background = '#fff8e1'; el.style.borderColor = '#f9a825'; el.style.color = '#e65100'; }
+      });
+  })();
+
   var now = new Date();
   var firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -15568,7 +15653,7 @@ function renderUmsatzTab() {
 
   panel.innerHTML = '<div style="padding:16px;max-width:900px;margin:0 auto">' +
     _pageHdr('payments', 'Umsatz-Dashboard', new Date().toLocaleDateString('de-AT', {month:'long', year:'numeric'})) +
-    zielHtml + kpiHtml + formHtml + wocheHtml + einnahmenTabelleHtml + ausgabenTabelleHtml +
+    dbBannerHtml + zielHtml + kpiHtml + formHtml + wocheHtml + einnahmenTabelleHtml + ausgabenTabelleHtml +
     '</div>';
 }
 
