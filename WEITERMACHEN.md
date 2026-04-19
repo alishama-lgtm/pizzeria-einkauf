@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-18 (Session 6)
+# Pizzeria San Carino — Weitermachen ab 2026-04-20 (Session 8)
 
 ## Arbeitsverzeichnis
 
@@ -58,15 +58,30 @@ node server.js        # → http://localhost:8080
 
 ---
 
+## Session 8 (2026-04-20) — Was gebaut wurde
+
+- **HACCP-Protokoll Tab** (32. Tab) — Pflichtdokumentation AT
+  - Kühlstellentemperaturen (4 Stellen) mit Ampel-System (grün/gelb/rot)
+  - Hygiene-Checkliste (6 Punkte)
+  - Tages-Verlauf + 7-Tage-Tabelle
+  - Speichern in `psc_haccp` (localStorage)
+- **Glass-Theme Komplett-Fix** — universeller CSS-Override mit `*` statt `div`
+  - Alle Hintergründe (weiß, rosa, grün, blau usw.) → glass surface
+  - Alle dunklen Textfarben → hell
+  - Akzentfarben (grün/gelb/rot/gold) aufgehellt aber sichtbar
+  - Inputs/Selects/Textareas in allen Panels → dark mode
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
-*(keine aktuell)*
-
-- **Aufgabe #14 ✅**: POST `/api/umsatz/heute` — neue Tabelle `umsatz_einnahmen` in SQLite, `umsatzAddEinnahme()` speichert fire-and-forget auch in DB, GET-Endpoint gibt jetzt auch `einnahmen` zurück
+- **MHD-Tracker** (Mindesthaltbarkeit) — Pflicht für Lebensmittelkontrolle
+- **Kassenschnitt** — täglicher Soll/Ist Vergleich
+- **31-Tab Testplan** noch nicht abgeschlossen (alle Tabs auf DB-Sync + Themes prüfen)
 
 ### Priorität Mittel
-*(keine aktuell)*
+- **Urlaubskalender** für Mitarbeiter
+- **Trinkgeld-Split** Funktion
+- **n8n Workflows** installieren und aktivieren
 
 ---
 

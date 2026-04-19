@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Testplan (Session 7, 2026-04-19)
+# Pizzeria San Carino — Testplan (Session 8, 2026-04-20)
 
 ## Regeln
 - Jeden Tab einzeln öffnen und alle Punkte prüfen
@@ -240,9 +240,18 @@
 
 ---
 
+## Tab 32: `haccp` ✅ (Session 8 gebaut)
+1. Tab öffnet in Betrieb-Gruppe
+2. Temperaturen eintragen → Ampel grün/gelb/rot
+3. Hygiene-Checkliste abhaken → gespeichert
+4. F5-Test: Einträge bleiben (psc_haccp in localStorage)
+
+---
+
 ## Nach dem Test: Checkliste
 
-- [ ] Alle 31 Tabs mit ✅ markiert
+- [ ] Alle 32 Tabs mit ✅ markiert
 - [ ] Keine offenen ❌ ohne Fix
-- [ ] Finaler Commit: `2026-04-19: Testplan alle 31 Tabs abgeschlossen`
+- [ ] Glass-Theme in allen Tabs OK
+- [ ] Finaler Commit: `2026-04-20: Testplan alle 32 Tabs abgeschlossen`
 - [ ] GitHub push erfolgt
