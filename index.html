@@ -1965,6 +1965,7 @@
       <div class="nav-grp-dd">
         <button data-nav-tab="heute" onclick="switchTab('heute')" class="dd-item"><span style="font-size:14px">📅</span>Heute</button>
         <div class="nav-grp-dd-sep"></div>
+        <button data-nav-tab="haccp" onclick="switchTab('haccp')" class="dd-item"><span style="font-size:14px">🌡️</span>HACCP</button>
         <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="dd-item"><span style="font-size:14px">✅</span>Checkliste<span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0">✓</span></button>
         <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')" class="dd-item"><span style="font-size:14px">📋</span>Schicht-Check</button>
         <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben')" class="dd-item"><span style="font-size:14px">✅</span>Aufgaben</button>
@@ -2029,6 +2030,7 @@
     <button class="ts-grp-btn" onclick="tsSidebarToggle('betrieb')"><span class="ts-icon">✅</span><span class="ts-label">Betrieb</span></button>
     <div class="ts-sub">
       <button class="ts-sub-item" data-nav-tab="heute" onclick="switchTab('heute')"><span class="ts-sub-icon">📅</span>Heute</button>
+      <button class="ts-sub-item" data-nav-tab="haccp" onclick="switchTab('haccp')"><span class="ts-sub-icon">🌡️</span>HACCP</button>
       <button class="ts-sub-item" data-nav-tab="checkliste" onclick="switchTab('checkliste')"><span class="ts-sub-icon">✅</span>Checkliste</button>
       <button class="ts-sub-item" data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')"><span class="ts-sub-icon">📋</span>Schicht-Check</button>
       <button class="ts-sub-item" data-nav-tab="aufgaben" onclick="switchTab('aufgaben')"><span class="ts-sub-icon">✅</span>Aufgaben</button>
@@ -2100,6 +2102,7 @@
   <div id="panel-buchhaltung"  style="display:none"></div>
   <div id="panel-konkurrenz"   style="display:none"></div>
   <div id="panel-bewertungen"  style="display:none"></div>
+  <div id="panel-haccp"       style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -2191,6 +2194,7 @@
       <button data-drawer-nav="buchhaltung" onclick="switchTab('buchhaltung');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">account_balance</span>Buchh.</button>
       <button data-drawer-nav="konkurrenz" onclick="switchTab('konkurrenz');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">storefront</span>Konkurr.</button>
       <button data-drawer-nav="bewertungen" onclick="switchTab('bewertungen');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">reviews</span>Bewertung.</button>
+      <button data-drawer-nav="haccp" onclick="switchTab('haccp');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🌡️</span>HACCP</button>
     </div>
   </div>
   <div class="bs-section">
@@ -8123,7 +8127,7 @@ const NAV_GROUPS = [
   { id:'kombis',   icon:'shopping_cart',   label:'Kombis',    tabs:['kombis'],                                          mobile:true  },
   { id:'einkauf',  icon:'receipt_long',    label:'Einkauf',   tabs:['angebote','einkaufsliste','suche','upload','verlauf'], mobile:true  },
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
-  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck'], mobile:true  },
+  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck','haccp'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
   { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'], mobile:false },
 ];
@@ -8286,7 +8290,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute','haccp'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -8348,6 +8352,7 @@ function switchTab(tab) {
   if (tab === 'konkurrenz')    renderKonkurrenzTab();
   if (tab === 'bewertungen')   renderBewertungenTab();
   if (tab === 'heute')         { if (typeof renderHeuteTab === 'function') renderHeuteTab(); }
+  if (tab === 'haccp')         renderHaccpTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -12081,10 +12086,10 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
-  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'],
-  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung'],
-  kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager'],
+  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp'],
+  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp'],
+  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp'],
+  kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager','haccp'],
 };
 
 const ROLE_COLORS = {
@@ -15045,6 +15050,246 @@ function bwLoeschen(id) {
     _showToast('Bewertung gelöscht', 'success');
     renderBewertungenTab();
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HACCP-PROTOKOLL
+// ═══════════════════════════════════════════════════════════════
+function renderHaccpTab() {
+  const panel = document.getElementById('panel-haccp');
+  if (!panel) return;
+
+  const heute = new Date().toLocaleDateString('de-AT');
+  const heuteKey = new Date().toISOString().slice(0,10);
+
+  let protokolle = [];
+  try { protokolle = JSON.parse(localStorage.getItem('psc_haccp') || '[]'); } catch(e) {}
+
+  const heuteProts = protokolle.filter(p => p.datum === heuteKey);
+
+  // Kuehlstellen-Konfiguration
+  const KUEHLSTELLEN = [
+    { id:'kuehl1', name:'Kühlschrank 1 (Küche)',   soll:'1°C – 4°C',   min:1,  max:4  },
+    { id:'kuehl2', name:'Kühlschrank 2 (Getränke)', soll:'4°C – 8°C',   min:4,  max:8  },
+    { id:'tiefk',  name:'Tiefkühler',               soll:'-18°C – -15°C', min:-20, max:-15 },
+    { id:'prep',   name:'Vorbereitungszone',         soll:'max. 7°C',    min:-5,  max:7  },
+  ];
+
+  const ampel = (temp, min, max) => {
+    if (temp === '' || temp === null) return { farbe:'#9e9e9e', icon:'⬜', ok:false };
+    const t = parseFloat(temp);
+    if (isNaN(t)) return { farbe:'#9e9e9e', icon:'⬜', ok:false };
+    if (t >= min && t <= max) return { farbe:'#2e7d32', icon:'🟢', ok:true };
+    if (t >= min - 2 && t <= max + 2) return { farbe:'#f57f17', icon:'🟡', ok:false };
+    return { farbe:'#c62828', icon:'🔴', ok:false };
+  };
+
+  const hygCheckliste = [
+    'Hände gewaschen & desinfiziert',
+    'Arbeitsflächen gereinigt',
+    'Schneidbretter getrennt (roh/gekocht)',
+    'Abfälle entsorgt',
+    'Kühlkette eingehalten',
+    'Verfallsdaten geprüft',
+  ];
+
+  // Letzter Eintrag heute
+  const letzter = heuteProts.length > 0 ? heuteProts[heuteProts.length - 1] : null;
+
+  // Alle letzten 7 Tage
+  const vor7 = new Date(); vor7.setDate(vor7.getDate() - 7);
+  const letzte7 = protokolle.filter(p => new Date(p.datum) >= vor7).reverse();
+
+  panel.innerHTML = `
+    <div style="padding:16px;max-width:900px;margin:0 auto">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <span style="font-size:28px">🌡️</span>
+        <div>
+          <h2 style="font-size:22px;font-weight:800;color:#8B0000;margin:0">HACCP-Protokoll</h2>
+          <div style="font-size:13px;color:#6b6b6b">Österreich – Lebensmittelhygiene Pflichtdokumentation</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:13px;font-weight:700;color:#261816">${heute}</div>
+          <div style="font-size:12px;color:#6b6b6b">Heute: ${heuteProts.length} Einträge</div>
+        </div>
+      </div>
+
+      <!-- Neuer Eintrag -->
+      <div style="background:#fff;border-radius:16px;border:2px solid #e3beb8;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+        <h3 style="font-size:16px;font-weight:700;color:#8B0000;margin:0 0 16px">Neuer Eintrag — ${heute}</h3>
+
+        <!-- Uhrzeit + Mitarbeiter -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Uhrzeit</label>
+            <input type="time" id="haccp-zeit" value="${new Date().toTimeString().slice(0,5)}"
+              style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Mitarbeiter</label>
+            <input type="text" id="haccp-ma" placeholder="Name eingeben"
+              style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box">
+          </div>
+        </div>
+
+        <!-- Temperaturen -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:8px">Temperaturen (°C)</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+            ${KUEHLSTELLEN.map(k => `
+              <div style="background:#fff8f6;border-radius:10px;border:1.5px solid #f5ddd8;padding:12px">
+                <div style="font-size:12px;font-weight:700;color:#261816;margin-bottom:4px">${k.name}</div>
+                <div style="font-size:11px;color:#9e6b62;margin-bottom:6px">Soll: ${k.soll}</div>
+                <input type="number" id="haccp-temp-${k.id}" step="0.1" placeholder="z.B. 3"
+                  style="width:100%;padding:8px;border-radius:6px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box">
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Hygiene Checkliste -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:8px">Hygiene-Checkliste</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+            ${hygCheckliste.map((p,i) => `
+              <label style="display:flex;align-items:center;gap:8px;background:#fff8f6;border-radius:8px;padding:8px 10px;cursor:pointer;border:1.5px solid #f5ddd8">
+                <input type="checkbox" id="haccp-hyg-${i}" style="width:16px;height:16px;accent-color:#8B0000">
+                <span style="font-size:13px;color:#261816">${p}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Bemerkung -->
+        <div style="margin-bottom:16px">
+          <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Bemerkungen (optional)</label>
+          <textarea id="haccp-bemerkung" rows="2" placeholder="z.B. Kühlschrank 1 läuft unruhig..."
+            style="width:100%;padding:10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;resize:none;box-sizing:border-box"></textarea>
+        </div>
+
+        <button onclick="haccpSpeichern()" style="background:#8B0000;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">
+          ✅ Eintrag speichern
+        </button>
+      </div>
+
+      <!-- Heutige Eintraege -->
+      ${heuteProts.length > 0 ? `
+      <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:20px">
+        <h3 style="font-size:15px;font-weight:700;color:#261816;margin:0 0 14px">Heute — ${heuteProts.length} Einträge</h3>
+        ${heuteProts.map((p,idx) => {
+          const kOk = KUEHLSTELLEN.every(k => {
+            const t = p.temps && p.temps[k.id];
+            return t !== undefined && t !== '' && ampel(t, k.min, k.max).ok;
+          });
+          return `
+          <div style="border-radius:10px;border:1.5px solid ${kOk?'#a5d6a7':'#ef9a9a'};background:${kOk?'#f1f8e9':'#fff8f6'};padding:12px;margin-bottom:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <span style="font-weight:700;font-size:14px;color:#261816">${p.zeit} Uhr — ${_esc(p.mitarbeiter||'–')}</span>
+              <span style="font-size:18px">${kOk?'✅':'⚠️'}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+              ${KUEHLSTELLEN.map(k => {
+                const t = p.temps && p.temps[k.id] !== undefined ? p.temps[k.id] : '–';
+                const a = t !== '–' ? ampel(t, k.min, k.max) : { icon:'⬜', farbe:'#9e9e9e' };
+                return `<span style="font-size:12px;background:#fff;border-radius:6px;padding:4px 8px;border:1px solid #e3beb8">
+                  ${a.icon} ${k.name.split(' ')[0]}: <strong>${t !== '' ? t+'°C' : '–'}</strong>
+                </span>`;
+              }).join('')}
+            </div>
+            ${p.bemerkung ? `<div style="font-size:12px;color:#5a403c;font-style:italic">"${_esc(p.bemerkung)}"</div>` : ''}
+            <button onclick="haccpLoeschen(${protokolle.indexOf(p)})" style="margin-top:6px;padding:3px 10px;border-radius:6px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:11px;cursor:pointer">Löschen</button>
+          </div>`;
+        }).join('')}
+      </div>` : `
+      <div style="background:#fff8f6;border-radius:12px;border:1.5px dashed #e3beb8;padding:24px;text-align:center;margin-bottom:20px">
+        <div style="font-size:32px;margin-bottom:8px">📋</div>
+        <div style="color:#6b6b6b;font-size:14px">Heute noch kein Eintrag. Bitte jetzt ausfüllen!</div>
+      </div>`}
+
+      <!-- Letzte 7 Tage -->
+      ${letzte7.filter(p=>p.datum!==heuteKey).length > 0 ? `
+      <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px">
+        <h3 style="font-size:15px;font-weight:700;color:#261816;margin:0 0 14px">Letzte 7 Tage</h3>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#fff8f6">
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e3beb8;color:#5a403c">Datum</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e3beb8;color:#5a403c">Zeit</th>
+                <th style="padding:8px 10px;text-align:left;border-bottom:2px solid #e3beb8;color:#5a403c">Mitarbeiter</th>
+                ${KUEHLSTELLEN.map(k=>`<th style="padding:8px 10px;text-align:center;border-bottom:2px solid #e3beb8;color:#5a403c">${k.name.split(' ')[0]}</th>`).join('')}
+                <th style="padding:8px 10px;text-align:center;border-bottom:2px solid #e3beb8;color:#5a403c">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${letzte7.filter(p=>p.datum!==heuteKey).map(p => {
+                const allOk = KUEHLSTELLEN.every(k => {
+                  const t = p.temps && p.temps[k.id];
+                  return t !== undefined && t !== '' && ampel(t, k.min, k.max).ok;
+                });
+                return `<tr style="border-bottom:1px solid #f5ddd8">
+                  <td style="padding:7px 10px;color:#261816">${new Date(p.datum).toLocaleDateString('de-AT')}</td>
+                  <td style="padding:7px 10px;color:#261816">${p.zeit}</td>
+                  <td style="padding:7px 10px;color:#261816">${_esc(p.mitarbeiter||'–')}</td>
+                  ${KUEHLSTELLEN.map(k=>{
+                    const t = p.temps&&p.temps[k.id]!==undefined?p.temps[k.id]:'–';
+                    const a = t!=='–'?ampel(t,k.min,k.max):{icon:'⬜'};
+                    return `<td style="padding:7px 10px;text-align:center">${a.icon} ${t!==''?t+'°':'-'}</td>`;
+                  }).join('')}
+                  <td style="padding:7px 10px;text-align:center;font-size:16px">${allOk?'✅':'⚠️'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function haccpSpeichern() {
+  const zeit = document.getElementById('haccp-zeit').value;
+  const ma   = document.getElementById('haccp-ma').value.trim();
+  const bem  = document.getElementById('haccp-bemerkung').value.trim();
+  if (!ma) { alert('Bitte Mitarbeiter-Name eingeben.'); return; }
+
+  const KUEHLSTELLEN = ['kuehl1','kuehl2','tiefk','prep'];
+  const temps = {};
+  KUEHLSTELLEN.forEach(k => {
+    const el = document.getElementById('haccp-temp-' + k);
+    temps[k] = el ? el.value : '';
+  });
+
+  const hygiene = [];
+  for (let i = 0; i < 6; i++) {
+    const cb = document.getElementById('haccp-hyg-' + i);
+    if (cb && cb.checked) hygiene.push(i);
+  }
+
+  let protokolle = [];
+  try { protokolle = JSON.parse(localStorage.getItem('psc_haccp') || '[]'); } catch(e) {}
+
+  protokolle.push({
+    datum: new Date().toISOString().slice(0,10),
+    zeit,
+    mitarbeiter: ma,
+    temps,
+    hygiene,
+    bemerkung: bem,
+    ts: Date.now()
+  });
+
+  localStorage.setItem('psc_haccp', JSON.stringify(protokolle));
+  renderHaccpTab();
+}
+
+function haccpLoeschen(idx) {
+  if (!confirm('Diesen Eintrag wirklich löschen?')) return;
+  let protokolle = [];
+  try { protokolle = JSON.parse(localStorage.getItem('psc_haccp') || '[]'); } catch(e) {}
+  protokolle.splice(idx, 1);
+  localStorage.setItem('psc_haccp', JSON.stringify(protokolle));
+  renderHaccpTab();
 }
 
 // ═══════════════════════════════════════════════════════════════
