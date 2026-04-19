@@ -284,6 +284,89 @@
     }
     html[data-theme="glass"] .ws-label { color: #6b7280 !important; }
     html[data-theme="glass"] .ws-section-title { color: #e5e7eb !important; }
+    html[data-theme="glass"] .ws-btn-ghost { color: #9ca3af !important; border-color: rgba(255,255,255,0.12) !important; }
+    html[data-theme="glass"] .ws-btn-secondary { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.12) !important; color: var(--red) !important; }
+
+    /* ── Glass: Lager Status-Karten (light gradient → glass) ── */
+    html[data-theme="glass"] #panel-lager div[style*="linear-gradient(135deg,#ffebee"],
+    html[data-theme="glass"] #panel-lager div[style*="linear-gradient(135deg,#fff8e1"],
+    html[data-theme="glass"] #panel-lager div[style*="linear-gradient(135deg,#e8f5e9"] {
+      background: rgba(255,255,255,0.05) !important;
+      backdrop-filter: blur(12px) !important;
+      border-color: rgba(255,255,255,0.12) !important;
+    }
+
+    /* ── Glass: alle #fff0ee Hintergründe → glass surface ── */
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff0ee"],
+    html[data-theme="glass"] [id^="panel-"] button[style*="background:#fff0ee"],
+    html[data-theme="glass"] [id^="panel-"] tr[style*="background:#fff0ee"],
+    html[data-theme="glass"] [id^="panel-"] td[style*="background:#fff0ee"] {
+      background: rgba(224,85,85,0.12) !important;
+      border-color: rgba(224,85,85,0.2) !important;
+    }
+
+    /* ── Glass: alle #ffdad6 (Fehler/Warnung) → dunkles Rot ── */
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#ffdad6"],
+    html[data-theme="glass"] [id^="panel-"] span[style*="background:#ffdad6"],
+    html[data-theme="glass"] [id^="panel-"] button[style*="background:#ffdad6"] {
+      background: rgba(186,26,26,0.25) !important;
+      border-color: rgba(186,26,26,0.4) !important;
+    }
+
+    /* ── Glass: #ffebee, #fff3e0, #e8f5e9, #f3e5f5, #efebe9, #e3f2fd, #f5f5f5 (Kategorie-Farben) ── */
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#ffebee"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff3e0"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e8f5e9"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f3e5f5"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#efebe9"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e3f2fd"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f5f5f5"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f0e8e6"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#faf5f4"] {
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+    }
+
+    /* ── Glass: inline Karten-Hintergründe aus KAT_STYLE ── */
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#ffdad6;"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff3e0;"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e8f5e9;"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f3e5f5;"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#efebe9;"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e3f2fd;"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f5f5f5;"] {
+      background: rgba(255,255,255,0.06) !important;
+    }
+
+    /* ── Glass: weiße Inputs und Selects in Panels ── */
+    html[data-theme="glass"] [id^="panel-"] input[style*="background:#fff"],
+    html[data-theme="glass"] [id^="panel-"] select[style*="background:#fff"],
+    html[data-theme="glass"] [id^="panel-"] textarea[style*="background:#fff"] {
+      background: rgba(255,255,255,0.07) !important;
+      color: #e5e7eb !important;
+      border-color: rgba(255,255,255,0.12) !important;
+    }
+
+    /* ── Glass: dunkel-Text in Karten → hell ── */
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#1a1210"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#1e1e2e"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#111827"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#374151"] { color: #e5e7eb !important; }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#610000"] { color: var(--red) !important; }
+
+    /* ── Glass: Angebote Store-Buttons ── */
+    html[data-theme="glass"] #panel-angebote button[style*="background:#fff"] {
+      background: rgba(255,255,255,0.06) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+    }
+
+    /* ── Glass: Floating Bar ── */
+    html[data-theme="glass"] .floating-bar {
+      background: rgba(10,11,13,0.92) !important;
+      backdrop-filter: blur(24px) !important;
+      border-top-color: rgba(255,255,255,0.08) !important;
+    }
 
     /* ════ DARK THEMES — GLOBAL OVERRIDES ════ */
     html[data-theme="dark"] body,
@@ -1479,6 +1562,76 @@
     }
     .page-hdr-sub { font-size: 12px; color: #8c6b5e; margin-top: 2px; font-weight: 500; }
     .page-hdr-right { margin-left: auto; flex-shrink: 0; }
+
+    /* ── Dark/Glass: page-hdr override ── */
+    html[data-theme="dark"] .page-hdr,
+    html[data-theme="dark-red"] .page-hdr {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+    html[data-theme="dark"] .page-hdr-title,
+    html[data-theme="dark-red"] .page-hdr-title { color: var(--text) !important; }
+    html[data-theme="dark"] .page-hdr-sub,
+    html[data-theme="dark-red"] .page-hdr-sub { color: var(--text-3) !important; }
+    html[data-theme="glass"] .page-hdr {
+      background: rgba(255,255,255,0.06) !important;
+      backdrop-filter: blur(16px) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+    }
+    html[data-theme="glass"] .page-hdr-title { color: #e5e7eb !important; }
+    html[data-theme="glass"] .page-hdr-sub { color: #9ca3af !important; }
+
+    /* ── Dark/Glass: Produkte Stat-Boxen (inline styles) ── */
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#fff0ee"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#fff0ee"] {
+      background: var(--surface) !important; border-color: var(--border) !important;
+    }
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#ffdad6"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#ffdad6"] {
+      background: rgba(186,26,26,0.2) !important; border-color: rgba(186,26,26,0.35) !important;
+    }
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#f0fdf4"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#f0fdf4"] {
+      background: rgba(46,125,50,0.15) !important; border-color: rgba(46,125,50,0.3) !important;
+    }
+    /* ── Dark/Glass: Produkte Kategorie-Karten (CATEGORY_BG) ── */
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#e8f4fd"],
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#fdf5e8"],
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#fde8e8"],
+    html[data-theme="dark"] [id^="panel-"] div[style*="background:#e8fdf0"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#e8f4fd"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#fdf5e8"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#fde8e8"],
+    html[data-theme="dark-red"] [id^="panel-"] div[style*="background:#e8fdf0"] {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e8f4fd"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fdf5e8"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fde8e8"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e8fdf0"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff0ee"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#ffdad6"],
+    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f0fdf4"] {
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+      backdrop-filter: blur(12px) !important;
+    }
+    /* ── Dark/Glass: inline Text-Farben in Produkte-Karten ── */
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#3d1c11"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#3d1c11"] { color: var(--text) !important; }
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#5a403c"],
+    html[data-theme="dark"] [id^="panel-"] [style*="color:#8c6b5e"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#5a403c"],
+    html[data-theme="dark-red"] [id^="panel-"] [style*="color:#8c6b5e"] { color: var(--text-3) !important; }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#261816"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#3d1c11"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#5a403c"] { color: #e5e7eb !important; }
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#8c6b5e"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#0c2000"],
+    html[data-theme="glass"] [id^="panel-"] [style*="color:#386a20"] { color: #9ca3af !important; }
 
     /* ════ ALERT BOX ════ */
     .alert-box {
@@ -7272,22 +7425,44 @@ const CATEGORY_BG = {
   'Gewürze':      '#e8fdf0',
 };
 
+function _isDarkTheme() {
+  const t = document.documentElement.getAttribute('data-theme');
+  return t === 'dark' || t === 'dark-red' || t === 'glass';
+}
+function _tc(lightVal, darkVal) {
+  return _isDarkTheme() ? darkVal : lightVal;
+}
+
 function renderProductsTab() {
   const low = getLowStockProducts();
   const categories = [...new Set(PRODUCTS.map(p => p.category))];
   if (typeof window._produkteFilter === 'undefined') window._produkteFilter = 'alle';
   const currentFilter = window._produkteFilter;
 
+  const dark = _isDarkTheme();
+  const surf = dark ? 'var(--surface)' : '#fff0ee';
+  const surfBorder = dark ? 'var(--border)' : '#e3beb8';
+  const txtMain = dark ? 'var(--text)' : '#261816';
+  const txtSub  = dark ? 'var(--text-3)' : '#5a403c';
+  const errBg   = dark ? 'rgba(186,26,26,0.2)' : '#ffdad6';
+  const errBrd  = dark ? 'rgba(186,26,26,0.35)' : '#ffdad4';
+  const errTxt  = dark ? 'var(--red)' : '#93000a';
+  const errSub  = dark ? 'var(--text-3)' : '#ba1a1a';
+  const okBg    = dark ? 'rgba(46,125,50,0.15)' : '#f0fdf4';
+  const okBrd   = dark ? 'rgba(46,125,50,0.3)' : '#bbf7d0';
+  const okTxt   = dark ? '#4caf50' : '#0c2000';
+  const okSub   = dark ? '#4caf50' : '#386a20';
+
   let html = _pageHdr('inventory_2', 'Produkte', PRODUCTS.length + ' Artikel · ' + low.length + ' niedriger Bestand', '');
   html += `
     <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap">
-      <div style="flex:1;min-width:120px;background:#fff0ee;border:1px solid #e3beb8;border-radius:16px;padding:16px 20px">
-        <div style="font-size:28px;font-weight:800;color:#261816">${PRODUCTS.length}</div>
-        <div style="font-size:12px;color:#5a403c;margin-top:4px">Produkte gesamt</div>
+      <div style="flex:1;min-width:120px;background:${surf};border:1px solid ${surfBorder};border-radius:16px;padding:16px 20px">
+        <div style="font-size:28px;font-weight:800;color:${txtMain}">${PRODUCTS.length}</div>
+        <div style="font-size:12px;color:${txtSub};margin-top:4px">Produkte gesamt</div>
       </div>
-      <div style="flex:1;min-width:120px;background:${low.length>0?'#ffdad6':'#f0fdf4'};border:1px solid ${low.length>0?'#ffdad4':'#bbf7d0'};border-radius:16px;padding:16px 20px">
-        <div style="font-size:28px;font-weight:800;color:${low.length>0?'#93000a':'#0c2000'}">${low.length}</div>
-        <div style="font-size:12px;color:${low.length>0?'#ba1a1a':'#386a20'};margin-top:4px">Niedriger Bestand</div>
+      <div style="flex:1;min-width:120px;background:${low.length>0?errBg:okBg};border:1px solid ${low.length>0?errBrd:okBrd};border-radius:16px;padding:16px 20px">
+        <div style="font-size:28px;font-weight:800;color:${low.length>0?errTxt:okTxt}">${low.length}</div>
+        <div style="font-size:12px;color:${low.length>0?errSub:okSub};margin-top:4px">Niedriger Bestand</div>
       </div>
     </div>`;
 
@@ -7301,7 +7476,10 @@ function renderProductsTab() {
   const chipHtml = chipCategories.map(cat => {
     const active = currentFilter === cat;
     const label = cat === 'alle' ? 'Alle' : cat;
-    return `<button onclick="window._produkteFilter='${cat}';renderProductsTab()" style="padding:7px 12px;border-radius:999px;border:1.5px solid ${active ? '#610000' : '#e3beb8'};background:${active ? '#610000' : '#fff'};color:${active ? '#fff' : '#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${label}</button>`;
+    const chipBg = active ? '#610000' : (dark ? 'var(--surface)' : '#fff');
+    const chipBorder = active ? '#610000' : (dark ? 'var(--border)' : '#e3beb8');
+    const chipColor = active ? '#fff' : (dark ? 'var(--text-2)' : '#5a403c');
+    return `<button onclick="window._produkteFilter='${cat}';renderProductsTab()" style="padding:7px 12px;border-radius:999px;border:1.5px solid ${chipBorder};background:${chipBg};color:${chipColor};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">${label}</button>`;
   }).join('');
   html += `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px">${chipHtml}</div>`;
 
@@ -7316,10 +7494,11 @@ function renderProductsTab() {
         if (aLow !== bLow) return aLow ? -1 : 1;
         return a.name.localeCompare(b.name, 'de');
       });
-    const bg = CATEGORY_BG[cat] || '#fff0ee';
+    const bg = dark ? 'var(--surface)' : (CATEGORY_BG[cat] || '#fff0ee');
+    const catBorder = dark ? 'var(--border)' : 'transparent';
     html += `
       <div style="margin-bottom:28px">
-        <h3 style="font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px">${cat}</h3>
+        <h3 style="font-size:11px;font-weight:700;color:${dark?'var(--text-3)':'#5a403c'};text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px">${cat}</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">`;
 
     for (const p of catProducts) {
@@ -7329,36 +7508,40 @@ function renderProductsTab() {
       const pctText = Math.round(pct) + '% vom Minimum';
       const barColor = isLow ? '#ba1a1a' : '#386a20';
       const fifoWarn = typeof fifoCheckWarning === 'function' ? fifoCheckWarning(p.id) : null;
+      const cardNameColor = dark ? 'var(--text)' : '#261816';
+      const cardSubColor  = dark ? 'var(--text-3)' : '#5a403c';
+      const cardBtnBg     = dark ? 'var(--surface)' : 'rgba(255,255,255,0.6)';
+      const cardBorder    = isLow ? '#ba1a1a44' : (dark ? 'var(--border)' : 'transparent');
       html += `
         <div id="pcard-${p.id}"
-          style="background:${bg};border:1.5px solid ${isLow?'#ba1a1a44':'transparent'};
+          style="background:${bg};border:1.5px solid ${cardBorder};
             border-radius:16px;overflow:hidden;transition:box-shadow .15s"
-          onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,.1)'"
+          onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.18)'"
           onmouseout="this.style.boxShadow=''">
           <div onclick="editStock('${p.id}')" style="padding:16px;cursor:pointer">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-              <span style="font-size:14px;font-weight:600;color:#261816;line-height:1.3">${p.name}</span>
+              <span style="font-size:14px;font-weight:600;color:${cardNameColor};line-height:1.3">${p.name}</span>
               ${isLow ? '<span class="material-symbols-outlined" style="font-size:18px;color:#ba1a1a;flex-shrink:0">warning</span>' : ''}
             </div>
-            <div style="height:6px;background:#e3beb866;border-radius:3px;margin-bottom:8px;overflow:hidden">
+            <div style="height:6px;background:${dark?'rgba(255,255,255,0.12)':'#e3beb866'};border-radius:3px;margin-bottom:8px;overflow:hidden">
               <div class="progress-fill" style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5a403c">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:${cardSubColor}">
               <span>Min: ${p.minStock} ${p.unit}</span>
               <span id="stock-${p.id}" style="font-weight:700;color:${isLow?'#ba1a1a':'#386a20'}">${stock.toLocaleString('de-DE')} ${p.unit}</span>
             </div>
             <div style="font-size:11px;font-weight:700;color:${isLow?'#ba1a1a':'#2e7d32'};margin-top:6px">${pctText}</div>
-            ${isLow ? `<div style="font-size:11px;font-weight:700;color:#ba1a1a;margin-top:4px">Bestellen: ${p.orderQuantity} ${p.unit}</div>` : ''}
-            ${isLow ? `<div onclick="event.stopPropagation();switchTab('kombis')" style="font-size:11px;font-weight:700;color:#610000;margin-top:5px;text-decoration:underline;cursor:pointer;display:inline-flex;align-items:center;gap:3px">→ Zur Einkaufs-Kombi</div>` : ''}
+            ${isLow ? `<div style="font-size:11px;font-weight:700;color:${dark?'var(--red)':'#ba1a1a'};margin-top:4px">Bestellen: ${p.orderQuantity} ${p.unit}</div>` : ''}
+            ${isLow ? `<div onclick="event.stopPropagation();switchTab('kombis')" style="font-size:11px;font-weight:700;color:${dark?'var(--red)':'#610000'};margin-top:5px;text-decoration:underline;cursor:pointer;display:inline-flex;align-items:center;gap:3px">→ Zur Einkaufs-Kombi</div>` : ''}
           </div>
           ${fifoWarn ? `
-            <div style="background:#fff8e1;border-top:1px solid #ffe082;padding:7px 14px;
+            <div style="background:${dark?'rgba(230,81,0,0.15)':'#fff8e1'};border-top:1px solid ${dark?'rgba(230,81,0,0.3)':'#ffe082'};padding:7px 14px;
               display:flex;align-items:center;gap:6px;font-size:11px;color:#e65100;font-weight:600">
               <span class="material-symbols-outlined" style="font-size:13px">schedule</span>
               ${fifoWarn}
             </div>` : ''}
-          <div style="border-top:1px solid rgba(0,0,0,0.06);padding:7px 10px;
-            background:rgba(255,255,255,0.6);display:flex;gap:6px">
+          <div style="border-top:1px solid ${dark?'var(--border)':'rgba(0,0,0,0.06)'};padding:7px 10px;
+            background:${cardBtnBg};display:flex;gap:6px">
             <button onclick="event.stopPropagation();fifoSetEingang('${p.id}')"
               title="Eingang-Datum setzen (FIFO)"
               style="flex:1;min-height:36px;padding:4px 6px;border-radius:7px;
