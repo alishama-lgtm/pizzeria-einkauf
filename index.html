@@ -9576,7 +9576,9 @@ function maHinzufuegen() {
   const newMa = { id: 'ma_' + Date.now(), name, rolle, stunden, lohn, farbe: MA_FARBEN[list.length % MA_FARBEN.length] };
   list.push(newMa);
   saveMitarbeiterList(list);
-  fetch('/api/mitarbeiter', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newMa) }).catch(()=>{});
+  fetch('/api/mitarbeiter', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newMa) })
+    .then(r => r.json()).then(d => { if(d.ok) _showToast('✅ In DB gespeichert', 'success'); else _showToast('❌ DB Fehler: '+JSON.stringify(d), 'error'); })
+    .catch(e => _showToast('❌ Server nicht erreichbar: '+e.message, 'error'));
   renderMitarbeiterTab();
 }
 

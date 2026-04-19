@@ -56,6 +56,20 @@ node server.js        # → http://localhost:8080
 - **Aufgabe #13 ✅**: Kontrast-Fix alle Themes — Business-Tab "Gewinn pro Pizza" Tabelle + alle 31 Panels
 - **Aufgabe #15 ✅**: Preisverlauf-Chart (Shop-Vergleich über Zeit) in Statistik-Tab — Dropdown für Produkt, eine Linie pro Shop (Metro/Billa/Lidl/Spar), async, relative URLs, Chart.js destroy korrekt
 
+### Session 7 (2026-04-19)
+- `users.js` Problem gelöst (Datei war gitignored, manuell kopiert)
+- `bizToday()` Timezone-Bug gefixt (UTC → lokales Datum)
+- Mitarbeiter in SQLite DB gespeichert (API: GET/POST/DELETE `/api/mitarbeiter`)
+- Kassabuch sync aus DB beim Tab-Öffnen (`_syncKassaFromDB`)
+- GET `/api/umsatz/alle` — alle Kassabuch-Einträge
+- Rechnungen-Ordner → `datenbank/rechnungen/` (File-Watcher, JSON-Spiegel)
+- Universelle DB-Sync: `localStorage.setItem` Override → alle Daten automatisch in SQLite
+- `app_data` Tabelle (key-value Store für alle localStorage Keys)
+- Fix: `.all(params)` → `.all(...params)` für `node:sqlite`
+- Fix: `datetime("now")` → `datetime('now')` in SQLite
+- nodemon installiert (kein manueller Server-Neustart mehr nötig)
+- `datenbank/` Ordnerstruktur komplett (12 Ordner: rechnungen, mitarbeiter, kassabuch, umsatz, einkaufsliste, lager, lieferanten, preise, bestellungen, dienstplan, aufgaben, fehlmaterial)
+
 ---
 
 ## Offene Aufgaben
