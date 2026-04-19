@@ -552,7 +552,7 @@ app.get('/api/preisverlauf', (req, res) => {
     if (req.query.bis)        { sql += ' AND datum <= ?';     params.push(req.query.bis); }
     sql += ' ORDER BY datum DESC LIMIT ?';
     params.push(parseInt(req.query.limit) || 200);
-    res.json(db.prepare(sql).all(params));
+    res.json(db.prepare(sql).all(...params));
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
