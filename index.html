@@ -219,39 +219,98 @@
       border-color: rgba(255,255,255,0.1) !important;
       color-scheme: dark;
     }
-    /* Glass: inline white backgrounds → glass surface */
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff"],
-    html[data-theme="glass"] [id^="panel-"] button[style*="background:#fff"],
-    html[data-theme="glass"] [id^="panel-"] td[style*="background:#fff"],
-    html[data-theme="glass"] [id^="panel-"] label[style*="background:#fff"] {
+    /* ═══ Glass: UNIVERSELLER TAB-FIX — alle Elemente, alle Farben ═══ */
+
+    /* Alle hellen Hintergründe → glass surface (JEDES Element: div, td, th, tr, span, label, button...) */
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#fff"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background: #fff"] {
+      background: rgba(255,255,255,0.06) !important;
+      border-color: rgba(255,255,255,0.1) !important;
+    }
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#fff0ee"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#fff8f6"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#fff8e1"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#fff3e0"] {
       background: rgba(255,255,255,0.05) !important;
-      backdrop-filter: blur(12px) !important;
       border-color: rgba(255,255,255,0.08) !important;
     }
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#faf"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f8f"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f0f"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f9f"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e9e"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e5e"] {
-      background: rgba(255,255,255,0.03) !important;
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#ffebee"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#ffdad6"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#fce4ec"] {
+      background: rgba(186,26,26,0.2) !important;
+      border-color: rgba(186,26,26,0.3) !important;
     }
-    /* Glass: dark text → light */
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#261816"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#1a1210"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#1e1e2e"] { color: #e5e7eb !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#5a403c"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#5c4a46"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b7280"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#374151"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#4b5563"] { color: #9ca3af !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#8d6562"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#7a6460"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b4844"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#5a6472"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b6b6b"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#777"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#888"] { color: #6b7280 !important; }
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#e8f5e9"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#f1f8e9"] {
+      background: rgba(46,125,50,0.15) !important;
+      border-color: rgba(46,125,50,0.2) !important;
+    }
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#e3f2fd"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#e1f5fe"] {
+      background: rgba(13,71,161,0.2) !important;
+      border-color: rgba(13,71,161,0.25) !important;
+    }
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#f3e5f5"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#ede7f6"] {
+      background: rgba(106,27,154,0.15) !important;
+    }
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#f5f5f5"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#eeeeee"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#e0e0e0"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#f0e8e6"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#faf5f4"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#f3ebe9"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#f5ddd8"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#e3beb8"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="background:#efebe9"] {
+      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.08) !important;
+    }
+
+    /* Alle dunklen Textfarben → hell (gilt für JEDES Element) */
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#261816"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#1a1210"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#1e1e2e"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#111827"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#1f2937"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#374151"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#333"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#444"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#000"] { color: #e5e7eb !important; }
+
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#5a403c"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#5c4a46"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#4b5563"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#374151"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#555"] { color: #9ca3af !important; }
+
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#6b6b6b"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#6b7280"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#8d6562"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#7a6460"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#6b4844"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#5a6472"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#9e6b62"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#9e9e9e"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#777"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#888"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#999"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#aaa"] { color: #6b7280 !important; }
+
+    /* Akzentfarben aufgehellt */
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#610000"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#8B0000"] { color: #e05555 !important; }
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#b52619"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#c62828"] { color: #f87171 !important; }
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#2e7d32"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#1b5e20"] { color: #86efac !important; }
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#f57f17"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#e65100"] { color: #fbbf24 !important; }
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#0d47a1"] { color: #93c5fd !important; }
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#c9a227"],
+    html[data-theme="glass"] [id^="panel-"] *[style*="color:#D4AF37"] { color: #fcd34d !important; }
+
+    /* Headings */
     html[data-theme="glass"] [id^="panel-"] h1,
     html[data-theme="glass"] [id^="panel-"] h2,
     html[data-theme="glass"] [id^="panel-"] h3,
@@ -368,87 +427,7 @@
       border-top-color: rgba(255,255,255,0.08) !important;
     }
 
-    /* ── Glass: fehlende Textfarben → hell ── */
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#5a403c"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#5c4a46"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b4844"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#9e6b62"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#7a5c58"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#8d6562"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#4b5563"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#1f2937"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#111827"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#333"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#444"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#555"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#000"] { color: #e5e7eb !important; }
-
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b6b6b"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#6b7280"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#777"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#888"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#999"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#9e9e9e"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#9ca3af"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#aaa"],
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#bbb"] { color: #9ca3af !important; }
-
-    /* ── Glass: fehlende Hintergründe → glass surface ── */
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f5ddd8"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e3beb8"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f8eeec"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f1f8e9"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fff8e1"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#fce4ec"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#eeeeee"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#f5f5f5"],
-    html[data-theme="glass"] [id^="panel-"] div[style*="background:#e0e0e0"] {
-      background: rgba(255,255,255,0.05) !important;
-      border-color: rgba(255,255,255,0.08) !important;
-    }
-
-    /* ── Glass: Border-Farben → glass border ── */
-    html[data-theme="glass"] [id^="panel-"] [style*="border:1.5px solid #e3beb8"],
-    html[data-theme="glass"] [id^="panel-"] [style*="border:2px solid #e3beb8"],
-    html[data-theme="glass"] [id^="panel-"] [style*="border:1px solid #e3beb8"],
-    html[data-theme="glass"] [id^="panel-"] [style*="border-color:#e3beb8"],
-    html[data-theme="glass"] [id^="panel-"] [style*="border-bottom:2px solid #e3beb8"],
-    html[data-theme="glass"] [id^="panel-"] [style*="border-bottom:1px solid #f5ddd8"] {
-      border-color: rgba(255,255,255,0.1) !important;
-    }
-
-    /* ── Glass: Tabellen-Hintergründe ── */
-    html[data-theme="glass"] [id^="panel-"] tr[style*="background:#fff8f6"],
-    html[data-theme="glass"] [id^="panel-"] th[style*="background:#fff8f6"],
-    html[data-theme="glass"] [id^="panel-"] td[style*="background:#fff8f6"],
-    html[data-theme="glass"] [id^="panel-"] tr[style*="background:#f5ddd8"],
-    html[data-theme="glass"] [id^="panel-"] th[style*="background:#f5ddd8"],
-    html[data-theme="glass"] [id^="panel-"] td[style*="background:#f5ddd8"] {
-      background: rgba(255,255,255,0.04) !important;
-    }
-
-    /* ── Glass: span / label / button Hintergründe → glass ── */
-    html[data-theme="glass"] [id^="panel-"] span[style*="background:#fff8f6"],
-    html[data-theme="glass"] [id^="panel-"] label[style*="background:#fff8f6"],
-    html[data-theme="glass"] [id^="panel-"] span[style*="background:#f5ddd8"],
-    html[data-theme="glass"] [id^="panel-"] button[style*="background:#fff0ee"],
-    html[data-theme="glass"] [id^="panel-"] span[style*="background:#fff0ee"] {
-      background: rgba(255,255,255,0.06) !important;
-      border-color: rgba(255,255,255,0.1) !important;
-    }
-
-    /* ── Glass: Heading-Farben (dunkel) → hell ── */
-    html[data-theme="glass"] [id^="panel-"] h2[style*="color:#261816"],
-    html[data-theme="glass"] [id^="panel-"] h3[style*="color:#261816"],
-    html[data-theme="glass"] [id^="panel-"] h2[style*="color:#1f2937"],
-    html[data-theme="glass"] [id^="panel-"] h3[style*="color:#1f2937"] { color: #e5e7eb !important; }
-
-    /* ── Glass: rote Akzentfarben bleibt, nur aufgehellt ── */
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#8B0000"],
-    html[data-theme="glass"] [id^="panel-"] h2[style*="color:#8B0000"],
-    html[data-theme="glass"] [id^="panel-"] h3[style*="color:#8B0000"] { color: #e05555 !important; }
-
-    /* ── Glass: Inputs in Panels (auch mit inline border-color) ── */
+    /* ── Glass: Inputs / Selects / Textareas in Panels ── */
     html[data-theme="glass"] [id^="panel-"] input[style],
     html[data-theme="glass"] [id^="panel-"] select[style],
     html[data-theme="glass"] [id^="panel-"] textarea[style] {
@@ -456,14 +435,6 @@
       color: #e5e7eb !important;
       border-color: rgba(255,255,255,0.12) !important;
     }
-
-    /* ── Glass: Ampel-Farben (grün/gelb/rot) bleiben ── */
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#2e7d32"] { color: #86efac !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#1b5e20"] { color: #86efac !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#f57f17"] { color: #fbbf24 !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#e65100"] { color: #fb923c !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#c62828"] { color: #f87171 !important; }
-    html[data-theme="glass"] [id^="panel-"] [style*="color:#0d47a1"] { color: #93c5fd !important; }
 
     /* ════ DARK THEMES — GLOBAL OVERRIDES ════ */
     html[data-theme="dark"] body,
