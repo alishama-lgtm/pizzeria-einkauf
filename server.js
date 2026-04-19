@@ -681,7 +681,7 @@ app.get('/api/data/:key', (req, res) => {
 app.post('/api/data/:key', express.json(), (req, res) => {
   try {
     const data = JSON.stringify(req.body);
-    db.prepare('INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime("now")) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at')
+    db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
       .run(req.params.key, data);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
