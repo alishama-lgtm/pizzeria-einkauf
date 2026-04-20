@@ -103,14 +103,27 @@ node server.js        # → http://localhost:8080
   - Historie letzte 30 Einträge
   - Speichern in `psc_trinkgeld` (localStorage)
 
+## Session 10 (2026-04-20) — Was gebaut wurde
+
+- **UI/UX Komplett-Überarbeitung** ✅ — WCAG 2.1 AA Kontrast, Zugänglichkeit, alle 4 Themes
+  - `:focus-visible` Ringe für alle interaktiven Elemente (theme-spezifisch)
+  - Globale CSS-Transitions auf Button/Input/Select/Textarea/a
+  - Min-Height 36px auf allen Buttons
+  - Scrollbar-Styling pro Theme (classic/dark/dark-red/glass)
+  - `::selection` Farbe pro Theme
+  - Vollständige Dark/Dark-Red Theme-Overrides für alle Komponenten:
+    - Header, Nav, Tab-Bar, Mobile-Nav, Footer
+    - Cards, Tables, Inputs, Buttons, Badges, Panels
+    - Inline-Style-Overrides für Panel-Texte und Hintergründe
+  - Print-Styles (Navigation wird ausgeblendet)
+- **Cloudflare Tunnel** — Anleitung gegeben, Ali richtet zuhause ein
+- **Tägliche Routine** ✅ — Claude Code Remote Agent bei claude.ai/code/routines
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
+- **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
 - **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
-- **Server online** — Cloudflare Tunnel für Fernzugriff
-
-- **Preisverlauf Offline-Fallback** ✅ — zeigt pizzeria_history Daten wenn Server offline
-- **Dashboard erweitert** ✅ — MHD-Warnungen + Kassenschnitt-Karte + Alerts im Header
 
 ### Priorität Mittel
 - **n8n Workflows** installieren und aktivieren
