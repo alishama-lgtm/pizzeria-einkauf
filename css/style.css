@@ -770,9 +770,48 @@
     html[data-theme="dark"] [id^="panel-"] *[style*="color:#5a403c"],
     html[data-theme="dark"] [id^="panel-"] *[style*="color:#5c4a46"],
     html[data-theme="dark"] [id^="panel-"] *[style*="color:#6b6b6b"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="color:#5a6472"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="color:#6b4844"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="color:#8e706b"],
     html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#5a403c"],
     html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#5c4a46"],
-    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#6b6b6b"] { color: var(--text-2) !important; }
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#6b6b6b"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#5a6472"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#6b4844"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#8e706b"] { color: var(--text-2) !important; }
+
+    html[data-theme="dark"] [id^="panel-"] *[style*="color:#c9b8b4"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="color:#a89490"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#c9b8b4"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="color:#a89490"] { color: var(--text-3) !important; }
+
+    html[data-theme="dark"] [id^="panel-"] *[style*="background:#fafafa"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="background: #fafafa"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="background:#fafafa"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="background: #fafafa"] {
+      background: var(--surface) !important;
+      border-color: var(--border) !important;
+    }
+    html[data-theme="dark"] [id^="panel-"] *[style*="background:#f0fdf4"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="background:#f0fdf4"] {
+      background: rgba(22,163,74,0.15) !important;
+    }
+    html[data-theme="dark"] [id^="panel-"] *[style*="border:1px solid #e3beb8"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="border: 1px solid #e3beb8"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="border:1px solid #e3beb8"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="border: 1px solid #e3beb8"] {
+      border-color: var(--border) !important;
+    }
+    html[data-theme="dark"] [id^="panel-"] *[style*="border-bottom:2px solid #e3beb8"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="border-bottom:2px solid #e3beb8"] {
+      border-bottom-color: var(--border) !important;
+    }
+    html[data-theme="dark"] [id^="panel-"] *[style*="border-bottom:1px solid #f5f0ee"],
+    html[data-theme="dark"] [id^="panel-"] *[style*="border-bottom:1px solid #f0e8e6"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="border-bottom:1px solid #f5f0ee"],
+    html[data-theme="dark-red"] [id^="panel-"] *[style*="border-bottom:1px solid #f0e8e6"] {
+      border-bottom-color: var(--border) !important;
+    }
 
     /* ════ PRINT ════ */
     @media print {
