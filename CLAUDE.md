@@ -14,7 +14,7 @@ Erst danach Code schreiben.
 - **Hauptdatei:** `index.html` (~16.000 Zeilen, Vanilla JS SPA)
 - **GitHub:** `alishama-lgtm/pizzeria-einkauf` → Branch: `main`
 - **Betrieb:** Windows-PC (Pizzeria) + neuer Laptop (aktuell)
-- **Arbeitsverzeichnis:** `C:\Users\Aliishamaa0992\Desktop\Calude_19.04.2026\`
+- **Arbeitsverzeichnis:** `C:\Users\Aliishamaa0992\pizzeria-einkauf\` (echtes Verzeichnis — Desktop-Kopie ist veraltet)
 - **Philosophie:** Interne Tool-App — kein React, kein Vite, kein MongoDB. Alles bleibt in einer einzigen HTML-Datei. Diese Entscheidung ist final.
 
 ---
@@ -90,6 +90,29 @@ git push
 | 🌙 Dark Navy | `dark`    | Dunkel & Blau             |
 | 🔥 Dark Red | `dark-red` | Dunkel & Rot              |
 | 💎 Glass    | `glass`    | Stitch / Glassmorphism    |
+
+---
+
+## Datenbank-Ordner Import-System (Session 9 — 2026-04-20)
+
+Dateien in `datenbank/<ordner>/` ablegen → erscheint **automatisch** in der App (via fs.watch + WebSocket).
+
+| Ordner | Aktion |
+|--------|--------|
+| `datenbank/rechnungen/` | PDF/Bild ablegen → erscheint in Rechnungen-Tab |
+| `datenbank/mitarbeiter/` | JSON ablegen → erscheint in Mitarbeiter-Tab |
+| `datenbank/lager/` | JSON ablegen → erscheint in Lager-Tab |
+| `datenbank/aufgaben/` | JSON ablegen → erscheint in Aufgaben-Tab |
+| `datenbank/dienstplan/` | JSON ablegen → erscheint im Dienstplan |
+| `datenbank/fehlmaterial/` | JSON ablegen → erscheint in Fehlmaterial |
+
+**Startup-Scan:** Beim Server-Start werden alle JSONs in `datenbank/mitarbeiter/` automatisch eingelesen (auch wenn vor dem Start erstellt).
+
+**JSON-Format:**
+- Einzelnes Objekt `{}` → wird zur bestehenden Liste hinzugefügt
+- Array `[{}, {}]` → ersetzt die gesamte Liste
+
+**Echte DB:** `C:\Users\Aliishamaa0992\pizzeria-einkauf\pizzeria.db` — NICHT die Desktop-Kopie!
 
 ---
 
