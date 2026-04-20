@@ -12405,6 +12405,26 @@ function renderDashboardTab() {
       } catch(_) {}
     }
 
+    // MHD-Warnungen
+    let mhdAbgelaufen = 0, mhdBald = 0;
+    try {
+      const mhdDaten = JSON.parse(localStorage.getItem('psc_mhd') || '[]');
+      const heuteD = new Date(); heuteD.setHours(0,0,0,0);
+      mhdDaten.forEach(p => {
+        const dt = new Date(p.mhd); dt.setHours(0,0,0,0);
+        const diff = Math.round((dt - heuteD) / 86400000);
+        if (diff < 0) mhdAbgelaufen++;
+        else if (diff <= 3) mhdBald++;
+      });
+    } catch(_) {}
+
+    // Kassenschnitt heute
+    let kassenschnittHeute = null;
+    try {
+      const ks = JSON.parse(localStorage.getItem('psc_kassenschnitt') || '[]');
+      kassenschnittHeute = ks.find(e => e.datum === today) || null;
+    } catch(_) {}
+
     // Helper
     const fmt2 = n => n.toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2});
     const bar = (pct, color) => `<div style="height:8px;border-radius:4px;background:#f0e4e1;overflow:hidden"><div class="progress-fill" style="height:100%;border-radius:4px;background:${color};width:${Math.min(100,pct)}%"></div></div>`;
@@ -12428,6 +12448,8 @@ function renderDashboardTab() {
     if (lagerKritisch > 0)     alerts.push({icon:'🔴', text:`${lagerKritisch} Artikel brauchen Nachbestellung`, tab:'lager', expandable:true, artikelListe:lagerKritischArtikel});
     if (preisAlarm > 0)        alerts.push({icon:'🔴', text:`Preisalarm: <strong>${preisAlarm} Produkte</strong> über Zielpreis`,             tab:'preisalarm'});
     if (aufgabenHeute.length)  alerts.push({icon:'🟡', text:`Aufgaben fällig heute: <strong>${aufgabenHeute.length} Aufgaben</strong>`,       tab:'aufgaben', expandable:true, artikelListe:aufgabenHeute, nameField:'titel'});
+    if (mhdAbgelaufen > 0)     alerts.push({icon:'🔴', text:`MHD: <strong>${mhdAbgelaufen} Produkte abgelaufen</strong> — sofort entfernen!`, tab:'mhd'});
+    if (mhdBald > 0)           alerts.push({icon:'🟡', text:`MHD: <strong>${mhdBald} Produkte</strong> laufen in ≤3 Tagen ab`,                tab:'mhd'});
 
     if (alerts.length > 0) {
       html += `<div style="background:#ffebee;border:1.5px solid #ef9a9a;border-radius:16px;padding:16px 20px;margin-bottom:20px">
@@ -12565,6 +12587,39 @@ function renderDashboardTab() {
           ${bar(pctM, mColor)}
         </div>` : '<div style="font-size:12px;color:#6b6b6b;text-align:center;padding:4px 0">Kein Monatsziel gesetzt</div>'}
       </div>`;
+    }
+
+    // ── BEREICH 5b: MHD + Kassenschnitt Karten ──
+    if (mhdAbgelaufen > 0 || mhdBald > 0 || kassenschnittHeute !== null || isAdminOrManager) {
+      html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">`;
+
+      // MHD-Karte
+      const mhdStatus = mhdAbgelaufen > 0 ? {bg:'#ffebee',bc:'#ef9a9a',clr:'#c62828',icon:'🔴',text:`${mhdAbgelaufen} abgelaufen!`} :
+                        mhdBald > 0        ? {bg:'#fff8e1',bc:'#ffe082',clr:'#f57f17',icon:'🟡',text:`${mhdBald} laufen bald ab`} :
+                                             {bg:'#e8f5e9',bc:'#a5d6a7',clr:'#2e7d32',icon:'🟢',text:'Alles OK'};
+      html += `<div style="background:${mhdStatus.bg};border:1.5px solid ${mhdStatus.bc};border-radius:16px;padding:18px;cursor:pointer" onclick="switchTab('mhd')">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">${mhdStatus.icon}</span>
+          <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0">MHD-Tracker</h3>
+        </div>
+        <div style="font-size:22px;font-weight:900;color:${mhdStatus.clr};margin-bottom:4px">${mhdStatus.text}</div>
+        <div style="font-size:11px;color:#6b6b6b">→ MHD-Tracker öffnen</div>
+      </div>`;
+
+      // Kassenschnitt-Karte
+      const ksStatus = kassenschnittHeute
+        ? (() => { const d=kassenschnittHeute.ist-kassenschnittHeute.soll; return { bg: d<-1?'#ffebee':d>1?'#e8f5e9':'#f8f4f4', bc: d<-1?'#ef9a9a':d>1?'#a5d6a7':'#e3beb8', clr: d<-1?'#c62828':d>1?'#2e7d32':'#261816', text:(d>=0?'+':'')+d.toFixed(2).replace('.',',')+' €', sub:'Kassenschnitt heute ✓' }; })()
+        : {bg:'#fff8e1',bc:'#ffe082',clr:'#e65100',text:'Noch offen',sub:'Kassenschnitt eintragen!'};
+      html += `<div style="background:${ksStatus.bg};border:1.5px solid ${ksStatus.bc};border-radius:16px;padding:18px;cursor:pointer" onclick="switchTab('kassenschnitt')">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:20px">💵</span>
+          <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0">Kassenschnitt</h3>
+        </div>
+        <div style="font-size:22px;font-weight:900;color:${ksStatus.clr};margin-bottom:4px">${ksStatus.text}</div>
+        <div style="font-size:11px;color:#6b6b6b">${ksStatus.sub}</div>
+      </div>`;
+
+      html += `</div>`;
     }
 
     // ── BEREICH 6: Schnellzugriff ──
@@ -15950,9 +16005,46 @@ async function loadPreisverlaufSection() {
       loadPreisverlaufChart(uniqueProducts[0]);
     }
   } catch(_) {
-    el.innerHTML =
-      '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
-      '<p style="color:#777;font-size:12px;margin:0">Server nicht aktiv — <code>node server.js</code> starten um Preishistorie zu sehen.</p>';
+    // Offline-Fallback: zeige Daten aus pizzeria_history localStorage
+    let hist = [];
+    try { hist = JSON.parse(localStorage.getItem('pizzeria_history') || '[]'); } catch(e) {}
+    if (!hist.length) {
+      el.innerHTML = '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
+        '<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:10px">' +
+        '<span style="font-size:20px">📴</span><div><div style="font-size:13px;font-weight:700;color:#e65100">Server offline</div>' +
+        '<div style="font-size:12px;color:#7a5c00;margin-top:2px">Noch keine lokalen Einkaufsdaten vorhanden. Starte <code>node server.js</code> für Preishistorie.</div></div></div>';
+      return;
+    }
+    // Produkte aus localStorage gruppieren
+    const prodMap = {};
+    hist.forEach(e => {
+      const k = (e.produktName||'').trim();
+      if (!k || !e.preis) return;
+      if (!prodMap[k]) prodMap[k] = { min: e.preis, max: e.preis, sum: 0, cnt: 0, shop: e.shopName||'—', zuletzt: e.datum };
+      prodMap[k].min = Math.min(prodMap[k].min, e.preis);
+      prodMap[k].max = Math.max(prodMap[k].max, e.preis);
+      prodMap[k].sum += parseFloat(e.preis); prodMap[k].cnt++;
+      if (!prodMap[k].zuletzt || e.datum > prodMap[k].zuletzt) { prodMap[k].zuletzt = e.datum; prodMap[k].shop = e.shopName||'—'; }
+    });
+    const rows = Object.entries(prodMap).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,20).map(([name, d]) =>
+      `<tr style="border-bottom:1px solid #f3ebe9">
+        <td style="padding:6px 10px;font-size:13px;font-weight:600">${_esc(name)}</td>
+        <td style="padding:6px 10px;font-size:12px;color:#5a403c">${_esc(d.shop)}</td>
+        <td style="padding:6px 10px;font-size:13px;text-align:right;color:#2e7d32">€${d.min.toFixed(2)}</td>
+        <td style="padding:6px 10px;font-size:13px;text-align:right;color:#5a403c">€${(d.sum/d.cnt).toFixed(2)}</td>
+        <td style="padding:6px 10px;font-size:13px;text-align:right;color:#b52619">€${d.max.toFixed(2)}</td>
+        <td style="padding:6px 10px;font-size:11px;color:#8d6562;text-align:right">${d.cnt}×</td>
+      </tr>`).join('');
+    el.innerHTML = '<h3 style="margin:0 0 8px 0;color:#8B0000;font-size:16px;">&#128200; Einkaufspreise Verlauf</h3>' +
+      '<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#e65100">📴 Server offline — lokale Daten aus Einkaufsverlauf ('+hist.length+' Einträge)</div>' +
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">' +
+      '<thead><tr style="background:#fff8f6"><th style="text-align:left;padding:7px 10px;font-size:12px;color:#5a403c">Produkt</th>' +
+      '<th style="text-align:left;padding:7px 10px;font-size:12px;color:#5a403c">Shop</th>' +
+      '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#2e7d32">Min</th>' +
+      '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#5a403c">Ø Avg</th>' +
+      '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#b52619">Max</th>' +
+      '<th style="text-align:right;padding:7px 10px;font-size:12px;color:#8d6562">Käufe</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
   }
 }
 

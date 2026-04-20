@@ -109,9 +109,11 @@ node server.js        # → http://localhost:8080
 - **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
 - **Server online** — Cloudflare Tunnel für Fernzugriff
 
+- **Preisverlauf Offline-Fallback** ✅ — zeigt pizzeria_history Daten wenn Server offline
+- **Dashboard erweitert** ✅ — MHD-Warnungen + Kassenschnitt-Karte + Alerts im Header
+
 ### Priorität Mittel
 - **n8n Workflows** installieren und aktivieren
-- **Preisverlauf-Chart** — Server-Offline-Fallback verbessern
 
 ---
 
