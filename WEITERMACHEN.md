@@ -80,6 +80,11 @@ node server.js        # → http://localhost:8080
   - Speichern in `psc_mhd` (localStorage)
   - Zugriff: admin + manager + employee + kitchen
 - **Kassenschnitt Tab** (34. Tab) ✅ — täglicher Soll/Ist Vergleich
+- **Server-Offline-Modus** ✅ — App funktioniert komplett ohne Server
+  - Mitarbeiter hinzufügen/löschen → immer localStorage, Server ist optional
+  - Kein Fehler-Toast mehr wenn Server offline
+  - **Server-Status-Badge** im Header: grün = Online, orange = Offline
+  - Badge wird beim Start + alle 30 Sek. automatisch aktualisiert
   - Soll-Betrag (Umsatz) vs. Ist-Betrag (gezählte Kasse)
   - Live-Vorschau der Differenz (grün/rot)
   - Notiz-Feld (z.B. Kartenzahlung separat)
