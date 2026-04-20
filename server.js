@@ -814,6 +814,94 @@ app.delete('/api/mitarbeiter/:id', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Datenbank-Ordner Import-Watcher ──────────────────────────────────────────
+// JSON/PDF in datenbank/<ordner>/ ablegen → erscheint automatisch in der App
+
+function wsBroadcast(msg) {
+  const payload = JSON.stringify(msg);
+  for (const c of syncClients) { if (c.readyState === 1) c.send(payload); }
+}
+
+// Beim Start: alle mitarbeiter JSONs einlesen die noch nicht in DB sind
+fs.readdirSync(path.join(DATENBANK_DIR, 'mitarbeiter')).forEach(filename => {
+  if (!filename.endsWith('.json')) return;
+  const filepath = path.join(DATENBANK_DIR, 'mitarbeiter', filename);
+  try {
+    const d = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    if (!d.id || !d.name) return;
+    const exists = db.prepare('SELECT id FROM mitarbeiter WHERE id=?').get(d.id);
+    if (exists) return;
+    db.prepare('INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)')
+      .run(d.id, d.name, d.rolle||'Küche', parseFloat(d.stunden)||0, parseFloat(d.lohn)||0, d.farbe||'#8B0000');
+    console.log('  [Import] Startup-Scan Mitarbeiter:', d.name);
+  } catch(e) {}
+});
+
+// mitarbeiter: JSON → direkt in DB-Tabelle
+const _maDebouncers = new Map();
+fs.watch(path.join(DATENBANK_DIR, 'mitarbeiter'), (event, filename) => {
+  if (!filename || !filename.endsWith('.json')) return;
+  const key = 'ma_' + filename;
+  clearTimeout(_maDebouncers.get(key));
+  _maDebouncers.set(key, setTimeout(() => {
+    _maDebouncers.delete(key);
+    const filepath = path.join(DATENBANK_DIR, 'mitarbeiter', filename);
+    if (!fs.existsSync(filepath)) return;
+    try {
+      const d = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+      if (!d.id || !d.name) return;
+      db.prepare('INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)')
+        .run(d.id, d.name, d.rolle||'Küche', parseFloat(d.stunden)||0, parseFloat(d.lohn)||0, d.farbe||'#8B0000');
+      const alle = db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all();
+      wsBroadcast({ action: 'remote_update', key: 'pizzeria_mitarbeiter', data: alle, timestamp: Date.now(), updatedBy: 'import' });
+      console.log('  [Import] Mitarbeiter:', d.name);
+    } catch(e) { console.error('  [Import] Mitarbeiter Fehler:', e.message); }
+  }, 600));
+});
+
+// Andere Ordner: JSON → app_data + WebSocket broadcast
+const ORDNER_KEY_MAP = {
+  lager:        'pizzeria_lager',
+  aufgaben:     'pizzeria_aufgaben',
+  dienstplan:   'pizzeria_dienstplan',
+  bestellungen: 'pizzeria_bestellung',
+  fehlmaterial: 'pizzeria_fehlmaterial',
+  kassabuch:    'pizzeria_kassabuch',
+  lieferanten:  'pizzeria_lieferanten',
+  inbox:        'pizzeria_inbox',
+  umsatz:       'pizzeria_umsatz',
+};
+
+const _importDebouncers = new Map();
+for (const [ordner, syncKey] of Object.entries(ORDNER_KEY_MAP)) {
+  const ordnerPath = path.join(DATENBANK_DIR, ordner);
+  if (!fs.existsSync(ordnerPath)) continue;
+  fs.watch(ordnerPath, (event, filename) => {
+    if (!filename || !filename.endsWith('.json') || filename === 'INFO.md') return;
+    const debKey = ordner + '/' + filename;
+    clearTimeout(_importDebouncers.get(debKey));
+    _importDebouncers.set(debKey, setTimeout(() => {
+      _importDebouncers.delete(debKey);
+      const filepath = path.join(ordnerPath, filename);
+      if (!fs.existsSync(filepath)) return;
+      try {
+        const neueDaten = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+        const existing = db.prepare('SELECT data FROM app_data WHERE key=?').get(syncKey);
+        let arr = existing ? JSON.parse(existing.data) : [];
+        if (!Array.isArray(arr)) arr = [];
+        // Array = alles ersetzen, Objekt = anhängen
+        const merged = Array.isArray(neueDaten) ? neueDaten : [...arr, neueDaten];
+        db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
+          .run(syncKey, JSON.stringify(merged));
+        syncStore.set(syncKey, { data: merged, timestamp: Date.now(), updatedBy: 'import' });
+        wsBroadcast({ action: 'remote_update', key: syncKey, data: merged, timestamp: Date.now(), updatedBy: 'import' });
+        console.log(`  [Import] ${ordner}/${filename} → ${syncKey} (${Array.isArray(neueDaten) ? neueDaten.length + ' Einträge' : '1 Eintrag'})`);
+      } catch(e) { console.error(`  [Import] Fehler ${ordner}/${filename}:`, e.message); }
+    }, 600));
+  });
+}
+console.log('  [Import] Datenbank-Ordner-Watcher aktiv');
+
 // GET /api/umsatz/alle — Alle Kassabuch-Einträge aus DB
 app.get('/api/umsatz/alle', (_req, res) => {
   try { res.json(db.prepare('SELECT * FROM umsatz_einnahmen ORDER BY datum DESC').all()); }
