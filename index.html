@@ -1976,6 +1976,11 @@
       <button id="einkauf-log-btn" onclick="einkaufLoggModal()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1.5px solid #610000;background:#610000;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer" title="Einkauf schnell erfassen">
         <span class="material-symbols-outlined" style="font-size:16px">add_shopping_cart</span>Einkauf
       </button>
+      <!-- Server-Status Badge -->
+      <div id="server-status-badge" title="Server-Status" style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;cursor:default;flex-shrink:0">
+        <span id="srv-dot" style="width:8px;height:8px;border-radius:50%;background:#2e7d32;flex-shrink:0"></span>
+        <span id="srv-label">Server</span>
+      </div>
       <!-- Business Button -->
       <button id="biz-header-btn" onclick="switchTab('business')">
         <span class="material-symbols-outlined" id="biz-lock-icon">lock</span>
@@ -8809,6 +8814,23 @@ function updateLoadingStep(text) {
   if (el) el.textContent = text;
 }
 
+// Server-Status Badge aktualisieren
+function _updateServerBadge(online) {
+  const badge = document.getElementById('server-status-badge');
+  const dot   = document.getElementById('srv-dot');
+  const label = document.getElementById('srv-label');
+  if (!badge) return;
+  if (online) {
+    badge.style.background = '#e8f5e9'; badge.style.color = '#2e7d32'; badge.style.borderColor = '#a5d6a7';
+    if (dot) dot.style.background = '#2e7d32';
+    if (label) label.textContent = 'Online';
+  } else {
+    badge.style.background = '#fff8e1'; badge.style.color = '#e65100'; badge.style.borderColor = '#ffcc80';
+    if (dot) dot.style.background = '#e65100';
+    if (label) label.textContent = 'Offline';
+  }
+}
+
 // Server-Verfügbarkeit: einmal pro 5 Minuten prüfen
 let _serverCheck = { available: null, at: 0 };
 async function isLocalServerAvailable() {
@@ -8820,12 +8842,22 @@ async function isLocalServerAvailable() {
     const t = setTimeout(() => ctrl.abort(), 2000);
     const r = await fetch('/api/health', { signal: ctrl.signal });
     clearTimeout(t);
-    _serverCheck = { available: r.ok, at: Date.now() };
-    return r.ok;
+    const ok = r.ok;
+    _serverCheck = { available: ok, at: Date.now() };
+    _updateServerBadge(ok);
+    return ok;
   } catch (_) {
     _serverCheck = { available: false, at: Date.now() };
+    _updateServerBadge(false);
     return false;
   }
+}
+
+// Badge-Check beim Start + alle 30 Sekunden
+function _startServerStatusLoop() {
+  _serverCheck.at = 0;
+  isLocalServerAvailable();
+  setInterval(() => { _serverCheck.at = 0; isLocalServerAvailable(); }, 30000);
 }
 
 // Lokalen Preisserver abfragen
@@ -9784,9 +9816,11 @@ function saveMitarbeiterList(list) {
 }
 function _syncMitarbeiterFromDB() {
   fetch('/api/mitarbeiter').then(r => r.ok ? r.json() : Promise.reject()).then(data => {
-    localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(data));
+    if (Array.isArray(data) && data.length > 0) {
+      localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(data));
+    }
     renderMitarbeiterTab();
-  }).catch(() => {});
+  }).catch(() => { renderMitarbeiterTab(); });
 }
 function getWochenplan() {
   try { return JSON.parse(localStorage.getItem('pizzeria_wochenplan') || '{}'); } catch(_) { return {}; }
@@ -9842,9 +9876,9 @@ function maHinzufuegen() {
   const newMa = { id: 'ma_' + Date.now(), name, rolle, stunden, lohn, farbe: MA_FARBEN[list.length % MA_FARBEN.length] };
   list.push(newMa);
   saveMitarbeiterList(list);
+  _showToast('Mitarbeiter gespeichert ✓', 'success');
   fetch('/api/mitarbeiter', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newMa) })
-    .then(r => r.json()).then(d => { if(d.ok) _showToast('✅ In DB gespeichert', 'success'); else _showToast('❌ DB Fehler: '+JSON.stringify(d), 'error'); })
-    .catch(e => _showToast('❌ Server nicht erreichbar: '+e.message, 'error'));
+    .catch(() => {});
   renderMitarbeiterTab();
 }
 
@@ -13579,6 +13613,8 @@ function dbSyncAll(cb) {
 document.addEventListener('DOMContentLoaded', () => {
   // Theme als erstes laden — vor allem anderen
   loadSavedTheme();
+  // Server-Status Badge starten
+  _startServerStatusLoop();
   // Preise aus SQLite laden (im Hintergrund, blockiert Login nicht)
   loadPricesFromDB();
   // 1. Persistenter Login (localStorage, "Angemeldet bleiben")
