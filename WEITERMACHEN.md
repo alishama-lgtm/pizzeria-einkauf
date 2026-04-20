@@ -124,6 +124,15 @@ node server.js        # → http://localhost:8080
   - Glass + Dark: Border-Farben (#e3beb8 etc.) überschrieben
   - Dark/Dark-Red: gleiche Farblücken geschlossen
   - Methode: Bei jedem Theme-Fix → alle 4 Themes gleichzeitig prüfen
+- **WCAG 2.1 AA Audit + Fix** ✅ — Top-20 Kontrast-Probleme behoben
+  - Glass `--text-3` #6b7280 → #8a95a3 (war 4.3:1, jetzt ≥5:1)
+  - ws-table thead th classic: #6b7280 → #4a3c3a (~7:1)
+  - Focus-Ringe auf allen interaktiven Elementen
+  - Disabled-States (opacity 0.45 + cursor:not-allowed)
+  - Placeholder-Farben alle 4 Themes
+  - backdrop-filter Fallback für ältere Browser
+  - Tabellen-Striping verbessert
+  - Branch: `fix/ui-a11y-2026-04-20` → in `main` gemergt
 
 ## Offene Aufgaben
 
