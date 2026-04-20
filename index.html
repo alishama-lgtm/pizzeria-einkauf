@@ -130,12 +130,12 @@
       --red-soft:   rgba(139,0,0,0.15);
       --red-border: rgba(139,0,0,0.3);
       --bg:         #0a0b0d;
-      --surface:    rgba(255,255,255,0.04);
-      --text:       #e5e7eb;
-      --text-2:     #9ca3af;
-      --text-3:     #6b7280;
-      --border:     rgba(255,255,255,0.08);
-      --border-2:   rgba(255,255,255,0.04);
+      --surface:    rgba(255,255,255,0.06);
+      --text:       #f0f2f5;
+      --text-2:     #b4bfcb;
+      --text-3:     #8a95a3;
+      --border:     rgba(255,255,255,0.12);
+      --border-2:   rgba(255,255,255,0.06);
       --shadow-sm:  0 1px 4px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.5);
       --shadow-md:  0 4px 20px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.5);
     }
@@ -172,14 +172,15 @@
       border-bottom-color: rgba(255,255,255,0.06) !important;
     }
     html[data-theme="glass"] .header-logo-text { color: var(--red) !important; }
-    html[data-theme="glass"] .header-logo-sub  { color: #6b7280 !important; }
+    html[data-theme="glass"] .header-logo-sub  { color: #8a95a3 !important; }
     html[data-theme="glass"] .header-bell-btn  { color: var(--red) !important; }
     html[data-theme="glass"] #staff-tab-bar {
       background: rgba(10,11,13,0.7) !important;
       backdrop-filter: blur(20px) !important;
-      border-bottom-color: rgba(255,255,255,0.06) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-bottom-color: rgba(255,255,255,0.08) !important;
     }
-    html[data-theme="glass"] #staff-tab-bar .tab-btn { color: #6b7280 !important; }
+    html[data-theme="glass"] #staff-tab-bar .tab-btn { color: #8a95a3 !important; }
     html[data-theme="glass"] #staff-tab-bar .tab-btn:hover { color: var(--red) !important; background: rgba(139,0,0,0.1) !important; }
     html[data-theme="glass"] #staff-tab-bar .tab-btn.tab-active { color: var(--red) !important; border-bottom-color: var(--red) !important; }
     html[data-theme="glass"] .ws-card, html[data-theme="glass"] .stat-card,
@@ -197,21 +198,23 @@
     }
     html[data-theme="glass"] .stat-num  { color: #e5e7eb !important; }
     html[data-theme="glass"] .stat-label { color: #9ca3af !important; }
-    html[data-theme="glass"] .ws-table thead tr { background: rgba(255,255,255,0.04) !important; }
-    html[data-theme="glass"] .ws-table thead th { color: #6b7280 !important; border-bottom-color: rgba(255,255,255,0.08) !important; }
-    html[data-theme="glass"] .ws-table tbody tr { border-bottom-color: rgba(255,255,255,0.04) !important; }
-    html[data-theme="glass"] .ws-table tbody tr:hover { background: rgba(255,255,255,0.03) !important; }
-    html[data-theme="glass"] .ws-table tbody td { color: #e5e7eb !important; }
-    html[data-theme="glass"] [id^="panel-"] { background: transparent !important; color: #e5e7eb !important; }
+    html[data-theme="glass"] .ws-table thead tr { background: rgba(255,255,255,0.05) !important; }
+    html[data-theme="glass"] .ws-table thead th { color: #8a95a3 !important; border-bottom-color: rgba(255,255,255,0.12) !important; }
+    html[data-theme="glass"] .ws-table tbody tr { border-bottom-color: rgba(255,255,255,0.06) !important; }
+    html[data-theme="glass"] .ws-table tbody tr:hover { background: rgba(255,255,255,0.04) !important; }
+    html[data-theme="glass"] .ws-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.025) !important; }
+    html[data-theme="glass"] .ws-table tbody td { color: #f0f2f5 !important; }
+    html[data-theme="glass"] [id^="panel-"] { background: transparent !important; color: #f0f2f5 !important; }
     html[data-theme="glass"] #app-main { background: transparent !important; }
     html[data-theme="glass"] #mobile-bottom-nav {
-      background: rgba(10,11,13,0.85) !important;
+      background: rgba(10,11,13,0.88) !important;
       backdrop-filter: blur(20px) !important;
-      border-top-color: rgba(255,255,255,0.06) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-top-color: rgba(255,255,255,0.08) !important;
     }
-    html[data-theme="glass"] .mob-nav-btn { color: #6b7280 !important; }
+    html[data-theme="glass"] .mob-nav-btn { color: #8a95a3 !important; }
     html[data-theme="glass"] .mob-nav-btn.mob-active { color: var(--red) !important; background: rgba(139,0,0,0.1) !important; }
-    html[data-theme="glass"] #app-footer { background: rgba(10,11,13,0.7) !important; border-top-color: rgba(255,255,255,0.06) !important; color: #6b7280 !important; }
+    html[data-theme="glass"] #app-footer { background: rgba(10,11,13,0.7) !important; border-top-color: rgba(255,255,255,0.08) !important; color: #8a95a3 !important; }
     html[data-theme="glass"] input:not([type=checkbox]):not([type=radio]),
     html[data-theme="glass"] select, html[data-theme="glass"] textarea {
       background: rgba(255,255,255,0.06) !important;
@@ -894,6 +897,110 @@
       border-color: var(--border) !important;
     }
 
+    /* ════ GLOBALE A11Y-PFLICHT-FIXES ════ */
+
+    /* Focus-Ring — alle interaktiven Elemente, alle Themes */
+    :focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    html[data-theme="classic"] :focus-visible { outline-color: #8B0000; }
+    html[data-theme="dark-red"] :focus-visible { outline-color: #ff6b6b; }
+    html[data-theme="glass"] :focus-visible { outline-color: rgba(240,100,100,0.9); box-shadow: 0 0 0 3px rgba(240,100,100,0.2); }
+    button:focus:not(:focus-visible), a:focus:not(:focus-visible),
+    input:focus:not(:focus-visible), select:focus:not(:focus-visible) { outline: none; }
+
+    /* Disabled States */
+    button:disabled, input:disabled, select:disabled, textarea:disabled,
+    [aria-disabled="true"] { opacity: 0.45; cursor: not-allowed !important; pointer-events: none; }
+
+    /* Input Placeholders */
+    input::placeholder, textarea::placeholder { color: #9a8a86; }
+    html[data-theme="dark"] input::placeholder,
+    html[data-theme="dark"] textarea::placeholder { color: var(--text-3); }
+    html[data-theme="dark-red"] input::placeholder,
+    html[data-theme="dark-red"] textarea::placeholder { color: var(--text-3); }
+    html[data-theme="glass"] input::placeholder,
+    html[data-theme="glass"] textarea::placeholder { color: rgba(180,191,203,0.55) !important; }
+
+    /* ws-label + ws-section-title — Classic */
+    .ws-label { color: #5a4a46; }
+    .ws-section-title { color: #1a1210; }
+
+    /* Glass placeholder in panel inputs */
+    html[data-theme="glass"] [id^="panel-"] input::placeholder,
+    html[data-theme="glass"] [id^="panel-"] textarea::placeholder { color: rgba(138,149,163,0.7) !important; }
+
+    /* Buttons min-height + Transitions */
+    button, [role="button"], .ws-btn, .tab-btn, .mob-nav-btn, .dd-item {
+      min-height: 36px;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+                  box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    /* Glass Cards — stärkerer backdrop-filter mit Fallback */
+    @supports (backdrop-filter: blur(12px)) {
+      html[data-theme="glass"] .ws-card,
+      html[data-theme="glass"] .stat-card,
+      html[data-theme="glass"] .stitch-card {
+        backdrop-filter: blur(16px) saturate(1.5);
+        -webkit-backdrop-filter: blur(16px) saturate(1.5);
+      }
+    }
+    @supports not (backdrop-filter: blur(12px)) {
+      html[data-theme="glass"] .ws-card,
+      html[data-theme="glass"] .stat-card { background: rgba(30,32,38,0.92) !important; }
+    }
+
+    /* Modal Box-Shadow */
+    html[data-theme="dark"] #settings-modal > div,
+    html[data-theme="dark-red"] #settings-modal > div,
+    html[data-theme="glass"] #settings-modal > div {
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5) !important;
+    }
+
+    /* Glass — stat-label und ws-label heller */
+    html[data-theme="glass"] .stat-label,
+    html[data-theme="glass"] .ws-label,
+    html[data-theme="glass"] .ws-section-title { color: #b4bfcb !important; }
+    html[data-theme="glass"] .stat-num,
+    html[data-theme="glass"] .ws-section-title { color: #f0f2f5 !important; }
+
+    /* Dark --text-3 Verbesserung: #8888cc → #96a0bc für besseren Kontrast */
+    html[data-theme="dark"] .stat-label,
+    html[data-theme="dark"] .ws-label { color: #96a0bc !important; }
+
+    /* Table striping Dark themes */
+    html[data-theme="dark"] .ws-table tbody tr:nth-child(even) td,
+    html[data-theme="dark-red"] .ws-table tbody tr:nth-child(even) td {
+      background: rgba(255,255,255,0.025) !important;
+    }
+    html[data-theme="dark"] .ws-table thead tr,
+    html[data-theme="dark-red"] .ws-table thead tr { background: rgba(255,255,255,0.04) !important; }
+    html[data-theme="dark"] .ws-table thead th,
+    html[data-theme="dark-red"] .ws-table thead th { color: #96a0bc !important; border-bottom-color: var(--border) !important; }
+
+    /* ws-btn-ghost Dark */
+    html[data-theme="dark"] .ws-btn-ghost,
+    html[data-theme="dark-red"] .ws-btn-ghost { color: var(--text-2) !important; border-color: var(--border) !important; }
+    html[data-theme="dark"] .ws-btn-ghost:hover,
+    html[data-theme="dark-red"] .ws-btn-ghost:hover { background: var(--border-2) !important; color: var(--text) !important; }
+    html[data-theme="glass"] .ws-btn-ghost { color: #b4bfcb !important; border-color: rgba(255,255,255,0.15) !important; }
+    html[data-theme="glass"] .ws-btn-ghost:hover { background: rgba(255,255,255,0.06) !important; color: #f0f2f5 !important; }
+
+    /* Glass — Text-Shadow für Panel-Überschriften (Lesbarkeit über Glassflächen) */
+    html[data-theme="glass"] [id^="panel-"] h1,
+    html[data-theme="glass"] [id^="panel-"] h2,
+    html[data-theme="glass"] [id^="panel-"] h3,
+    html[data-theme="glass"] [id^="panel-"] h4 {
+      color: #f0f2f5 !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    /* Farbe allein nie als einziger Informationsträger — kritische Badges immer mit Icon */
+    .ws-badge { font-weight: 600; }
+
     /* ════ RESET & BASE ════ */
     *, *::before, *::after { box-sizing: border-box; }
     .material-symbols-outlined {
@@ -955,8 +1062,8 @@
     .stat-icon-green { background: #e8f5e9; color: #2e7d32; }
     .stat-icon-amber { background: #fff8e1; color: #f57f17; }
     .stat-icon-blue { background: #e3f2fd; color: #1565c0; }
-    .stat-num { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 32px; font-weight: 800; line-height: 1; color: #1e1e2e; }
-    .stat-label { font-size: 13px; color: #6b7280; font-weight: 500; margin-top: 3px; }
+    .stat-num { font-family: 'Plus Jakarta Sans',sans-serif; font-size: 32px; font-weight: 800; line-height: 1; color: #1a1210; }
+    .stat-label { font-size: 13px; color: #5a5060; font-weight: 500; margin-top: 3px; }
     .stat-sub { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 8px; display: inline-block; margin-top: 4px; }
     .stat-sub-red { background: #ffdad6; color: #93000a; }
     .stat-sub-green { background: #e8f5e9; color: #1b5e20; }
@@ -964,17 +1071,18 @@
 
     /* ════ WEBSITE TABLES ════ */
     .ws-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .ws-table thead tr { background: #f8f8fa; }
+    .ws-table thead tr { background: #f3eeec; }
     .ws-table thead th {
       padding: 14px 20px; text-align: left;
-      font-size: 12px; font-weight: 700; color: #6b7280;
+      font-size: 12px; font-weight: 700; color: #4a3c3a;
       text-transform: uppercase; letter-spacing: 0.05em;
-      border-bottom: 2px solid #e8e8ed;
+      border-bottom: 2px solid #e0d0cc;
     }
-    .ws-table tbody tr { border-bottom: 1px solid #f0f0f5; transition: background .1s; }
-    .ws-table tbody tr:hover { background: #fafafa; }
+    .ws-table tbody tr { border-bottom: 1px solid #f0ebe8; transition: background .1s; }
+    .ws-table tbody tr:hover { background: #fdf8f6; }
+    .ws-table tbody tr:nth-child(even) td { background: #faf5f3; }
     .ws-table tbody tr:last-child { border-bottom: none; }
-    .ws-table tbody td { padding: 14px 20px; color: #1e1e2e; height: 52px; vertical-align: middle; }
+    .ws-table tbody td { padding: 14px 20px; color: #1a1210; height: 52px; vertical-align: middle; }
     .ws-table tbody tr:nth-child(even) td { background: #fafafa; }
 
     /* ════ WEBSITE BUTTONS ════ */
