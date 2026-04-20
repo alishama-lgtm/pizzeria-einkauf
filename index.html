@@ -2045,6 +2045,8 @@
         <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')" class="dd-item"><span style="font-size:14px">📋</span>Schicht-Check</button>
         <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben')" class="dd-item"><span style="font-size:14px">✅</span>Aufgaben</button>
         <button data-nav-tab="dienstplan" onclick="switchTab('dienstplan')" class="dd-item"><span style="font-size:14px">📅</span>Dienstplan</button>
+        <button data-nav-tab="urlaub" onclick="switchTab('urlaub')" class="dd-item"><span style="font-size:14px">🏖️</span>Urlaubskalender</button>
+        <button data-nav-tab="trinkgeld" onclick="switchTab('trinkgeld')" class="dd-item"><span style="font-size:14px">💰</span>Trinkgeld-Split</button>
       </div>
     </div>
 
@@ -2112,6 +2114,8 @@
       <button class="ts-sub-item" data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')"><span class="ts-sub-icon">📋</span>Schicht-Check</button>
       <button class="ts-sub-item" data-nav-tab="aufgaben" onclick="switchTab('aufgaben')"><span class="ts-sub-icon">✅</span>Aufgaben</button>
       <button class="ts-sub-item" data-nav-tab="dienstplan" onclick="switchTab('dienstplan')"><span class="ts-sub-icon">📅</span>Dienstplan</button>
+      <button class="ts-sub-item" data-nav-tab="urlaub" onclick="switchTab('urlaub')"><span class="ts-sub-icon">🏖️</span>Urlaubskalender</button>
+      <button class="ts-sub-item" data-nav-tab="trinkgeld" onclick="switchTab('trinkgeld')"><span class="ts-sub-icon">💰</span>Trinkgeld-Split</button>
     </div>
   </div>
   <div class="ts-group" id="tsg-team">
@@ -2182,6 +2186,8 @@
   <div id="panel-haccp"          style="display:none"></div>
   <div id="panel-mhd"            style="display:none"></div>
   <div id="panel-kassenschnitt"  style="display:none"></div>
+  <div id="panel-urlaub"         style="display:none"></div>
+  <div id="panel-trinkgeld"      style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -2260,6 +2266,8 @@
       <button data-drawer-nav="heute" onclick="switchTab('heute');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>Heute</button>
       <button data-drawer-nav="schichtcheck" onclick="switchTab('schichtcheck');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📋</span>Schicht-Check</button>
       <button data-drawer-nav="dienstplan" onclick="switchTab('dienstplan');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>Dienstplan</button>
+      <button data-drawer-nav="urlaub" onclick="switchTab('urlaub');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🏖️</span>Urlaubskalender</button>
+      <button data-drawer-nav="trinkgeld" onclick="switchTab('trinkgeld');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">💰</span>Trinkgeld-Split</button>
       <button data-drawer-nav="suche" onclick="switchTab('suche');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🔍</span>Suche</button>
     </div>
   </div>
@@ -8209,7 +8217,7 @@ const NAV_GROUPS = [
   { id:'einkauf',  icon:'receipt_long',    label:'Einkauf',   tabs:['angebote','einkaufsliste','suche','upload','verlauf'], mobile:true  },
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck','haccp','mhd','kassenschnitt'], mobile:true  },
-  { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
+  { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter','urlaub','trinkgeld'], mobile:false },
   { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'], mobile:false },
 ];
 
@@ -8371,7 +8379,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute','haccp','mhd','kassenschnitt'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute','haccp','mhd','kassenschnitt','urlaub','trinkgeld'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -8436,6 +8444,8 @@ function switchTab(tab) {
   if (tab === 'haccp')         renderHaccpTab();
   if (tab === 'mhd')           renderMhdTab();
   if (tab === 'kassenschnitt') renderKassenschnittTab();
+  if (tab === 'urlaub')        renderUrlaubTab();
+  if (tab === 'trinkgeld')     renderTrinkgeldTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -12198,9 +12208,9 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt'],
-  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt'],
-  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp','mhd'],
+  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt','urlaub','trinkgeld'],
+  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt','urlaub','trinkgeld'],
+  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp','mhd','urlaub'],
   kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager','haccp','mhd'],
 };
 
@@ -17482,6 +17492,250 @@ function einkaufLoggSave() {
   einkaufLoggClose();
   _showToast(artikel.length + ' Artikel von ' + escHtml(shopName) + ' gespeichert', 'success');
   if (typeof renderVerlaufTab === 'function') renderVerlaufTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// URLAUBSKALENDER
+// ═══════════════════════════════════════════════════════════════
+function renderUrlaubTab() {
+  const panel = document.getElementById('panel-urlaub');
+  if (!panel) return;
+  const mitarbeiter = getMitarbeiter();
+  let eintraege = [];
+  try { eintraege = JSON.parse(localStorage.getItem('psc_urlaub') || '[]'); } catch(e) {}
+
+  const heute = new Date().toISOString().slice(0,10);
+  const aktiv  = eintraege.filter(e => e.bis >= heute).sort((a,b) => a.von.localeCompare(b.von));
+  const archiv = eintraege.filter(e => e.bis < heute).sort((a,b) => b.von.localeCompare(a.von)).slice(0,20);
+
+  const fmtD = d => { const [y,m,t] = d.split('-'); return `${t}.${m}.${y}`; };
+  const tage = (von, bis) => { const d1=new Date(von), d2=new Date(bis); return Math.round((d2-d1)/86400000)+1; };
+  const maFarbe = id => { const m = mitarbeiter.find(x=>x.id===id); return m ? m.farbe : '#8B0000'; };
+  const maName  = id => { const m = mitarbeiter.find(x=>x.id===id); return m ? m.name : id; };
+
+  const statusAmpel = e => {
+    if (e.bis < heute) return { bg:'#f5f5f5', clr:'#9e9e9e', label:'Abgeschlossen' };
+    if (e.von <= heute) return { bg:'#e3f2fd', clr:'#1565c0', label:'Läuft gerade' };
+    const diffTage = Math.round((new Date(e.von)-new Date(heute))/86400000);
+    if (diffTage <= 7) return { bg:'#fff8e1', clr:'#f57f17', label:`In ${diffTage} Tag${diffTage===1?'':'en'}` };
+    return { bg:'#e8f5e9', clr:'#2e7d32', label:`In ${diffTage} Tagen` };
+  };
+
+  const maOptionen = mitarbeiter.length
+    ? mitarbeiter.map(m => `<option value="${m.id}">${_esc(m.name)}</option>`).join('')
+    : '<option value="">Keine Mitarbeiter</option>';
+
+  const renderKarte = (e, idx) => {
+    const st = statusAmpel(e);
+    const farbe = maFarbe(e.maId);
+    const t = tage(e.von, e.bis);
+    return `<div style="background:${st.bg};border:2px solid ${farbe}33;border-left:4px solid ${farbe};border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:${farbe};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;flex-shrink:0">${_esc(maName(e.maId)).charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:15px;color:#261816">${_esc(maName(e.maId))}</div>
+        <div style="font-size:13px;color:#5a403c;margin-top:2px">📅 ${fmtD(e.von)} – ${fmtD(e.bis)} <span style="color:#6b6b6b">(${t} Tag${t===1?'':'e'})</span></div>
+        ${e.notiz ? `<div style="font-size:12px;color:#6b6b6b;margin-top:3px">💬 ${_esc(e.notiz)}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <span style="background:${st.bg};color:${st.clr};border:1px solid ${st.clr}44;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">${st.label}</span>
+        <br><button onclick="urlaubLoeschen(${idx})" style="margin-top:6px;padding:3px 10px;border-radius:6px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:11px;cursor:pointer">Löschen</button>
+      </div>
+    </div>`;
+  };
+
+  const aktivHtml  = aktiv.length  ? aktiv.map((e,i) => renderKarte(e, eintraege.indexOf(e))).join('') : '<div style="text-align:center;padding:20px;color:#9e9e9e;font-size:13px">Kein Urlaub geplant</div>';
+  const archivHtml = archiv.length ? archiv.map((e,i) => renderKarte(e, eintraege.indexOf(e))).join('') : '';
+
+  panel.innerHTML = `
+  <div style="max-width:700px;margin:0 auto;padding:16px">
+    <div style="font-size:22px;font-weight:800;color:#261816;margin-bottom:16px">🏖️ Urlaubskalender</div>
+
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:18px;margin-bottom:18px">
+      <div style="font-weight:700;color:#261816;margin-bottom:14px;font-size:15px">Urlaub eintragen</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Mitarbeiter *</div>
+          <select id="url-ma" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+            <option value="">— wählen —</option>${maOptionen}
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Art</div>
+          <select id="url-art" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+            <option>Urlaub</option><option>Krankenstand</option><option>Zeitausgleich</option><option>Sonderurlaub</option><option>Karenz</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Von *</div>
+          <input id="url-von" type="date" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Bis *</div>
+          <input id="url-bis" type="date" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+        </div>
+      </div>
+      <input id="url-notiz" type="text" placeholder="Notiz (optional)" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px;margin-bottom:10px">
+      <button onclick="urlaubSpeichern()" style="background:#8B0000;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">+ Urlaub speichern</button>
+    </div>
+
+    <div style="font-weight:700;color:#261816;margin-bottom:10px;font-size:15px">Aktuell & geplant (${aktiv.length})</div>
+    <div id="urlaub-aktiv">${aktivHtml}</div>
+
+    ${archiv.length ? `<details style="margin-top:16px"><summary style="cursor:pointer;font-size:13px;color:#5a403c;font-weight:600;padding:8px 0">Archiv (${archiv.length})</summary><div style="margin-top:10px">${archivHtml}</div></details>` : ''}
+  </div>`;
+}
+
+function urlaubSpeichern() {
+  const maId = document.getElementById('url-ma')?.value || '';
+  const von  = document.getElementById('url-von')?.value || '';
+  const bis  = document.getElementById('url-bis')?.value || '';
+  if (!maId || !von || !bis) { _showToast('Mitarbeiter, Von und Bis sind Pflicht', 'error'); return; }
+  if (bis < von) { _showToast('Bis-Datum muss nach Von-Datum sein', 'error'); return; }
+  let eintraege = [];
+  try { eintraege = JSON.parse(localStorage.getItem('psc_urlaub') || '[]'); } catch(e) {}
+  eintraege.push({
+    maId, von, bis,
+    art:   document.getElementById('url-art')?.value  || 'Urlaub',
+    notiz: (document.getElementById('url-notiz')?.value || '').trim(),
+    id: Date.now()
+  });
+  localStorage.setItem('psc_urlaub', JSON.stringify(eintraege));
+  _showToast('Urlaub gespeichert ✓', 'success');
+  renderUrlaubTab();
+}
+
+function urlaubLoeschen(idx) {
+  let eintraege = [];
+  try { eintraege = JSON.parse(localStorage.getItem('psc_urlaub') || '[]'); } catch(e) {}
+  eintraege.splice(idx, 1);
+  localStorage.setItem('psc_urlaub', JSON.stringify(eintraege));
+  renderUrlaubTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRINKGELD-SPLIT
+// ═══════════════════════════════════════════════════════════════
+function renderTrinkgeldTab() {
+  const panel = document.getElementById('panel-trinkgeld');
+  if (!panel) return;
+  const mitarbeiter = getMitarbeiter();
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('psc_trinkgeld') || '[]'); } catch(e) {}
+
+  const heute = new Date().toISOString().slice(0,10);
+  const fmtD = d => { const [y,m,t] = d.split('-'); return `${t}.${m}.${y}`; };
+
+  const maCheckboxen = mitarbeiter.length
+    ? mitarbeiter.map(m => `
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f4f4;border-radius:8px;cursor:pointer;margin-bottom:6px">
+        <input type="checkbox" class="tg-ma-cb" value="${m.id}" style="width:18px;height:18px;accent-color:#8B0000">
+        <span style="width:32px;height:32px;border-radius:50%;background:${m.farbe};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0">${_esc(m.name).charAt(0)}</span>
+        <span style="font-weight:600;color:#261816;flex:1">${_esc(m.name)}</span>
+        <span style="font-size:12px;color:#6b6b6b">${m.rolle||''}</span>
+        <input type="number" class="tg-stunden" data-ma="${m.id}" value="${m.stunden||8}" min="0" max="24" step="0.5"
+          style="width:60px;border:1.5px solid #e3beb8;border-radius:6px;padding:4px 6px;font-size:13px;text-align:center" title="Stunden heute">
+      </label>`).join('')
+    : '<div style="color:#9e9e9e;font-size:13px;text-align:center;padding:20px">Keine Mitarbeiter angelegt</div>';
+
+  const histRows = [...history].reverse().slice(0,30).map(h => {
+    const total = h.splits.reduce((s,x)=>s+x.betrag,0);
+    return `<div style="background:#f8f4f4;border-radius:10px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:700;color:#261816">${fmtD(h.datum)}</span>
+        <span style="font-weight:800;color:#8B0000;font-size:15px">${total.toFixed(2).replace('.',',')} € gesamt</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${h.splits.map(s=>`<span style="background:#fff;border:1px solid #e3beb8;border-radius:20px;padding:3px 10px;font-size:12px;color:#261816"><b>${_esc(s.name)}</b>: ${s.betrag.toFixed(2).replace('.',',')} €</span>`).join('')}
+      </div>
+      ${h.notiz ? `<div style="font-size:11px;color:#6b6b6b;margin-top:6px">💬 ${_esc(h.notiz)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+  <div style="max-width:680px;margin:0 auto;padding:16px">
+    <div style="font-size:22px;font-weight:800;color:#261816;margin-bottom:16px">💰 Trinkgeld-Split</div>
+
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:18px;margin-bottom:18px">
+      <div style="font-weight:700;color:#261816;margin-bottom:14px;font-size:15px">Heute aufteilen — ${fmtD(heute)}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Gesamt-Trinkgeld €</div>
+          <input id="tg-betrag" type="number" step="0.01" placeholder="0,00" oninput="tgVorschau()"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:18px;font-weight:700;color:#8B0000">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Aufteilung</div>
+          <select id="tg-modus" onchange="tgVorschau()" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:14px">
+            <option value="gleich">Gleich aufteilen</option>
+            <option value="stunden">Nach Stunden</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:8px">Mitarbeiter auswählen + Stunden (für Stunden-Modus):</div>
+        <div id="tg-ma-liste">${maCheckboxen}</div>
+      </div>
+
+      <div id="tg-vorschau" style="background:#f8f4f4;border-radius:10px;padding:12px;margin-bottom:12px;min-height:44px;font-size:13px;color:#6b6b6b">
+        Betrag eingeben und Mitarbeiter wählen…
+      </div>
+
+      <input id="tg-notiz" type="text" placeholder="Notiz (optional)" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px;margin-bottom:10px">
+      <button onclick="tgSpeichern()" style="background:#8B0000;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">Split speichern</button>
+    </div>
+
+    <div style="font-weight:700;color:#261816;margin-bottom:10px;font-size:15px">Letzte Einträge</div>
+    ${history.length ? `<div>${histRows}</div>` : '<div style="text-align:center;padding:20px;color:#9e9e9e;font-size:13px">Noch keine Einträge</div>'}
+  </div>`;
+}
+
+function tgGetAuswahl() {
+  const checked = [...document.querySelectorAll('.tg-ma-cb:checked')];
+  return checked.map(cb => {
+    const std = parseFloat(document.querySelector(`.tg-stunden[data-ma="${cb.value}"]`)?.value || 8) || 8;
+    const ma  = getMitarbeiter().find(m=>m.id===cb.value);
+    return { id: cb.value, name: ma?.name||cb.value, stunden: std };
+  });
+}
+
+function tgVorschau() {
+  const betrag = parseFloat(document.getElementById('tg-betrag')?.value||0)||0;
+  const modus  = document.getElementById('tg-modus')?.value || 'gleich';
+  const auswahl = tgGetAuswahl();
+  const prev = document.getElementById('tg-vorschau');
+  if (!prev) return;
+  if (!betrag || !auswahl.length) { prev.innerHTML = '<span style="color:#9e9e9e">Betrag eingeben und Mitarbeiter wählen…</span>'; return; }
+  const splits = tgBerechnen(betrag, modus, auswahl);
+  prev.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+    splits.map(s=>`<span style="background:#fff;border:1.5px solid #8B0000;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;color:#8B0000">${_esc(s.name)}: ${s.betrag.toFixed(2).replace('.',',')} €</span>`).join('') +
+    '</div>';
+}
+
+function tgBerechnen(betrag, modus, auswahl) {
+  if (!auswahl.length) return [];
+  if (modus === 'gleich') {
+    const pro = betrag / auswahl.length;
+    return auswahl.map(m => ({ ...m, betrag: Math.round(pro*100)/100 }));
+  }
+  const totalStd = auswahl.reduce((s,m)=>s+m.stunden,0);
+  return auswahl.map(m => ({ ...m, betrag: totalStd > 0 ? Math.round(betrag*(m.stunden/totalStd)*100)/100 : 0 }));
+}
+
+function tgSpeichern() {
+  const betrag  = parseFloat(document.getElementById('tg-betrag')?.value||0)||0;
+  const modus   = document.getElementById('tg-modus')?.value || 'gleich';
+  const auswahl = tgGetAuswahl();
+  if (!betrag || betrag <= 0) { _showToast('Betrag eingeben', 'error'); return; }
+  if (!auswahl.length) { _showToast('Mindestens einen Mitarbeiter wählen', 'error'); return; }
+  const splits  = tgBerechnen(betrag, modus, auswahl);
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('psc_trinkgeld') || '[]'); } catch(e) {}
+  history.push({ datum: new Date().toISOString().slice(0,10), betrag, modus, splits, notiz: (document.getElementById('tg-notiz')?.value||'').trim(), id: Date.now() });
+  localStorage.setItem('psc_trinkgeld', JSON.stringify(history));
+  _showToast('Trinkgeld gespeichert ✓', 'success');
+  renderTrinkgeldTab();
 }
 
 // ═══════════════════════════════════════════════════════════════

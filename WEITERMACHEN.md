@@ -93,16 +93,25 @@ node server.js        # → http://localhost:8080
   - Speichern in `psc_kassenschnitt` (localStorage)
   - Zugriff: admin + manager
 
+- **Urlaubskalender Tab** (35. Tab) ✅ — Urlaub/Krankenstand/Zeitausgleich pro Mitarbeiter
+  - Ampel-System: läuft gerade / bald / geplant / abgeschlossen
+  - Archiv der vergangenen Einträge
+  - Speichern in `psc_urlaub` (localStorage)
+- **Trinkgeld-Split Tab** (36. Tab) ✅ — Tägliche Trinkgeld-Aufteilung
+  - Gleich aufteilen ODER nach Stunden gewichtet
+  - Live-Vorschau der Beträge pro Mitarbeiter
+  - Historie letzte 30 Einträge
+  - Speichern in `psc_trinkgeld` (localStorage)
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
-- **34-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
-- **Server online** — ngrok/Cloudflare Tunnel für Fernzugriff (sicher!)
+- **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
+- **Server online** — Cloudflare Tunnel für Fernzugriff
 
 ### Priorität Mittel
-- **Urlaubskalender** für Mitarbeiter
-- **Trinkgeld-Split** Funktion
 - **n8n Workflows** installieren und aktivieren
+- **Preisverlauf-Chart** — Server-Offline-Fallback verbessern
 
 ---
 
