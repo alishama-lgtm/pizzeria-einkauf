@@ -1,4 +1,4 @@
-# Pizzeria San Carino — Weitermachen ab 2026-04-20 (Session 8)
+# Pizzeria San Carino — Weitermachen ab 2026-04-20 (Session 9)
 
 ## Arbeitsverzeichnis
 
@@ -71,12 +71,28 @@ node server.js        # → http://localhost:8080
   - Akzentfarben (grün/gelb/rot/gold) aufgehellt aber sichtbar
   - Inputs/Selects/Textareas in allen Panels → dark mode
 
+## Session 9 (2026-04-20) — Was gebaut wurde
+
+- **MHD-Tracker Tab** (33. Tab) ✅ — Mindesthaltbarkeit-Kontrolle AT
+  - Produkte mit Name, MHD-Datum, Kategorie, Lagerort, Menge eintragen
+  - Ampel-System: 🔴 abgelaufen, 🟠 heute, 🟡 ≤3 Tage, 🟢 OK
+  - Badge-Anzeige mit Anzahl abgelaufen/bald fällig
+  - Speichern in `psc_mhd` (localStorage)
+  - Zugriff: admin + manager + employee + kitchen
+- **Kassenschnitt Tab** (34. Tab) ✅ — täglicher Soll/Ist Vergleich
+  - Soll-Betrag (Umsatz) vs. Ist-Betrag (gezählte Kasse)
+  - Live-Vorschau der Differenz (grün/rot)
+  - Notiz-Feld (z.B. Kartenzahlung separat)
+  - Historie letzte 30 Tage mit Gesamt-Differenz
+  - Heute-Eintrag überschreibbar
+  - Speichern in `psc_kassenschnitt` (localStorage)
+  - Zugriff: admin + manager
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
-- **MHD-Tracker** (Mindesthaltbarkeit) — Pflicht für Lebensmittelkontrolle
-- **Kassenschnitt** — täglicher Soll/Ist Vergleich
-- **31-Tab Testplan** noch nicht abgeschlossen (alle Tabs auf DB-Sync + Themes prüfen)
+- **34-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
+- **Server online** — ngrok/Cloudflare Tunnel für Fernzugriff (sicher!)
 
 ### Priorität Mittel
 - **Urlaubskalender** für Mitarbeiter

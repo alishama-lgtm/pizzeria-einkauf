@@ -2034,6 +2034,8 @@
         <button data-nav-tab="heute" onclick="switchTab('heute')" class="dd-item"><span style="font-size:14px">📅</span>Heute</button>
         <div class="nav-grp-dd-sep"></div>
         <button data-nav-tab="haccp" onclick="switchTab('haccp')" class="dd-item"><span style="font-size:14px">🌡️</span>HACCP</button>
+        <button data-nav-tab="mhd" onclick="switchTab('mhd')" class="dd-item"><span style="font-size:14px">📅</span>MHD-Tracker</button>
+        <button data-nav-tab="kassenschnitt" onclick="switchTab('kassenschnitt')" class="dd-item"><span style="font-size:14px">💵</span>Kassenschnitt</button>
         <button data-nav-tab="checkliste" onclick="switchTab('checkliste')" class="dd-item"><span style="font-size:14px">✅</span>Checkliste<span id="cl-tab-badge" style="display:none;background:#2e7d32;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;align-items:center;justify-content:center;margin-left:auto;flex-shrink:0">✓</span></button>
         <button data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')" class="dd-item"><span style="font-size:14px">📋</span>Schicht-Check</button>
         <button data-nav-tab="aufgaben" onclick="switchTab('aufgaben')" class="dd-item"><span style="font-size:14px">✅</span>Aufgaben</button>
@@ -2099,6 +2101,8 @@
     <div class="ts-sub">
       <button class="ts-sub-item" data-nav-tab="heute" onclick="switchTab('heute')"><span class="ts-sub-icon">📅</span>Heute</button>
       <button class="ts-sub-item" data-nav-tab="haccp" onclick="switchTab('haccp')"><span class="ts-sub-icon">🌡️</span>HACCP</button>
+      <button class="ts-sub-item" data-nav-tab="mhd" onclick="switchTab('mhd')"><span class="ts-sub-icon">📅</span>MHD-Tracker</button>
+      <button class="ts-sub-item" data-nav-tab="kassenschnitt" onclick="switchTab('kassenschnitt')"><span class="ts-sub-icon">💵</span>Kassenschnitt</button>
       <button class="ts-sub-item" data-nav-tab="checkliste" onclick="switchTab('checkliste')"><span class="ts-sub-icon">✅</span>Checkliste</button>
       <button class="ts-sub-item" data-nav-tab="schichtcheck" onclick="switchTab('schichtcheck')"><span class="ts-sub-icon">📋</span>Schicht-Check</button>
       <button class="ts-sub-item" data-nav-tab="aufgaben" onclick="switchTab('aufgaben')"><span class="ts-sub-icon">✅</span>Aufgaben</button>
@@ -2170,7 +2174,9 @@
   <div id="panel-buchhaltung"  style="display:none"></div>
   <div id="panel-konkurrenz"   style="display:none"></div>
   <div id="panel-bewertungen"  style="display:none"></div>
-  <div id="panel-haccp"       style="display:none"></div>
+  <div id="panel-haccp"          style="display:none"></div>
+  <div id="panel-mhd"            style="display:none"></div>
+  <div id="panel-kassenschnitt"  style="display:none"></div>
 </main>
 
 <!-- ═══ FOOTER ═══ -->
@@ -2263,6 +2269,8 @@
       <button data-drawer-nav="konkurrenz" onclick="switchTab('konkurrenz');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">storefront</span>Konkurr.</button>
       <button data-drawer-nav="bewertungen" onclick="switchTab('bewertungen');closeMehrDrawer()" class="bs-btn"><span class="bs-icon material-symbols-outlined" style="font-size:18px">reviews</span>Bewertung.</button>
       <button data-drawer-nav="haccp" onclick="switchTab('haccp');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">🌡️</span>HACCP</button>
+      <button data-drawer-nav="mhd" onclick="switchTab('mhd');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">📅</span>MHD-Tracker</button>
+      <button data-drawer-nav="kassenschnitt" onclick="switchTab('kassenschnitt');closeMehrDrawer()" class="bs-btn"><span class="bs-icon">💵</span>Kassenschnitt</button>
     </div>
   </div>
   <div class="bs-section">
@@ -8195,7 +8203,7 @@ const NAV_GROUPS = [
   { id:'kombis',   icon:'shopping_cart',   label:'Kombis',    tabs:['kombis'],                                          mobile:true  },
   { id:'einkauf',  icon:'receipt_long',    label:'Einkauf',   tabs:['angebote','einkaufsliste','suche','upload','verlauf'], mobile:true  },
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
-  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck','haccp'], mobile:true  },
+  { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck','haccp','mhd','kassenschnitt'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter'],              mobile:false },
   { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'], mobile:false },
 ];
@@ -8358,7 +8366,7 @@ function switchTab(tab) {
   const isBiz = tab === 'business';
 
   // ── panels ──
-  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute','haccp'].forEach(t => {
+  ['produkte','geschaefte','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','business','dashboard','speisekarte','lieferanten','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','heute','haccp','mhd','kassenschnitt'].forEach(t => {
     const p = document.getElementById('panel-'+t);
     if (p) p.style.display = t === tab ? 'block' : 'none';
   });
@@ -8421,6 +8429,8 @@ function switchTab(tab) {
   if (tab === 'bewertungen')   renderBewertungenTab();
   if (tab === 'heute')         { if (typeof renderHeuteTab === 'function') renderHeuteTab(); }
   if (tab === 'haccp')         renderHaccpTab();
+  if (tab === 'mhd')           renderMhdTab();
+  if (tab === 'kassenschnitt') renderKassenschnittTab();
   if (isBiz) {
     const lockIcon    = document.getElementById('biz-lock-icon');
     const mobLockIcon = document.getElementById('mob-biz-lock');
@@ -12154,10 +12164,10 @@ function quickLogin(u) {
 function toggleLoginPw() {}  // nicht mehr benötigt
 
 const ROLE_TABS = {
-  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp'],
-  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp'],
-  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp'],
-  kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager','haccp'],
+  admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt'],
+  manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt'],
+  employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp','mhd'],
+  kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager','haccp','mhd'],
 };
 
 const ROLE_COLORS = {
@@ -17436,6 +17446,237 @@ function einkaufLoggSave() {
   einkaufLoggClose();
   _showToast(artikel.length + ' Artikel von ' + escHtml(shopName) + ' gespeichert', 'success');
   if (typeof renderVerlaufTab === 'function') renderVerlaufTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MHD-TRACKER — Mindesthaltbarkeit
+// ═══════════════════════════════════════════════════════════════
+function renderMhdTab() {
+  const panel = document.getElementById('panel-mhd');
+  if (!panel) return;
+  let produkte = [];
+  try { produkte = JSON.parse(localStorage.getItem('psc_mhd') || '[]'); } catch(e) {}
+
+  const heute = new Date(); heute.setHours(0,0,0,0);
+  const diffTage = d => { const dt = new Date(d); dt.setHours(0,0,0,0); return Math.round((dt - heute) / 86400000); };
+  const ampel = d => {
+    const t = diffTage(d);
+    if (t < 0)  return { bg:'#ffebee', clr:'#c62828', bc:'#ef9a9a', icon:'🔴', label:'Abgelaufen' };
+    if (t === 0) return { bg:'#fff3e0', clr:'#e65100', bc:'#ffcc80', icon:'🟠', label:'Heute ablaufend!' };
+    if (t <= 3) return { bg:'#fff8e1', clr:'#f57f17', bc:'#ffe082', icon:'🟡', label:`Noch ${t} Tag${t===1?'':'e'}` };
+    return { bg:'#e8f5e9', clr:'#2e7d32', bc:'#a5d6a7', icon:'🟢', label:`Noch ${t} Tage` };
+  };
+
+  const sorted = [...produkte].sort((a,b) => new Date(a.mhd) - new Date(b.mhd));
+  const abgelaufen = sorted.filter(p => diffTage(p.mhd) < 0).length;
+  const bald = sorted.filter(p => { const t = diffTage(p.mhd); return t >= 0 && t <= 3; }).length;
+
+  const rows = sorted.length ? sorted.map((p, i) => {
+    const st = ampel(p.mhd);
+    const idx = produkte.indexOf(p);
+    return `<div style="background:${st.bg};border:1.5px solid ${st.bc};border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="font-size:28px">${st.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:15px;color:#261816">${_esc(p.name)}</div>
+        <div style="font-size:12px;color:#5a403c;margin-top:2px">${_esc(p.kategorie||'')} ${p.ort ? '· '+_esc(p.ort) : ''}</div>
+        <div style="font-size:13px;font-weight:700;color:${st.clr};margin-top:3px">MHD: ${p.mhd} — ${st.label}</div>
+        ${p.menge ? `<div style="font-size:12px;color:#6b6b6b;margin-top:2px">Menge: ${_esc(p.menge)}</div>` : ''}
+      </div>
+      <button onclick="mhdLoeschen(${idx})" style="padding:6px 12px;border-radius:8px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:12px;cursor:pointer;flex-shrink:0">Löschen</button>
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:40px;color:#6b6b6b;font-size:14px">Noch keine Produkte eingetragen</div>`;
+
+  panel.innerHTML = `
+  <div style="max-width:680px;margin:0 auto;padding:16px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="font-size:22px;font-weight:800;color:#261816">📅 MHD-Tracker</div>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        ${abgelaufen > 0 ? `<span style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">🔴 ${abgelaufen} abgelaufen</span>` : ''}
+        ${bald > 0 ? `<span style="background:#fff8e1;color:#f57f17;border:1px solid #ffe082;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700">🟡 ${bald} bald fällig</span>` : ''}
+      </div>
+    </div>
+
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:16px;margin-bottom:18px">
+      <div style="font-weight:700;color:#261816;margin-bottom:12px;font-size:15px">Neues Produkt eintragen</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">Produktname *</div>
+          <input id="mhd-name" type="text" placeholder="z.B. Mozzarella" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">MHD-Datum *</div>
+          <input id="mhd-datum" type="date" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">Kategorie</div>
+          <select id="mhd-kat" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+            <option value="">— wählen —</option>
+            <option>Fleisch/Fisch</option><option>Milchprodukte</option><option>Gemüse/Obst</option>
+            <option>Tiefkühl</option><option>Trockenwaren</option><option>Saucen/Dips</option><option>Sonstiges</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">Lagerort</div>
+          <select id="mhd-ort" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px">
+            <option value="">— wählen —</option>
+            <option>Kühlschrank 1</option><option>Kühlschrank 2</option><option>Tiefkühler</option>
+            <option>Lager trocken</option><option>Theke</option>
+          </select>
+        </div>
+      </div>
+      <input id="mhd-menge" type="text" placeholder="Menge / Einheit (z.B. 2 kg)" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px;margin-bottom:10px">
+      <button onclick="mhdSpeichern()" style="background:#8B0000;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">+ Produkt speichern</button>
+    </div>
+
+    <div id="mhd-liste">${rows}</div>
+  </div>`;
+}
+
+function mhdSpeichern() {
+  const name  = (document.getElementById('mhd-name')?.value || '').trim();
+  const datum = document.getElementById('mhd-datum')?.value || '';
+  if (!name || !datum) { _showToast('Name und Datum sind Pflicht', 'error'); return; }
+  let produkte = [];
+  try { produkte = JSON.parse(localStorage.getItem('psc_mhd') || '[]'); } catch(e) {}
+  produkte.push({
+    name, mhd: datum,
+    kategorie: document.getElementById('mhd-kat')?.value || '',
+    ort:       document.getElementById('mhd-ort')?.value || '',
+    menge:     (document.getElementById('mhd-menge')?.value || '').trim(),
+    id: Date.now()
+  });
+  localStorage.setItem('psc_mhd', JSON.stringify(produkte));
+  _showToast('Produkt gespeichert', 'success');
+  renderMhdTab();
+}
+
+function mhdLoeschen(idx) {
+  let produkte = [];
+  try { produkte = JSON.parse(localStorage.getItem('psc_mhd') || '[]'); } catch(e) {}
+  produkte.splice(idx, 1);
+  localStorage.setItem('psc_mhd', JSON.stringify(produkte));
+  renderMhdTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KASSENSCHNITT — täglicher Soll/Ist Vergleich
+// ═══════════════════════════════════════════════════════════════
+function renderKassenschnittTab() {
+  const panel = document.getElementById('panel-kassenschnitt');
+  if (!panel) return;
+  let eintraege = [];
+  try { eintraege = JSON.parse(localStorage.getItem('psc_kassenschnitt') || '[]'); } catch(e) {}
+
+  const heuteStr = new Date().toISOString().slice(0,10);
+  const heuteEintrag = eintraege.find(e => e.datum === heuteStr);
+
+  const histRows = [...eintraege].reverse().slice(0, 30).map(e => {
+    const diff = (e.ist - e.soll);
+    const diffFmt = (diff >= 0 ? '+' : '') + diff.toFixed(2).replace('.',',') + ' €';
+    const diffClr = diff > 0.5 ? '#2e7d32' : diff < -0.5 ? '#c62828' : '#1b5e20';
+    const diffBg  = diff > 0.5 ? '#e8f5e9' : diff < -0.5 ? '#ffebee' : '#e8f5e9';
+    return `<tr>
+      <td style="padding:8px 10px;color:#261816;font-weight:600">${e.datum}</td>
+      <td style="padding:8px 10px;text-align:right;color:#261816">${e.soll.toFixed(2).replace('.',',')} €</td>
+      <td style="padding:8px 10px;text-align:right;color:#261816">${e.ist.toFixed(2).replace('.',',')} €</td>
+      <td style="padding:8px 10px;text-align:right"><span style="background:${diffBg};color:${diffClr};border-radius:6px;padding:2px 8px;font-weight:700;font-size:13px">${diffFmt}</span></td>
+      <td style="padding:8px 10px;color:#6b6b6b;font-size:12px">${_esc(e.notiz||'')}</td>
+      <td style="padding:8px 10px"><button onclick="kassenschnittLoeschen('${e.datum}')" style="padding:3px 8px;border-radius:6px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:11px;cursor:pointer">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  const diff30 = eintraege.slice(-30).reduce((s,e) => s + (e.ist - e.soll), 0);
+  const diff30Fmt = (diff30 >= 0 ? '+' : '') + diff30.toFixed(2).replace('.',',') + ' €';
+  const diff30Clr = diff30 >= 0 ? '#2e7d32' : '#c62828';
+
+  panel.innerHTML = `
+  <div style="max-width:700px;margin:0 auto;padding:16px">
+    <div style="font-size:22px;font-weight:800;color:#261816;margin-bottom:16px">💵 Kassenschnitt</div>
+
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:18px;margin-bottom:18px">
+      <div style="font-weight:700;color:#261816;margin-bottom:14px;font-size:15px">
+        Heute eintragen — ${heuteStr}
+        ${heuteEintrag ? '<span style="margin-left:8px;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:2px 10px;font-size:12px">✓ bereits eingetragen</span>' : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">Soll-Betrag (Umsatz) €</div>
+          <input id="kasse-soll" type="number" step="0.01" placeholder="0,00" value="${heuteEintrag ? heuteEintrag.soll : ''}"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:16px;font-weight:700">
+        </div>
+        <div>
+          <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">Ist-Betrag (gezählt) €</div>
+          <input id="kasse-ist" type="number" step="0.01" placeholder="0,00" value="${heuteEintrag ? heuteEintrag.ist : ''}"
+            oninput="kassenschnittVorschau()"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:16px;font-weight:700">
+        </div>
+      </div>
+      <div id="kasse-diff-preview" style="text-align:center;font-size:20px;font-weight:800;margin-bottom:12px;padding:10px;border-radius:10px;background:#f8f8f8">
+        ${heuteEintrag ? (() => { const d = heuteEintrag.ist - heuteEintrag.soll; const c = d>=0?'#2e7d32':'#c62828'; return `<span style="color:${c}">${d>=0?'+':''}${d.toFixed(2).replace('.',',')} €</span>`; })() : 'Differenz: —'}
+      </div>
+      <input id="kasse-notiz" type="text" placeholder="Notiz (z.B. Kartenzahlung separat, Wechselgeld)"
+        value="${heuteEintrag ? _esc(heuteEintrag.notiz||'') : ''}"
+        style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:8px 10px;font-size:14px;margin-bottom:12px">
+      <button onclick="kassenschnittSpeichern()" style="background:#8B0000;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">
+        ${heuteEintrag ? 'Heute aktualisieren' : 'Kassenschnitt speichern'}
+      </button>
+    </div>
+
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:16px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-weight:700;color:#261816;font-size:15px">Letzte 30 Einträge</div>
+        <div style="font-size:13px">Gesamt-Differenz: <b style="color:${diff30Clr}">${diff30Fmt}</b></div>
+      </div>
+      ${eintraege.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#f8f4f4">
+          <th style="padding:8px 10px;text-align:left;color:#5a403c">Datum</th>
+          <th style="padding:8px 10px;text-align:right;color:#5a403c">Soll</th>
+          <th style="padding:8px 10px;text-align:right;color:#5a403c">Ist</th>
+          <th style="padding:8px 10px;text-align:right;color:#5a403c">Differenz</th>
+          <th style="padding:8px 10px;text-align:left;color:#5a403c">Notiz</th>
+          <th style="padding:8px 10px"></th>
+        </tr></thead>
+        <tbody>${histRows}</tbody>
+      </table></div>` : '<div style="text-align:center;padding:30px;color:#6b6b6b;font-size:14px">Noch keine Einträge</div>'}
+    </div>
+  </div>`;
+}
+
+function kassenschnittVorschau() {
+  const soll = parseFloat(document.getElementById('kasse-soll')?.value || 0) || 0;
+  const ist  = parseFloat(document.getElementById('kasse-ist')?.value  || 0) || 0;
+  const prev = document.getElementById('kasse-diff-preview');
+  if (!prev) return;
+  const diff = ist - soll;
+  const clr  = diff > 0.5 ? '#2e7d32' : diff < -0.5 ? '#c62828' : '#1b5e20';
+  const bg   = diff > 0.5 ? '#e8f5e9' : diff < -0.5 ? '#ffebee' : '#e8f5e9';
+  prev.style.background = bg;
+  prev.innerHTML = `<span style="color:${clr}">Differenz: ${diff>=0?'+':''}${diff.toFixed(2).replace('.',',')} €</span>`;
+}
+
+function kassenschnittSpeichern() {
+  const soll  = parseFloat(document.getElementById('kasse-soll')?.value || '') ;
+  const ist   = parseFloat(document.getElementById('kasse-ist')?.value  || '') ;
+  if (isNaN(soll) || isNaN(ist)) { _showToast('Soll und Ist-Betrag eingeben', 'error'); return; }
+  const notiz = (document.getElementById('kasse-notiz')?.value || '').trim();
+  const datum = new Date().toISOString().slice(0,10);
+  let eintraege = [];
+  try { eintraege = JSON.parse(localStorage.getItem('psc_kassenschnitt') || '[]'); } catch(e) {}
+  const idx = eintraege.findIndex(e => e.datum === datum);
+  const eintrag = { datum, soll, ist, notiz, ts: Date.now() };
+  if (idx >= 0) eintraege[idx] = eintrag;
+  else eintraege.push(eintrag);
+  localStorage.setItem('psc_kassenschnitt', JSON.stringify(eintraege));
+  _showToast('Kassenschnitt gespeichert ✓', 'success');
+  renderKassenschnittTab();
+}
+
+function kassenschnittLoeschen(datum) {
+  let eintraege = [];
+  try { eintraege = JSON.parse(localStorage.getItem('psc_kassenschnitt') || '[]'); } catch(e) {}
+  eintraege = eintraege.filter(e => e.datum !== datum);
+  localStorage.setItem('psc_kassenschnitt', JSON.stringify(eintraege));
+  renderKassenschnittTab();
 }
 
 function _showToast(msg, type) {
