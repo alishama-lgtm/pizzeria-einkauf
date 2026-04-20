@@ -118,6 +118,12 @@ node server.js        # → http://localhost:8080
   - Print-Styles (Navigation wird ausgeblendet)
 - **Cloudflare Tunnel** — Anleitung gegeben, Ali richtet zuhause ein
 - **Tägliche Routine** ✅ — Claude Code Remote Agent bei claude.ai/code/routines
+- **Theme-Vollständigkeits-Fix** ✅ — Alle 4 Themes systematisch geprüft und repariert
+  - Glass: fehlende Hintergründe (#fafafa, #f8f8f8, #fef9c3, #f8dcd8, etc.)
+  - Glass: fehlende Textfarben (#1565c0→blau, #f57c00→gelb, #3d1c11→hell, etc.)
+  - Glass + Dark: Border-Farben (#e3beb8 etc.) überschrieben
+  - Dark/Dark-Red: gleiche Farblücken geschlossen
+  - Methode: Bei jedem Theme-Fix → alle 4 Themes gleichzeitig prüfen
 
 ## Offene Aufgaben
 
