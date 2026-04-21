@@ -136,15 +136,19 @@ node server.js        # → http://localhost:8080
 
 ## Session 11 (2026-04-21) — Was gebaut wurde
 
-- **Feature 4: Preisalarm komplett neu** ✅
-  - `renderPreisalarmTab()` — vollständig neu, alle Farben via CSS-Variablen (theme-kompatibel)
-  - `preisalarmAdd()` — Produkt hinzufügen (mit `aktiv:true`)
-  - `preisalarmUpdate(id)` — Preis aktualisieren + Historie schreiben
-  - `preisalarmToggle(id)` — NEU: Alarm pro Produkt ein/aus (🔔/🔕)
-  - `preisalarmDelete(id)` — Produkt löschen
-  - `checkPreisalarme()` — NEU: scannt PRICE_MAP aus DB, aktualisiert Preise automatisch, zeigt Alarm-Zusammenfassung
-  - Button "🔄 Preise prüfen" im Tab-Header
-  - Backwards-kompatibel: ältere Einträge ohne `aktiv`-Feld werden automatisch auf `true` gesetzt
+- **Feature 4: Preisalarm Vollversion** ✅ (nach Prompt B Spec)
+  - **Neues Schema:** `pizzeria_preisalarm_rules` + `pizzeria_preisalarm_log`
+  - Formular: Produkt + Shop (Alle/Metro/Billa/Lidl/Spar) + Typ (unter/ueber/aend) + Schwelle
+  - `preisalarmAdd()` — Regel anlegen mit `{id,produkt,shop,typ,schwelle,aktiv,erstellt}`
+  - `preisalarmToggle(id)` — AN/AUS-Toggle pro Regel
+  - `preisalarmDelete(id)` — Löschen mit confirm()
+  - `checkPreisalarme()` — async: fetch `/api/preisverlauf?limit=200`, Fallback `pizzeria_history`; prüft jede aktive Regel, zeigt Toast + notifAdd() + Log-Eintrag
+  - Auto-Check: `setInterval(checkPreisalarme, 30*60*1000)` + Initial-Check beim Tab-Öffnen (nur wenn >5 min seit letztem Check)
+  - Tabelle: Produkt | Shop | Typ | Schwelle | Letzter Preis | Diff | Ampel (🟢🟡🔴) | Ein/Aus | 🗑️
+  - 🔴-Zeilen: `animation: pulse 1.5s infinite` (Hintergrund rgba(239,68,68,0.12))
+  - Verlauf: aufklappbares `<details>` — letzte 20 ausgelöste Alarme
+  - `@keyframes pulse` CSS + `.pa-pulse-row` Klasse hinzugefügt
+  - Dashboard-Referenz auf neues Schema geupdated
 
 ## Offene Aufgaben
 
