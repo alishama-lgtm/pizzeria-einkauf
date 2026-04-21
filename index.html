@@ -8821,6 +8821,39 @@ function renderHeuteTab() {
     : `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">${dringendCount>0?`<span style="background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#dc2626">🔴 ${dringendCount} dringend</span>`:''} ${normalCount>0?`<span style="background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#d97706">🟡 ${normalCount} normal</span>`:''}</div><ul style="margin:0 0 16px;padding:0;list-style:none">${top3Aufgaben.map(a=>{const d=a.prioritaet==='dringend'||a.dringend;return`<li style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6"><span style="flex-shrink:0">${d?'🔴':'🟡'}</span><span style="font-size:15px;color:#261816;font-weight:600">${escHtml(a.titel||a.name||'Aufgabe')}${d?' <span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px">DRINGEND</span>':''}</span></li>`;}).join('')}</ul>`;
   html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">📋</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Aufgaben</h3></div>${aufgabenBody}<button onclick="switchTab('aufgaben')" style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'"><span style="font-size:18px">→</span> Alle Aufgaben anzeigen</button></div>`;
   html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">☑️</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Schicht-Checkliste</h3></div><div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px"><div style="background:${oeffStatus.bg};border-radius:12px;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:16px;font-weight:700;color:#261816">Öffnung</span><span style="font-size:15px;font-weight:700;color:${oeffStatus.farbe}">${oeffStatus.label}</span></div><div style="font-size:14px;color:#5a403c;margin-bottom:6px">${oeffDone} / ${oeffItems.length} erledigt</div>${_hProgressBar(oeffDone,oeffItems.length,oeffStatus.farbe)}</div><div style="background:${schlStatus.bg};border-radius:12px;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:16px;font-weight:700;color:#261816">Schließung</span><span style="font-size:15px;font-weight:700;color:${schlStatus.farbe}">${schlStatus.label}</span></div><div style="font-size:14px;color:#5a403c;margin-bottom:6px">${schlDone} / ${schlItems.length} erledigt</div>${_hProgressBar(schlDone,schlItems.length,schlStatus.farbe)}</div></div><button onclick="switchTab('schichtcheck')" style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'"><span style="font-size:18px">→</span> Zur Checkliste</button></div>`;
+  // ── Kassenbuch Schnell-Karte ──
+  let kbEin=0, kbAus=0;
+  try {
+    const kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]');
+    const todayStr = new Date().toISOString().slice(0,10);
+    kbAll.forEach(e => {
+      if ((e.datum||'').slice(0,10)===todayStr) {
+        if(e.typ==='einnahme') kbEin += parseFloat(e.brutto||0);
+        else kbAus += parseFloat(e.brutto||0);
+      }
+    });
+  } catch(_) {}
+  html += `<div style="background:var(--surface);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:24px">💰</span>
+      <h3 style="font-size:16px;font-weight:800;color:var(--text);margin:0">Kassenbuch heute</h3>
+      <div style="margin-left:auto;display:flex;gap:12px">
+        <span style="font-size:13px;font-weight:700;color:#2e7d32">+${kbEin.toFixed(2).replace('.',',')} €</span>
+        <span style="font-size:13px;font-weight:700;color:#c62828">−${kbAus.toFixed(2).replace('.',',')} €</span>
+        <span style="font-size:13px;font-weight:800;color:${kbEin-kbAus>=0?'#1b5e20':'#b71c1c'}">=&nbsp;${(kbEin-kbAus).toFixed(2).replace('.',',')} €</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;align-items:end">
+      <select id="heute-kb-typ" style="padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)">
+        <option value="einnahme">Einnahme</option>
+        <option value="ausgabe">Ausgabe</option>
+      </select>
+      <input id="heute-kb-desc" type="text" placeholder="Beschreibung" style="padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box">
+      <input id="heute-kb-betrag" type="number" step="0.01" min="0" placeholder="Brutto €" style="width:110px;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box">
+      <button onclick="heuteKbQuickAdd()" style="padding:10px 16px;border-radius:10px;border:none;background:#610000;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Speichern</button>
+    </div>
+  </div>`;
+
   html += `<div style="background:var(--surface);border-radius:16px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
     <div>
       <div style="font-weight:700;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px"><span style="font-size:18px">📋</span>Tagesbericht</div>
@@ -8830,6 +8863,19 @@ function renderHeuteTab() {
   </div>`;
   html += `</div>`;
   panel.innerHTML = html;
+}
+
+function heuteKbQuickAdd() {
+  const typ    = document.getElementById('heute-kb-typ')?.value || 'einnahme';
+  const desc   = document.getElementById('heute-kb-desc')?.value.trim();
+  const betrag = parseFloat(document.getElementById('heute-kb-betrag')?.value || 0);
+  if (!desc) { _showToast('Bitte Beschreibung eingeben', 'error'); return; }
+  if (betrag <= 0) { _showToast('Bitte Betrag eingeben', 'error'); return; }
+  let list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  list.push({ id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: (betrag/1.1).toFixed(2), mwst_satz: 10, mwst_betrag: (betrag-betrag/1.1).toFixed(2), brutto: betrag.toFixed(2) });
+  _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list));
+  _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' '+betrag.toFixed(2)+' € gespeichert ✓', 'success');
+  renderHeuteTab();
 }
 
 // ═══════════════════════════════════════════════════════════════
