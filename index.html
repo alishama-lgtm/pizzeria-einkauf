@@ -15466,7 +15466,10 @@ function renderLagerTab() {
 
   // ── Status-Dashboard ──
   var html = _pageHdr('warehouse', 'Lagerbestand', lager.length + ' Artikel verwaltet',
-    (rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;margin-right:8px"><span class="material-symbols-outlined">shopping_cart</span>Kritische bestellen</button>' : '')
+    (rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;margin-right:4px"><span class="material-symbols-outlined">shopping_cart</span>Kritische bestellen</button>' : '')
+    + '<input type="file" id="lager-csv-input" accept=".csv" style="display:none" onchange="lagerCsvImport(this.files[0])">'
+    + '<button onclick="lagerCsvVorlageDownload()" class="ws-btn ws-btn-sm" style="margin-right:4px">📄 Vorlage</button>'
+    + '<button onclick="document.getElementById(\'lager-csv-input\').click()" class="ws-btn ws-btn-sm" style="margin-right:4px">📥 CSV importieren</button>'
     + '<button onclick="lagerFormToggle()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
 
   html += '<div id="lag-form-area"></div>';
@@ -15719,6 +15722,91 @@ function lagerAlleRotBestellen() {
   });
   _syncedLocalSet('pizzeria_bestellung', JSON.stringify(best));
   _showToast(added+' Artikel zur Bestellliste hinzugefügt', 'success');
+}
+
+function lagerCsvVorlageDownload() {
+  var rows = ['Produkt;Menge;Einheit;Mindestbestand;Kategorie',
+    'Mehl (Typ 00);25;kg;5;Grundzutaten',
+    'Tomatensauce;12;Dose;3;Grundzutaten',
+    'Mozzarella;8;kg;2;Käse',
+    'Olivenöl;4;Liter;1;Küche',
+    'Salami;3;kg;1;Belag'];
+  var blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'lager_vorlage.csv'; a.click();
+}
+
+function lagerCsvImport(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var csvText = e.target.result;
+    var lines = csvText.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length < 2) { _showToast('CSV leer oder kein Header', 'error'); return; }
+    var sep = lines[0].split(';').length > lines[0].split(',').length ? ';' : ',';
+    var headers = lines[0].split(sep).map(function(h){ return h.trim().toLowerCase().replace(/"/g,''); });
+    var colIdx = function(names) {
+      for (var i=0;i<names.length;i++) { var idx=headers.indexOf(names[i]); if(idx>=0) return idx; } return -1;
+    };
+    var iName = colIdx(['produkt','name','artikel']);
+    var iMenge = colIdx(['menge','bestand','anzahl','stock']);
+    var iEinheit = colIdx(['einheit','unit']);
+    var iMin = colIdx(['mindestbestand','mindest','min','minimum']);
+    var iKat = colIdx(['kategorie','category','kat']);
+    if (iName < 0) { _showToast('Spalte "Produkt" oder "Name" nicht gefunden', 'error'); return; }
+    var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+    var preview = [];
+    for (var li=1; li<lines.length; li++) {
+      var cols = lines[li].split(sep).map(function(c){ return c.trim().replace(/^"|"$/g,''); });
+      var pName = iName>=0 ? cols[iName]||'' : '';
+      if (!pName) continue;
+      var menge = iMenge>=0 ? parseFloat(cols[iMenge])||0 : 0;
+      if (isNaN(menge)) continue;
+      var einheit = iEinheit>=0 ? cols[iEinheit]||'Stk' : 'Stk';
+      var mindest = iMin>=0 ? parseFloat(cols[iMin])||0 : 0;
+      var kat = iKat>=0 ? cols[iKat]||'Sonstiges' : 'Sonstiges';
+      var existing = lager.find(function(x){ return x.name.toLowerCase()===pName.toLowerCase(); });
+      preview.push({ pName: pName, menge: menge, einheit: einheit, mindest: mindest, kat: kat, isUpdate: !!existing });
+    }
+    if (preview.length === 0) { _showToast('Keine gültigen Zeilen gefunden', 'error'); return; }
+    var tableRows = preview.map(function(r) {
+      return '<tr style="border-bottom:1px solid #f3f4f6">'
+        +'<td style="padding:6px 10px;font-size:13px;color:#261816">'+escHtml(r.pName)+'</td>'
+        +'<td style="padding:6px 10px;font-size:13px;text-align:right">'+r.menge+'</td>'
+        +'<td style="padding:6px 10px;font-size:13px">'+escHtml(r.einheit)+'</td>'
+        +'<td style="padding:6px 10px;font-size:13px;text-align:right">'+r.mindest+'</td>'
+        +'<td style="padding:6px 10px;text-align:center"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+(r.isUpdate?'#e3f2fd':'#e8f5e9')+';color:'+(r.isUpdate?'#0d47a1':'#1b5e20')+'">'+(r.isUpdate?'Update':'Neu')+'</span></td>'
+        +'</tr>';
+    }).join('');
+    var modalHtml = '<div id="lager-csv-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">'
+      +'<div style="background:#fff;border-radius:20px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+      +'<h3 style="font-size:18px;font-weight:800;color:#261816;margin:0">📥 CSV Vorschau — '+preview.length+' Artikel</h3>'
+      +'<button onclick="document.getElementById(\'lager-csv-modal\').remove()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:16px">✕</button>'
+      +'</div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:18px">'
+      +'<thead><tr style="background:#f8f9fa"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:#5a403c">Produkt</th><th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:#5a403c">Menge</th><th style="padding:7px 10px;font-size:11px;font-weight:700;color:#5a403c">Einheit</th><th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:#5a403c">Mindest</th><th style="padding:7px 10px;font-size:11px;font-weight:700;color:#5a403c">Status</th></tr></thead>'
+      +'<tbody>'+tableRows+'</tbody></table>'
+      +'<div style="display:flex;gap:10px">'
+      +'<button onclick="(function(){'+
+        'var prev='+JSON.stringify(preview)+';'+
+        'var lager=[];try{lager=JSON.parse(localStorage.getItem(\'pizzeria_lager\')||\'[]\');}catch(_){}'+
+        'var neu=0,upd=0;'+
+        'prev.forEach(function(r){'+
+          'var ex=lager.find(function(x){return x.name.toLowerCase()===r.pName.toLowerCase();});'+
+          'if(ex){ex.menge=r.menge;ex.mindest=r.mindest;ex.einheit=r.einheit;upd++;}'+
+          'else{lager.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.pName,menge:r.menge,einheit:r.einheit,mindest:r.mindest,kategorie:r.kat});neu++;}'+
+        '});'+
+        '_syncedLocalSet(\'pizzeria_lager\',JSON.stringify(lager));'+
+        'document.getElementById(\'lager-csv-modal\').remove();'+
+        '_showToast(neu+\' Produkte importiert, \'+upd+\' aktualisiert\',\'success\');'+
+        'renderLagerTab();'+
+        'var inp=document.getElementById(\'lager-csv-input\');if(inp)inp.value=\'\';'+
+      '})()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">✅ Importieren</button>'
+      +'<button onclick="document.getElementById(\'lager-csv-modal\').remove()" style="padding:13px 20px;border-radius:12px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:14px;font-weight:700;cursor:pointer">Abbrechen</button>'
+      +'</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ═══════════════════════════════════════════════════════════════
