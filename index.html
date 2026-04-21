@@ -13263,7 +13263,10 @@ function renderSpeisekarteTab() {
 
     let html = `
     ${_pageHdr('menu_book', 'Speisekarte', menu.filter(i=>i.aktiv).length + ' aktive Gerichte · ' + menu.length + ' gesamt',
-      '<button onclick="skNeuesGericht()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>')}
+      '<div style="display:flex;gap:8px">' +
+      '<button onclick="generateSpeisekartePdf()" style="padding:7px 14px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">picture_as_pdf</span>Als PDF</button>' +
+      '<button onclick="skNeuesGericht()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>' +
+      '</div>')}
     <div id="sk-form-area"></div>
     <div style="margin-bottom:14px">
       <input type="text" placeholder="Suchen (Name, Nr., Zutaten)…" oninput="SK_SEARCH=this.value;renderSpeisekarteTab()"
@@ -13499,6 +13502,109 @@ function skLoeschen(id) {
     skSave(skLoad().filter(i => i.id !== id));
     renderSpeisekarteTab();
   });
+}
+
+function generateSpeisekartePdf() {
+  if (!window.jspdf || !window.jspdf.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, H = 297;
+  const marginL = 18, marginR = 18, marginT = 20;
+  const contentW = W - marginL - marginR;
+
+  // Deckblatt
+  doc.setFillColor(139, 0, 0);
+  doc.rect(0, 0, W, 55, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.text('Pizzeria San Carino', W / 2, 28, { align: 'center' });
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Speisekarte', W / 2, 40, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text('Stand: ' + new Date().toLocaleDateString('de-AT'), W / 2, 50, { align: 'center' });
+
+  const menu = skLoad().filter(i => i.aktiv);
+  let y = 65;
+
+  const addPage = () => {
+    doc.addPage();
+    doc.setFillColor(139, 0, 0);
+    doc.rect(0, 0, W, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Pizzeria San Carino — Speisekarte', marginL, 8);
+    doc.text(new Date().toLocaleDateString('de-AT'), W - marginR, 8, { align: 'right' });
+    y = 20;
+  };
+
+  const checkY = (needed) => { if (y + needed > H - 18) { addPage(); } };
+
+  const katGruppen = {};
+  for (const item of menu) {
+    if (!katGruppen[item.kat]) katGruppen[item.kat] = [];
+    katGruppen[item.kat].push(item);
+  }
+
+  for (const kat of SK_KATEGORIEN) {
+    const items = katGruppen[kat.id];
+    if (!items || items.length === 0) continue;
+
+    checkY(14);
+    // Kategorie-Überschrift
+    doc.setFillColor(248, 220, 216);
+    doc.roundedRect(marginL, y, contentW, 9, 2, 2, 'F');
+    doc.setTextColor(97, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(kat.label, marginL + 4, y + 6.3);
+    y += 13;
+
+    for (const item of items) {
+      const descLines = item.beschr
+        ? doc.splitTextToSize(item.beschr, contentW - 30)
+        : [];
+      const rowH = 8 + (descLines.length > 0 ? descLines.length * 4 + 2 : 0);
+      checkY(rowH);
+
+      doc.setTextColor(38, 24, 22);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(item.name, marginL, y);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(139, 0, 0);
+      doc.text('€ ' + parseFloat(item.preis || 0).toFixed(2).replace('.', ','), W - marginR, y, { align: 'right' });
+
+      if (descLines.length > 0) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(90, 64, 60);
+        doc.text(descLines, marginL, y + 5);
+        y += descLines.length * 4 + 2;
+      }
+
+      y += 8;
+      // Trennlinie
+      doc.setDrawColor(227, 190, 184);
+      doc.setLineWidth(0.3);
+      doc.line(marginL, y - 2, W - marginR, y - 2);
+    }
+    y += 4;
+  }
+
+  // Fußzeile letzte Seite
+  doc.setFontSize(8);
+  doc.setTextColor(140, 101, 98);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Alle Preise in EUR inkl. MwSt. (10% Speisen / 20% Getränke) · Pizzeria San Carino, Wien', W / 2, H - 8, { align: 'center' });
+
+  const heute = new Date().toISOString().slice(0, 10);
+  doc.save('Speisekarte_SanCarino_' + heute + '.pdf');
+  _showToast('Speisekarte als PDF gespeichert', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -17195,8 +17301,309 @@ function buchDropHandler(e) {
   _showToast(file.name + ' ausgewählt', 'info');
 }
 
+// ═══════════════════════════════════════════════════════════════
+// KASSENBUCH — Einnahmen & Ausgaben mit MwSt AT
+// ═══════════════════════════════════════════════════════════════
+var KB_KEY = 'pizzeria_kassenbuch';
+var KB_EIN_KAT = ['Tageseinnahmen','Lieferservice','Catering','Sonstiges'];
+var KB_AUS_KAT = ['Metro','Billa','Lidl','Spar','Personal','Miete','Energie','Reparatur','Sonstiges'];
+
+function kbLoad() {
+  try { return JSON.parse(localStorage.getItem(KB_KEY) || '[]'); } catch(e) { return []; }
+}
+function kbSave(arr) { localStorage.setItem(KB_KEY, JSON.stringify(arr)); }
+function kbEur(v) { return parseFloat(v||0).toFixed(2).replace('.',',') + ' €'; }
+function kbGenId() { return 'kb_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+function kbKalkuliere() {
+  var brutto = parseFloat((document.getElementById('kb-betrag')||{}).value) || 0;
+  var mwst   = parseFloat((document.getElementById('kb-mwst')||{}).value)   || 10;
+  var netto  = brutto / (1 + mwst / 100);
+  var mwstB  = brutto - netto;
+  var nEl = document.getElementById('kb-netto-anzeige');
+  var mEl = document.getElementById('kb-mwst-anzeige');
+  if (nEl) nEl.value = netto.toFixed(2).replace('.',',') + ' €';
+  if (mEl) mEl.value = mwstB.toFixed(2).replace('.',',') + ' €';
+}
+
+function kbTypChange() {
+  var typ = (document.getElementById('kb-typ')||{}).value;
+  var katEl = document.getElementById('kb-kategorie');
+  if (!katEl) return;
+  var kats = typ === 'Einnahme' ? KB_EIN_KAT : KB_AUS_KAT;
+  katEl.innerHTML = kats.map(function(k){ return '<option>' + k + '</option>'; }).join('');
+}
+
+function kassenbuchAdd() {
+  var datum = (document.getElementById('kb-datum')||{}).value || '';
+  var typ   = (document.getElementById('kb-typ')||{}).value || 'Einnahme';
+  var kat   = (document.getElementById('kb-kategorie')||{}).value || '';
+  var brutto = parseFloat((document.getElementById('kb-betrag')||{}).value) || 0;
+  var mwst   = parseFloat((document.getElementById('kb-mwst')||{}).value)   || 10;
+  var beschr = ((document.getElementById('kb-beschreibung')||{}).value || '').trim();
+  if (!datum)  { _showToast('Bitte Datum wählen', 'error'); return; }
+  if (!brutto) { _showToast('Bitte Betrag eingeben', 'error'); return; }
+  var netto   = brutto / (1 + mwst / 100);
+  var mwstB   = brutto - netto;
+  var entry = {
+    id: kbGenId(), datum: datum, typ: typ, kategorie: kat,
+    beschreibung: beschr, brutto: brutto, mwst_satz: mwst,
+    netto: parseFloat(netto.toFixed(2)), mwst_betrag: parseFloat(mwstB.toFixed(2)),
+    erstellt: new Date().toISOString()
+  };
+  var arr = kbLoad(); arr.push(entry); kbSave(arr);
+  _showToast('Eintrag gespeichert ✓', 'success');
+  renderBuchhaltungTab();
+}
+
+function kassenbuchDelete(id) {
+  _showConfirm('Eintrag wirklich löschen?', function() {
+    kbSave(kbLoad().filter(function(e){ return e.id !== id; }));
+    _showToast('Gelöscht', 'info');
+    renderBuchhaltungTab();
+  });
+}
+
+function kassenbuchExportCsv() {
+  var arr = kbLoad();
+  if (!arr.length) { _showToast('Keine Daten zum Exportieren', 'info'); return; }
+  var monat = new Date().toISOString().slice(0,7);
+  var rows = ['Datum,Typ,Kategorie,Beschreibung,Brutto,MwSt%,Netto,MwSt-Betrag'];
+  arr.forEach(function(e) {
+    rows.push([e.datum, e.typ, e.kategorie || '', '"' + (e.beschreibung||'').replace(/"/g,'""') + '"',
+      e.brutto.toFixed(2), e.mwst_satz, e.netto.toFixed(2), e.mwst_betrag.toFixed(2)].join(','));
+  });
+  var blob = new Blob(['\uFEFF' + rows.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'kassenbuch_' + monat + '.csv';
+  a.click();
+}
+
+function kassenbuchExportPdf() {
+  try {
+    var jsPDF = window.jspdf ? window.jspdf.jsPDF : null;
+    if (!jsPDF) { _showToast('PDF-Bibliothek nicht geladen', 'error'); return; }
+    var arr = kbLoad();
+    var monat = new Date().toISOString().slice(0,7);
+    var monatLabel = new Date().toLocaleDateString('de-AT', {month:'long', year:'numeric'});
+    var doc = new jsPDF();
+
+    // ── Deckblatt ──
+    doc.setFillColor(139, 0, 0);
+    doc.rect(0, 0, 210, 297, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(48);
+    doc.text(':', 105, 90, {align:'center'}); // Emoji-Fallback
+    doc.setFontSize(24); doc.setFont(undefined, 'bold');
+    doc.text('Pizzeria San Carino', 105, 118, {align:'center'});
+    doc.setFontSize(16); doc.setFont(undefined, 'normal');
+    doc.text('Kassenbuch \u2014 ' + monatLabel, 105, 136, {align:'center'});
+    doc.setDrawColor(254, 243, 199); doc.line(30, 146, 180, 146);
+    doc.setFontSize(11); doc.setTextColor(254, 243, 199);
+    doc.text('Erstellt: ' + new Date().toLocaleDateString('de-AT'), 105, 270, {align:'center'});
+
+    // ── Tabelle ──
+    doc.addPage();
+    doc.setTextColor(26, 18, 16); doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+    doc.text('Alle Eintr\u00e4ge', 15, 18);
+    var y = 28;
+    var cols = ['Datum','Typ','Kategorie','Beschreibung','Brutto','MwSt%','Netto','MwSt-\u20ac'];
+    var cx   = [15, 37, 58, 90, 130, 152, 165, 183];
+    doc.setFillColor(243, 238, 236); doc.rect(10, y-5, 190, 8, 'F');
+    doc.setFontSize(8); doc.setFont(undefined,'bold'); doc.setTextColor(74,60,58);
+    cols.forEach(function(h,i){ doc.text(h, cx[i], y); });
+    y += 8; doc.setFont(undefined,'normal'); doc.setFontSize(7.5);
+    arr.slice(-100).forEach(function(e) {
+      if (y > 272) { doc.addPage(); y = 18; }
+      if (e.typ === 'Einnahme') { doc.setFillColor(230,250,235); doc.rect(10,y-5,190,7,'F'); }
+      else                      { doc.setFillColor(255,235,235); doc.rect(10,y-5,190,7,'F'); }
+      doc.setTextColor(26,18,16);
+      doc.text(e.datum||'', cx[0], y);
+      doc.text(e.typ||'', cx[1], y);
+      doc.text((e.kategorie||'').substring(0,14), cx[2], y);
+      doc.text((e.beschreibung||'').substring(0,18), cx[3], y);
+      doc.text(e.brutto.toFixed(2), cx[4], y);
+      doc.text(e.mwst_satz + '%', cx[5], y);
+      doc.text(e.netto.toFixed(2), cx[6], y);
+      doc.text(e.mwst_betrag.toFixed(2), cx[7], y);
+      y += 7;
+    });
+
+    // ── Zusammenfassung ──
+    if (y > 240) { doc.addPage(); y = 18; }
+    y += 8;
+    var totalEin = arr.filter(function(e){return e.typ==='Einnahme';}).reduce(function(s,e){return s+e.brutto;},0);
+    var totalAus = arr.filter(function(e){return e.typ==='Ausgabe';}).reduce(function(s,e){return s+e.brutto;},0);
+    var m10 = arr.filter(function(e){return e.mwst_satz===10;}).reduce(function(s,e){return s+e.mwst_betrag;},0);
+    var m20 = arr.filter(function(e){return e.mwst_satz===20;}).reduce(function(s,e){return s+e.mwst_betrag;},0);
+    doc.setFillColor(139,0,0); doc.rect(10,y-5,190,8,'F');
+    doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(10);
+    doc.text('Zusammenfassung', 15, y); y += 12;
+    doc.setTextColor(26,18,16); doc.setFont(undefined,'normal'); doc.setFontSize(9);
+    doc.text('Gesamt-Einnahmen: ' + totalEin.toFixed(2) + ' \u20ac', 15, y); y += 7;
+    doc.text('Gesamt-Ausgaben:  ' + totalAus.toFixed(2) + ' \u20ac', 15, y); y += 7;
+    doc.text('Saldo:            ' + (totalEin-totalAus).toFixed(2) + ' \u20ac', 15, y); y += 7;
+    doc.text('MwSt 10% gesamt:  ' + m10.toFixed(2) + ' \u20ac', 15, y); y += 7;
+    doc.text('MwSt 20% gesamt:  ' + m20.toFixed(2) + ' \u20ac', 15, y);
+    doc.save('kassenbuch_' + monat + '.pdf');
+  } catch(err) {
+    _showToast('PDF-Fehler: ' + err.message, 'error');
+  }
+}
+
+function _kbKachel(title, value, sub, color, icon) {
+  return '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+    '<span class="material-symbols-outlined" style="font-size:20px;color:' + color + '">' + icon + '</span>' +
+    '<span style="font-size:12px;font-weight:600;color:#5a403c">' + title + '</span></div>' +
+    '<div style="font-size:20px;font-weight:800;color:' + color + '">' + value + '</div>' +
+    (sub ? '<div style="font-size:10px;color:#8d6562;margin-top:2px">' + sub + '</div>' : '') + '</div>';
+}
+function _kbInputStyle() {
+  return 'width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;';
+}
+function _kbField(label, input) {
+  return '<div><div style="font-size:11px;font-weight:600;color:#8d6562;margin-bottom:4px">' + label + '</div>' + input + '</div>';
+}
+
 // ── Render ──
 function renderBuchhaltungTab() {
+  var panel = document.getElementById('panel-buchhaltung');
+  if (!panel) return;
+  if (window._chartKassenbuch) { window._chartKassenbuch.destroy(); window._chartKassenbuch = null; }
+
+  var arr    = kbLoad();
+  var heute  = new Date().toISOString().slice(0,10);
+  var monat  = heute.slice(0,7);
+  var tArr   = arr.filter(function(e){ return e.datum === heute; });
+  var mArr   = arr.filter(function(e){ return e.datum.slice(0,7) === monat; });
+
+  function sumTyp(a, t) { return a.filter(function(e){return e.typ===t;}).reduce(function(s,e){return s+e.brutto;},0); }
+  function sumMwst(a, s) { return a.filter(function(e){return e.mwst_satz===s;}).reduce(function(s2,e){return s2+e.mwst_betrag;},0); }
+
+  var tEin = sumTyp(tArr,'Einnahme'), tAus = sumTyp(tArr,'Ausgabe');
+  var mEin = sumTyp(mArr,'Einnahme'), mAus = sumTyp(mArr,'Ausgabe');
+  var mM10 = sumMwst(mArr,10), mM20 = sumMwst(mArr,20);
+
+  var btnStyle = 'padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;';
+  var html = _pageHdr('account_balance', 'Kassenbuch', 'Einnahmen & Ausgaben mit MwSt-Auswertung AT',
+    '<button onclick="kassenbuchExportCsv()" style="' + btnStyle + 'border:1.5px solid #e3beb8;background:#fff;color:#610000">'+
+    '<span class="material-symbols-outlined" style="font-size:14px">download</span>CSV</button>' +
+    '<button onclick="kassenbuchExportPdf()" style="' + btnStyle + 'border:none;background:#8B0000;color:#fff">'+
+    '<span class="material-symbols-outlined" style="font-size:14px">picture_as_pdf</span>PDF</button>');
+
+  // ── Kacheln Heute ──
+  html += '<div style="font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Heute</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">';
+  html += _kbKachel('Einnahmen', kbEur(tEin), 'Brutto', '#16a34a', 'trending_up');
+  html += _kbKachel('Ausgaben',  kbEur(tAus), 'Brutto', '#dc2626', 'trending_down');
+  html += _kbKachel('Saldo',     kbEur(tEin-tAus), '', (tEin-tAus)>=0?'#2563eb':'#dc2626', 'account_balance');
+  html += '</div>';
+
+  // ── Kacheln Monat ──
+  html += '<div style="font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Aktueller Monat</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px">';
+  html += _kbKachel('Einnahmen', kbEur(mEin), 'Netto ' + kbEur(mEin/1.1), '#16a34a', 'trending_up');
+  html += _kbKachel('Ausgaben',  kbEur(mAus), 'Netto ' + kbEur(mAus/1.1), '#dc2626', 'trending_down');
+  html += _kbKachel('Saldo',     kbEur(mEin-mAus), '', (mEin-mAus)>=0?'#2563eb':'#dc2626', 'account_balance');
+  html += _kbKachel('MwSt 10%', kbEur(mM10), 'Speisen AT', '#ea580c', 'receipt');
+  html += _kbKachel('MwSt 20%', kbEur(mM20), 'Sonstiges AT', '#c2410c', 'receipt_long');
+  html += '</div>';
+
+  // ── Formular ──
+  var todayStr = heute;
+  html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px">';
+  html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:14px">➕ Neuer Eintrag</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:14px">';
+  html += _kbField('Datum', '<input type="date" id="kb-datum" value="' + todayStr + '" style="' + _kbInputStyle() + '">');
+  html += _kbField('Typ', '<select id="kb-typ" onchange="kbTypChange()" style="' + _kbInputStyle() + '"><option>Einnahme</option><option>Ausgabe</option></select>');
+  html += _kbField('Kategorie', '<select id="kb-kategorie" style="' + _kbInputStyle() + '">' + KB_EIN_KAT.map(function(k){return '<option>'+k+'</option>';}).join('') + '</select>');
+  html += _kbField('Betrag brutto (€)', '<input type="number" id="kb-betrag" step="0.01" min="0" placeholder="0,00" oninput="kbKalkuliere()" style="' + _kbInputStyle() + '">');
+  html += _kbField('MwSt-Satz', '<select id="kb-mwst" onchange="kbKalkuliere()" style="' + _kbInputStyle() + '"><option value="10">10% – Speisen (AT)</option><option value="20">20% – Sonstiges (AT)</option></select>');
+  html += _kbField('Netto (auto)', '<input type="text" id="kb-netto-anzeige" readonly value="0,00 €" style="' + _kbInputStyle() + 'background:#f8f4f4;color:#5a403c;">');
+  html += _kbField('MwSt-Betrag', '<input type="text" id="kb-mwst-anzeige" readonly value="0,00 €" style="' + _kbInputStyle() + 'background:#f8f4f4;color:#5a403c;">');
+  html += _kbField('Beschreibung (opt.)', '<input type="text" id="kb-beschreibung" placeholder="z.B. Einkauf Metro…" style="' + _kbInputStyle() + '">');
+  html += '</div>';
+  html += '<button onclick="kassenbuchAdd()" style="padding:10px 24px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px"><span class="material-symbols-outlined" style="font-size:18px">add_circle</span>Eintrag speichern</button>';
+  html += '</div>';
+
+  // ── Chart ──
+  var last30 = [];
+  for (var i = 29; i >= 0; i--) { var dd = new Date(); dd.setDate(dd.getDate()-i); last30.push(dd.toISOString().slice(0,10)); }
+  var hasData = arr.some(function(e){ return last30.indexOf(e.datum) >= 0; });
+  if (hasData) {
+    html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px">';
+    html += '<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:14px">📊 Letzte 30 Tage</div>';
+    html += '<canvas id="kb-chart" height="80"></canvas></div>';
+  } else {
+    html += '<div style="background:#fff;border-radius:16px;padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px;text-align:center;color:#8d6562;font-size:13px">📊 Trag deinen ersten Eintrag ein — dann erscheint hier der Chart.</div>';
+  }
+
+  // ── Tabelle ──
+  var last50 = arr.slice(-50).reverse();
+  html += '<div style="background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;overflow:hidden">';
+  html += '<div style="padding:16px 20px;border-bottom:1px solid #e3beb844;display:flex;align-items:center;justify-content:space-between">';
+  html += '<span style="font-size:13px;font-weight:700;color:#261816">📋 Letzte 50 Einträge</span>';
+  html += '<span style="font-size:11px;color:#8d6562">' + arr.length + ' gesamt</span></div>';
+
+  if (!last50.length) {
+    html += '<div style="padding:40px;text-align:center;color:#8d6562"><span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:10px">receipt_long</span><p>Noch keine Einträge</p></div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html += '<thead><tr style="background:#f3eeec">';
+    ['Datum','Typ','Kategorie','Beschreibung','Brutto','MwSt%','Netto','MwSt-€','🗑️'].forEach(function(h){
+      html += '<th style="padding:10px 12px;text-align:' + (h==='🗑️'?'center':'left') + ';font-size:11px;font-weight:700;color:#4a3c3a;white-space:nowrap">' + h + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    last50.forEach(function(e) {
+      var isEin = e.typ === 'Einnahme';
+      var bg = isEin ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
+      html += '<tr style="background:' + bg + ';border-bottom:1px solid #f0ebe8">';
+      html += '<td style="padding:9px 12px;white-space:nowrap;color:#261816">' + (e.datum||'') + '</td>';
+      html += '<td style="padding:9px 12px"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;background:' + (isEin?'rgba(22,163,74,0.12)':'rgba(220,38,38,0.10)') + ';color:' + (isEin?'#16a34a':'#dc2626') + '">' + e.typ + '</span></td>';
+      html += '<td style="padding:9px 12px;color:#5a403c;white-space:nowrap">' + _esc(e.kategorie||'') + '</td>';
+      html += '<td style="padding:9px 12px;color:#5a403c;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(e.beschreibung||'—') + '</td>';
+      html += '<td style="padding:9px 12px;text-align:right;font-weight:700;color:#261816">' + kbEur(e.brutto) + '</td>';
+      html += '<td style="padding:9px 12px;text-align:right;color:#5a403c">' + e.mwst_satz + '%</td>';
+      html += '<td style="padding:9px 12px;text-align:right;color:#5a403c">' + kbEur(e.netto) + '</td>';
+      html += '<td style="padding:9px 12px;text-align:right;color:#5a403c">' + kbEur(e.mwst_betrag) + '</td>';
+      html += '<td style="padding:9px 12px;text-align:center"><button onclick="kassenbuchDelete(\'' + e.id + '\')" style="border:none;background:none;cursor:pointer;padding:4px" title="Löschen"><span class="material-symbols-outlined" style="font-size:16px;color:#dc2626">delete</span></button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+  panel.innerHTML = html;
+
+  // Chart rendern
+  if (hasData) {
+    var einByDay = {}, ausByDay = {};
+    last30.forEach(function(d){ einByDay[d] = 0; ausByDay[d] = 0; });
+    arr.forEach(function(e) {
+      if (last30.indexOf(e.datum) < 0) return;
+      if (e.typ === 'Einnahme') einByDay[e.datum] = (einByDay[e.datum]||0) + e.brutto;
+      else ausByDay[e.datum] = (ausByDay[e.datum]||0) + e.brutto;
+    });
+    var canvas = document.getElementById('kb-chart');
+    if (canvas && window.Chart) {
+      if (window._chartKassenbuch) { window._chartKassenbuch.destroy(); window._chartKassenbuch = null; }
+      window._chartKassenbuch = new window.Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: last30.map(function(d){ return d.slice(5); }),
+          datasets: [
+            { label: 'Einnahmen', data: last30.map(function(d){ return einByDay[d]||0; }), backgroundColor: 'rgba(22,163,74,0.7)', borderRadius: 4 },
+            { label: 'Ausgaben',  data: last30.map(function(d){ return ausByDay[d]||0;  }), backgroundColor: 'rgba(239,68,68,0.7)',  borderRadius: 4 }
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { x: { ticks: { maxRotation: 45, font: { size: 10 } } } } }
+      });
+    }
+  }
+}
+
+function _PLACEHOLDER_BUCHHALTUNG_OLD_UNUSED() {
   var panel = document.getElementById('panel-buchhaltung');
   if (!panel) return;
 
