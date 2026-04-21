@@ -12884,6 +12884,19 @@ function renderDashboardTab() {
       kassenschnittHeute = ks.find(e => e.datum === today) || null;
     } catch(_) {}
 
+    // Kassenbuch KPIs
+    let kbEinH=0, kbAusH=0, kbEinM=0, kbAusM=0;
+    try {
+      const kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]');
+      const thisMonth = today.slice(0,7);
+      kbAll.forEach(e => {
+        const d=(e.datum||'').slice(0,10), m=(e.datum||'').slice(0,7);
+        const v=parseFloat(e.brutto||0);
+        if(d===today){ if(e.typ==='einnahme') kbEinH+=v; else kbAusH+=v; }
+        if(m===thisMonth){ if(e.typ==='einnahme') kbEinM+=v; else kbAusM+=v; }
+      });
+    } catch(_) {}
+
     // Helper
     const fmt2 = n => n.toLocaleString('de-AT',{minimumFractionDigits:2,maximumFractionDigits:2});
     const bar = (pct, color) => `<div style="height:8px;border-radius:4px;background:#f0e4e1;overflow:hidden"><div class="progress-fill" style="height:100%;border-radius:4px;background:${color};width:${Math.min(100,pct)}%"></div></div>`;
@@ -13079,6 +13092,25 @@ function renderDashboardTab() {
       </div>`;
 
       html += `</div>`;
+    }
+
+    // ── BEREICH 5c: Kassenbuch-KPIs ──
+    if (isAdminOrManager && (kbEinH > 0 || kbAusH > 0 || kbEinM > 0 || kbAusM > 0)) {
+      const kbSaldoH = kbEinH - kbAusH;
+      html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:6px">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#610000">receipt_long</span>Kassenbuch Heute
+          </h3>
+          <button onclick="switchTab('buchhaltung')" style="padding:5px 10px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:11px;font-weight:700;color:#610000;cursor:pointer">Öffnen →</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+          <div style="background:#e8f5e9;border-radius:12px;padding:12px;text-align:center"><div style="font-size:10px;font-weight:700;color:#2e7d32;text-transform:uppercase;margin-bottom:4px">Einnahmen</div><div style="font-size:18px;font-weight:900;color:#1b5e20">${fmt2(kbEinH)} €</div></div>
+          <div style="background:#ffebee;border-radius:12px;padding:12px;text-align:center"><div style="font-size:10px;font-weight:700;color:#c62828;text-transform:uppercase;margin-bottom:4px">Ausgaben</div><div style="font-size:18px;font-weight:900;color:#b71c1c">${fmt2(kbAusH)} €</div></div>
+          <div style="background:${kbSaldoH>=0?'#e8f5e9':'#ffebee'};border-radius:12px;padding:12px;text-align:center"><div style="font-size:10px;font-weight:700;color:${kbSaldoH>=0?'#2e7d32':'#c62828'};text-transform:uppercase;margin-bottom:4px">Saldo</div><div style="font-size:18px;font-weight:900;color:${kbSaldoH>=0?'#1b5e20':'#b71c1c'}">${fmt2(kbSaldoH)} €</div></div>
+          <div style="background:#e3f2fd;border-radius:12px;padding:12px;text-align:center"><div style="font-size:10px;font-weight:700;color:#1565c0;text-transform:uppercase;margin-bottom:4px">Monat Ein.</div><div style="font-size:18px;font-weight:900;color:#0d47a1">${fmt2(kbEinM)} €</div></div>
+        </div>
+      </div>`;
     }
 
     // ── BEREICH 6: Schnellzugriff ──
@@ -14552,6 +14584,8 @@ function renderDienstplanTab() {
         <span style="font-weight:700;font-size:15px;color:#261816">KW ${kw} — ${fmt(weekDates[0])} bis ${fmt(weekDates[6])}</span>
         <button onclick="dienstplanWoche(1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">Nächste Woche →</button>
         <button onclick="dienstplanHeute()" style="padding:8px 14px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-left:auto">Heute</button>
+        <button onclick="dienstplanPdfExport()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">picture_as_pdf</span>PDF</button>
+        <button onclick="window.print()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">print</span>Drucken</button>
       </div>
       <div style="overflow-x:auto">
         <table style="border-collapse:collapse;width:100%;min-width:700px">
@@ -14588,6 +14622,27 @@ function dienstplanHeute() {
   const p = document.getElementById('panel-dienstplan');
   p.dataset.weekOffset = '0';
   renderDienstplanTab();
+}
+function dienstplanPdfExport() {
+  if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  const p = document.getElementById('panel-dienstplan');
+  const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const MA_LABELS = { kueche:'Küche', pizza:'Pizza', fahrer:'Fahrer', reinigung:'Reinigung', service:'Service' };
+  let plan = {}; try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(_) {}
+  const offset = parseInt(p.dataset.weekOffset||'0');
+  const now = new Date(); const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay()+6)%7) + offset*7); monday.setHours(0,0,0,0);
+  const weekKey = monday.toISOString().slice(0,10);
+  const weekDates = DAYS.map((_,i) => { const d=new Date(monday); d.setDate(monday.getDate()+i); return d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'}); });
+  const kw = (() => { const d=new Date(Date.UTC(monday.getFullYear(),monday.getMonth(),monday.getDate())); const dn=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dn); return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7); })();
+  const doc = new window.jspdf.jsPDF({orientation:'landscape'});
+  doc.setFontSize(14); doc.text('Dienstplan KW ' + kw + ' — ' + weekDates[0] + ' bis ' + weekDates[6], 14, 16);
+  doc.setFontSize(9); doc.text('Pizzeria San Carino — Export: ' + new Date().toLocaleDateString('de-AT'), 14, 22);
+  const head = [['Mitarbeiter',...DAYS.map((d,i)=>d+'\n'+weekDates[i])]];
+  const body = Object.keys(MA_LABELS).map(ma => [MA_LABELS[ma],...DAYS.map(day=>(plan[weekKey]?.[ma]?.[day]||'—'))]);
+  if (doc.autoTable) { doc.autoTable({ head, body, startY: 26, styles:{fontSize:8,cellPadding:4}, headStyles:{fillColor:[97,0,0],textColor:255}, alternateRowStyles:{fillColor:[255,248,246]} }); }
+  doc.save('dienstplan-kw'+kw+'-'+weekKey+'.pdf');
+  _showToast('PDF gespeichert', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
