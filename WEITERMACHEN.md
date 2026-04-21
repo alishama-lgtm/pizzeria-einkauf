@@ -180,25 +180,40 @@ node server.js        # → http://localhost:8080
 - `pizzeria_preisalarm_log` — Alarm-Log `[{id,datum,produkt,shop,typ,schwelle,ist_preis,diff_pct,regel_id}]`
 - `pizzeria_bestellungen` — Bestellungen `[{id,datum,lieferant_name,lieferant_email,positionen,status}]`
 
-## Session 13 (2026-04-21) — Offene Aufgaben NEXT
+## Session 13 (2026-04-21) — Was gebaut wurde ✅
 
-### 🔴 Priorität Hoch — Sofort erledigen
+- **Phase 1: Setup** ✅
+  - `.env` Datei erstellt (`CLAUDE_API_KEY`, `NOTION_API_KEY`, `NOTION_PARENT_PAGE_ID`, `PORT`)
+  - `dotenv` installiert, `import 'dotenv/config'` in server.js
+  - Notion-Einstellungen: `notion-page-input` Feld + `saveApiKey()` speichert `pizzeria_notion_parent_id`
+  - Branch: `feature/session-13-2026-04-21`
+
+- **B1: Kassenbuch** ✅ — in `renderBuchhaltungTab()` (panel: `buchhaltung`)
+  - 5 Kacheln: Einnahmen/Ausgaben/Saldo heute + Einnahmen/Ausgaben Monat
+  - Formular: Typ, Beschreibung, Netto, MwSt (10%/20%/0%), Auto-Brutto
+  - Tabelle: letzte 30 Einträge, Delete-Button
+  - CSV Export + PDF Export (jsPDF + autoTable)
+  - `kassenbuchAdd()`, `kassenbuchLoeschen()`, `kassenbuchCsvExport()`, `kassenbuchPdfExport()`, `kbMwstUpdate()`
+  - localStorage-Key: `pizzeria_kassenbuch [{id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto}]`
+
+- **B2: Dashboard-KPIs** ✅
+  - Kassenbuch-KPI-Kacheln: Einnahmen/Ausgaben/Saldo heute + Monat-Einnahmen (nur admin/manager)
+  - Zeigt sich nur wenn Kassenbuch-Daten vorhanden
+
+- **B3: Dienstplan PDF** ✅
+  - `dienstplanPdfExport()`: Querformat, Wochentabelle, alle Mitarbeiter+Schichten
+  - "PDF" + "Drucken" Button im Dienstplan-Header
+
+## Noch offen / Nächste Session
+### 🔴 Sofort nötig
 | # | Aufgabe | Was genau |
 |---|---------|-----------|
-| A1 | **.env Datei erstellen** | `CLAUDE_API_KEY=sk-ant-...` → OCR Feature 7 funktioniert erst dann |
-| A2 | **Notion API Key eintragen** | Einstellungen ⚙️ → Notion Key + Parent-Page-ID → Feature 6 aktiv |
-| A3 | **Features 4-7 live testen** | Jeden Feature-Tab öffnen, Daten eingeben, Fehler dokumentieren |
-| A4 | **Bugs fixen** | Alle gefundenen Fehler aus A3 beheben |
+| A1 | **.env befüllen** | `CLAUDE_API_KEY=sk-ant-...` eintragen → OCR aktiv |
+| A2 | **Notion Key eintragen** | Einstellungen ⚙️ → Notion Key + Parent-Page-ID |
+| A3 | **Features testen** | Features 4-7 + Kassenbuch live testen |
 
-### 🟡 Priorität Mittel — Neue Features
-| # | Feature | Panel | Details |
-|---|---------|-------|---------|
-| B1 | **Kassenbuch-Tab** | `buchhaltung` | Einnahmen/Ausgaben täglich, MwSt 10%/20% AT, Monatsauswertung |
-| B2 | **Dashboard aufwerten** | `dashboard` | Live-Zahlen aus DB, Umsatz-Chart heute, KPIs |
-| B3 | **Dienstplan Print/PDF** | `dienstplan` | PRÜFEN ob bereits gebaut (war in Prompt B Feature 3) |
-
-### 🟢 Priorität Niedrig
-- **n8n Workflows** installieren und aktivieren
+### 🟢 Niedrig
+- **n8n Workflows** installieren
 - **Cloudflare Tunnel** für externen Zugriff
 - **Gmail OAuth** für echte Gmail-Drafts
 
