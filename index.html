@@ -13718,11 +13718,168 @@ function renderSpeisekarteTab() {
         html += `</div></div>`;
       }
     }
+    html += renderRezepteSektion();
     panel.innerHTML = html;
   } catch(err) {
     console.error('Speisekarte Fehler:', err);
     panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
   }
+}
+
+function renderRezepteSektion() {
+  var rezepte = []; try { rezepte = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  var lagerNamen = lager.map(function(l){ return l.name.toLowerCase(); });
+  function ampelRezept(r) {
+    if (!r.zutaten || r.zutaten.length === 0) return 'grau';
+    var fehlend = 0, teilw = 0;
+    r.zutaten.forEach(function(z) {
+      var l = lager.find(function(x){ return x.name.toLowerCase()===z.produkt.toLowerCase(); });
+      if (!l || l.menge <= 0) fehlend++;
+      else if (l.menge < l.mindest) teilw++;
+    });
+    if (fehlend > 0) return 'rot';
+    if (teilw > 0) return 'gelb';
+    return 'gruen';
+  }
+  var lagerAutocomplete = lager.map(function(l){ return escHtml(l.name); }).join('|');
+  var html = '<div style="margin-top:32px;border-top:2px solid #e3beb8;padding-top:24px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">'
+    +'<div><h3 style="font-size:18px;font-weight:800;color:#261816;margin:0">📖 Rezept-Manager</h3>'
+    +'<p style="font-size:12px;color:#5a403c;margin:3px 0 0">Rezepte mit Zutaten-Ampel und Lagerabgleich</p></div>'
+    +'<button onclick="rezeptFormToggle()" style="padding:9px 16px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">+ Neues Rezept</button>'
+    +'</div>';
+  html += '<div id="rezept-form-area" style="margin-bottom:16px"></div>';
+  if (rezepte.length === 0) {
+    html += '<div style="text-align:center;padding:32px;color:#8d6562;background:#fff8f6;border-radius:12px;font-size:14px">Noch keine Rezepte. Klicke "+ Neues Rezept" um zu beginnen.</div>';
+  } else {
+    html += '<div style="display:grid;gap:12px">';
+    rezepte.forEach(function(r) {
+      var amp = ampelRezept(r);
+      var ampCol = amp==='gruen'?'#2e7d32':amp==='gelb'?'#f57f17':amp==='rot'?'#c62828':'#9ca3af';
+      var ampEmoji = amp==='gruen'?'🟢':amp==='gelb'?'🟡':amp==='rot'?'🔴':'⚪';
+      var fehlendZutaten = (r.zutaten||[]).filter(function(z){
+        var l = lager.find(function(x){ return x.name.toLowerCase()===z.produkt.toLowerCase(); });
+        return !l || l.menge <= 0;
+      }).map(function(z){ return z.produkt; });
+      html += '<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:16px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+        +'<div style="flex:1">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+        +'<span style="font-size:18px">'+ampEmoji+'</span>'
+        +'<span style="font-size:16px;font-weight:800;color:#261816">'+escHtml(r.name)+'</span>'
+        +'<span style="background:#f3f4f6;color:#5a403c;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px">'+escHtml(r.kategorie||'')+'</span>'
+        +'</div>'
+        +'<div style="font-size:12px;color:#5a403c;margin-bottom:6px">'+((r.zutaten||[]).length)+' Zutaten · '+((r.portionen||1))+' Portionen</div>'
+        +(fehlendZutaten.length > 0 ? '<div style="font-size:11px;color:#c62828;margin-bottom:6px">Fehlt: '+fehlendZutaten.map(escHtml).join(', ')+'</div>' : '')
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +(fehlendZutaten.length > 0 ? '<button onclick="rezeptFehlmaterialPush(\''+r.id+'\')" style="padding:5px 10px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#c62828;font-size:11px;font-weight:700;cursor:pointer">→ Fehlmaterial</button>' : '')
+        +'<button onclick="rezeptLoeschen(\''+r.id+'\')" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#f9fafb;color:#374151;font-size:11px;cursor:pointer">🗑️</button>'
+        +'</div>'
+        +'</div>'
+        +(r.notizen ? '<div style="font-size:12px;color:#5a403c;margin-top:6px;padding-top:6px;border-top:1px solid #f3f4f6;font-style:italic">'+escHtml(r.notizen)+'</div>' : '')
+        +'</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function rezeptFormToggle() {
+  var area = document.getElementById('rezept-form-area');
+  if (!area) return;
+  if (area.innerHTML.trim()) { area.innerHTML = ''; return; }
+  area.innerHTML = '<div style="background:#fff8f6;border:1.5px solid #e3beb8;border-radius:14px;padding:20px;margin-bottom:4px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;margin-bottom:14px">'
+    +'<input id="rez-name" type="text" placeholder="Rezeptname *" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box">'
+    +'<select id="rez-kat" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;color:#261816">'
+    +'<option>Pizza</option><option>Pasta</option><option>Salat</option><option>Dessert</option><option>Sonstiges</option></select>'
+    +'<input id="rez-portionen" type="number" min="1" value="4" placeholder="Port." style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'</div>'
+    +'<div style="font-size:12px;font-weight:700;color:#5a403c;margin-bottom:8px">Zutaten</div>'
+    +'<div id="rez-zutaten-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 80px 80px auto;gap:8px;margin-bottom:14px">'
+    +'<input id="rez-z-produkt" type="text" placeholder="Produkt (aus Lager)" list="rez-lager-list" style="padding:9px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'<datalist id="rez-lager-list"></datalist>'
+    +'<input id="rez-z-menge" type="number" step="0.01" min="0" placeholder="Menge" style="padding:9px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'<input id="rez-z-einheit" type="text" placeholder="Einheit" style="padding:9px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'<button onclick="rezeptZutatAdd()" style="padding:9px 14px;border-radius:10px;border:none;background:#610000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">+</button>'
+    +'</div>'
+    +'<textarea id="rez-notizen" rows="2" placeholder="Notizen (optional)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;resize:vertical;box-sizing:border-box;margin-bottom:12px"></textarea>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button onclick="rezeptSpeichern()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Speichern</button>'
+    +'<button onclick="document.getElementById(\'rezept-form-area\').innerHTML=\'\'" style="padding:12px 20px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:14px;font-weight:700;cursor:pointer">Abbrechen</button>'
+    +'</div>'
+    +'</div>';
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  var dl = document.getElementById('rez-lager-list');
+  if (dl) lager.forEach(function(l){ var opt=document.createElement('option'); opt.value=l.name; dl.appendChild(opt); });
+  window._rezZutaten = [];
+}
+
+function rezeptZutatAdd() {
+  var prod = (document.getElementById('rez-z-produkt')?.value||'').trim();
+  var menge = parseFloat(document.getElementById('rez-z-menge')?.value||0);
+  var einheit = (document.getElementById('rez-z-einheit')?.value||'').trim()||'Stk';
+  if (!prod) { _showToast('Bitte Produkt eingeben','error'); return; }
+  if (!window._rezZutaten) window._rezZutaten = [];
+  window._rezZutaten.push({produkt:prod, menge:menge, einheit:einheit});
+  var area = document.getElementById('rez-zutaten-list');
+  if (area) {
+    var idx = window._rezZutaten.length-1;
+    var el = document.createElement('div');
+    el.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f9fafb;border-radius:8px;padding:6px 10px';
+    el.innerHTML = '<span style="flex:1;font-size:13px;color:#261816">'+escHtml(prod)+'</span><span style="font-size:12px;color:#5a403c">'+menge+' '+escHtml(einheit)+'</span><button onclick="window._rezZutaten.splice('+idx+',1);this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:14px;color:#c62828">✕</button>';
+    area.appendChild(el);
+  }
+  document.getElementById('rez-z-produkt').value='';
+  document.getElementById('rez-z-menge').value='';
+  document.getElementById('rez-z-einheit').value='';
+}
+
+function rezeptSpeichern() {
+  var name = (document.getElementById('rez-name')?.value||'').trim();
+  if (!name) { _showToast('Bitte Rezeptname eingeben','error'); return; }
+  var kat = document.getElementById('rez-kat')?.value||'Sonstiges';
+  var portionen = parseInt(document.getElementById('rez-portionen')?.value||4)||4;
+  var notizen = (document.getElementById('rez-notizen')?.value||'').trim();
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+  liste.push({id:Date.now().toString(36), name:name, kategorie:kat, portionen:portionen, zutaten:window._rezZutaten||[], notizen:notizen, erstellt:new Date().toISOString()});
+  _safeLocalSet('pizzeria_rezepte', JSON.stringify(liste));
+  window._rezZutaten = [];
+  _showToast('Rezept gespeichert ✓','success');
+  renderSpeisekarteTab();
+}
+
+function rezeptLoeschen(id) {
+  _showConfirm('Rezept wirklich löschen?', function() {
+    var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+    _safeLocalSet('pizzeria_rezepte', JSON.stringify(liste.filter(function(r){ return r.id!==id; })));
+    _showToast('Rezept gelöscht','info');
+    renderSpeisekarteTab();
+  }, {okLabel:'Löschen'});
+}
+
+function rezeptFehlmaterialPush(id) {
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+  var r = liste.find(function(x){ return x.id===id; });
+  if (!r) return;
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  var fehlmat = []; try { fehlmat = JSON.parse(localStorage.getItem('pizzeria_fehlmaterial')||'[]'); } catch(_) {}
+  var added = 0;
+  (r.zutaten||[]).forEach(function(z) {
+    var l = lager.find(function(x){ return x.name.toLowerCase()===z.produkt.toLowerCase(); });
+    if (!l || l.menge <= 0) {
+      if (!fehlmat.find(function(f){ return (f.name||f.artikel||'').toLowerCase()===z.produkt.toLowerCase(); })) {
+        fehlmat.push({id:Date.now().toString(36)+added, name:z.produkt, artikel:z.produkt, menge:z.menge||1, einheit:z.einheit||'Stk', datum:new Date().toISOString().slice(0,10), notiz:'Rezept: '+r.name});
+        added++;
+      }
+    }
+  });
+  _safeLocalSet('pizzeria_fehlmaterial', JSON.stringify(fehlmat));
+  _showToast(added+' Artikel zu Fehlmaterial hinzugefügt','success');
 }
 
 function skNeuesGericht() { _skShowForm(null); }
