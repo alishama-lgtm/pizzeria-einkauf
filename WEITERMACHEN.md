@@ -247,12 +247,12 @@ node server.js        # → http://localhost:8080
 | S14-1 | **Monatsabschluss-PDF** | Hoch | 1 Knopf → Steuerberater-Bericht: Kassenbuch + Umsatz + Fixkosten + Gewinn |
 | S14-2 | **PWA (Handy-Icon)** | Hoch | manifest.json + Service Worker → App auf Homescreen speichern |
 
-### 🟡 Session 14 — Neue Features (Prompt B)
-| # | Feature | Priorität | Details |
-|---|---------|-----------|---------|
-| S14-3 | **WhatsApp-Bestellung** | Mittel | Lager-Bestellliste → 1 Klick WhatsApp an Lieferant (wa.me Link) |
-| S14-4 | **Personal-Abrechnung PDF** | Mittel | Aus Dienstplan: Stunden/MA, Lohn, Abrechnung → ausdruckfertig |
-| S14-5 | **Tagesabschluss-Automation** | Mittel | 1 Klick: Kassenbuch + Kassenschnitt + Aufgaben → Tagesbericht gespeichert |
+### ✅ Session 14 — Prompt B abgeschlossen
+| # | Feature | Status |
+|---|---------|--------|
+| S14-3 | **WhatsApp-Bestellung** | ✅ Button + wa.me Link in Lieferanten-Tab |
+| S14-4 | **Personal-Abrechnung PDF** | ✅ Stunden+Lohn PDF aus Dienstplan |
+| S14-5 | **Tagesabschluss-Automation** | ✅ 1 Klick → Modal + PDF + Notion + Verlauf |
 
 ### 🟢 Session 14 — Neue Features (Prompt C)
 | # | Feature | Priorität | Details |

@@ -8854,13 +8854,49 @@ function renderHeuteTab() {
     </div>
   </div>`;
 
-  html += `<div style="background:var(--surface);border-radius:16px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-    <div>
-      <div style="font-weight:700;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px"><span style="font-size:18px">📋</span>Tagesbericht</div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:2px">Umsatz, Fehlmaterial & Aufgaben nach Notion senden</div>
+  // ── Tagesabschluss + Tagesbericht ──
+  html += `<div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(97,0,0,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-weight:800;font-size:16px;color:#fff;display:flex;align-items:center;gap:8px"><span style="font-size:22px">🌙</span>Tagesabschluss</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:3px">Alle Zahlen sammeln, speichern & PDF erstellen</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="tagesabschlussErstellen()" style="padding:11px 22px;border-radius:10px;border:2px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.15);color:#fff;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">🌙 Tagesabschluss erstellen</button>
+        <button onclick="syncTagesberichtNotion()" style="padding:11px 18px;border-radius:10px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.9);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 → Notion</button>
+      </div>
     </div>
-    <button onclick="syncTagesberichtNotion()" style="padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Tagesbericht → Notion</button>
   </div>`;
+
+  // ── Tagesabschluss-Verlauf ──
+  var taVerlauf = []; try { taVerlauf = JSON.parse(localStorage.getItem('pizzeria_tagesberichte')||'[]'); } catch(_) {}
+  if (taVerlauf.length > 0) {
+    html += `<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📅 Letzte Tagesabschlüsse</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3)">Datum</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Einnahmen</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Ausgaben</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Saldo</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Kassendiff</th>
+          <th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text-3)">PDF</th>
+        </tr></thead><tbody>`;
+    taVerlauf.slice(0,30).forEach(function(ta) {
+      var saldo = (ta.einnahmen||0) - (ta.ausgaben||0);
+      var ksD = ta.kassenschnitt_differenz;
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 10px;font-size:12px;color:var(--text)">${ta.datum||''}</td>
+        <td style="padding:7px 10px;font-size:12px;color:#2e7d32;text-align:right;font-weight:600">+${parseFloat(ta.einnahmen||0).toFixed(2).replace('.',',')} €</td>
+        <td style="padding:7px 10px;font-size:12px;color:#c62828;text-align:right">−${parseFloat(ta.ausgaben||0).toFixed(2).replace('.',',')} €</td>
+        <td style="padding:7px 10px;font-size:12px;font-weight:700;color:${saldo>=0?'#1b5e20':'#b71c1c'};text-align:right">${saldo.toFixed(2).replace('.',',')} €</td>
+        <td style="padding:7px 10px;font-size:12px;color:${ksD!=null?(ksD<-1?'#c62828':ksD>1?'#2e7d32':'var(--text-2)'):'var(--text-3)'};text-align:right">${ksD!=null?(ksD>=0?'+':'')+ksD.toFixed(2).replace('.',',')+'€':'—'}</td>
+        <td style="padding:7px 10px;text-align:center"><button onclick="tagesabschlussPdf('${ta.datum||''}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--red);font-size:11px;cursor:pointer">PDF</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
   html += `</div>`;
   panel.innerHTML = html;
 }
@@ -8876,6 +8912,91 @@ function heuteKbQuickAdd() {
   _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list));
   _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' '+betrag.toFixed(2)+' € gespeichert ✓', 'success');
   renderHeuteTab();
+}
+
+function tagesabschlussErstellen() {
+  var datum = new Date().toISOString().slice(0,10);
+  var kbAll = []; try { kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var einnahmen = kbAll.filter(function(e){ return (e.datum||'').slice(0,10)===datum && e.typ==='einnahme'; }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); },0);
+  var ausgaben  = kbAll.filter(function(e){ return (e.datum||'').slice(0,10)===datum && e.typ==='ausgabe';  }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); },0);
+  var saldo = einnahmen - ausgaben;
+  var ksAll = []; try { ksAll = JSON.parse(localStorage.getItem('pizzeria_kassenschnitt')||'[]'); } catch(_) {}
+  var ks = ksAll.find(function(e){ return e.datum===datum; }) || {};
+  var ksDiff = (ks.ist != null && ks.soll != null) ? (parseFloat(ks.ist)-parseFloat(ks.soll)) : null;
+  var offeneAufgaben = 0; try { offeneAufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]').filter(function(e){ return !e.erledigt; }).length; } catch(_) {}
+  var fehlmaterial = 0; try { fehlmaterial = JSON.parse(localStorage.getItem('pizzeria_fehlmaterial')||'[]').length; } catch(_) {}
+  var eintrag = { id: Date.now().toString(36), datum: datum, einnahmen: einnahmen, ausgaben: ausgaben, saldo: saldo, kassenschnitt_differenz: ksDiff, offene_aufgaben: offeneAufgaben, fehlmaterial: fehlmaterial, erstellt: new Date().toISOString() };
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_tagesberichte')||'[]'); } catch(_) {}
+  liste = liste.filter(function(e){ return e.datum!==datum; });
+  liste.unshift(eintrag);
+  if (liste.length > 90) liste = liste.slice(0,90);
+  _safeLocalSet('pizzeria_tagesberichte', JSON.stringify(liste));
+  var fmt = function(n){ return parseFloat(n||0).toFixed(2).replace('.',','); };
+  var modalHtml = '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" id="ta-modal-bg" onclick="if(event.target===this)document.getElementById(\'ta-modal-bg\').remove()">'
+    +'<div style="background:#fff;border-radius:20px;padding:28px;max-width:460px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.18)">'
+    +'<div style="text-align:center;margin-bottom:20px"><span style="font-size:40px">🌙</span><h2 style="font-size:22px;font-weight:800;color:#261816;margin:8px 0 2px">Tagesabschluss</h2><div style="font-size:13px;color:#5a403c">'+datum+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">'
+    +'<div style="background:#f0fdf4;border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:4px">Einnahmen</div><div style="font-size:22px;font-weight:800;color:#2e7d32">+'+fmt(einnahmen)+' €</div></div>'
+    +'<div style="background:#fef2f2;border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:4px">Ausgaben</div><div style="font-size:22px;font-weight:800;color:#c62828">−'+fmt(ausgaben)+' €</div></div>'
+    +'<div style="background:'+(saldo>=0?'#f0fdf4':'#fef2f2')+';border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;margin-bottom:4px">Saldo</div><div style="font-size:22px;font-weight:800;color:'+(saldo>=0?'#1b5e20':'#b71c1c')+'">'+fmt(saldo)+' €</div></div>'
+    +'<div style="background:#f8fafc;border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;margin-bottom:4px">Kassendiff</div><div style="font-size:22px;font-weight:800;color:'+(ksDiff!=null?(ksDiff<-1?'#c62828':ksDiff>1?'#2e7d32':'#374151'):'#9ca3af')+'">'+(ksDiff!=null?(ksDiff>=0?'+':'')+fmt(ksDiff)+' €':'—')+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<div style="background:#fffbeb;border-radius:10px;padding:10px 14px;flex:1;text-align:center"><div style="font-size:11px;font-weight:700;color:#d97706">Offene Aufgaben</div><div style="font-size:18px;font-weight:800;color:#374151">'+offeneAufgaben+'</div></div>'
+    +'<div style="background:#eff6ff;border-radius:10px;padding:10px 14px;flex:1;text-align:center"><div style="font-size:11px;font-weight:700;color:#1d4ed8">Fehlmaterial</div><div style="font-size:18px;font-weight:800;color:#374151">'+fehlmaterial+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    +'<button onclick="tagesabschlussPdf(\''+datum+'\');document.getElementById(\'ta-modal-bg\').remove()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">📄 PDF</button>'
+    +'<button onclick="syncTagesberichtNotion();document.getElementById(\'ta-modal-bg\').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid #e3beb8;background:#fff;color:#261816;font-size:14px;font-weight:700;cursor:pointer">📋 Notion</button>'
+    +'<button onclick="document.getElementById(\'ta-modal-bg\').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:14px;font-weight:700;cursor:pointer">Schließen</button>'
+    +'</div>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  _showToast('Tagesabschluss gespeichert ✓','success');
+  renderHeuteTab();
+}
+
+function tagesabschlussPdf(datum) {
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_tagesberichte')||'[]'); } catch(_) {}
+  var ta = liste.find(function(e){ return e.datum===datum; });
+  if (!ta) { _showToast('Kein Tagesabschluss für '+datum+' gefunden','error'); return; }
+  var doc = new window.jspdf.jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  var fmt = function(n){ return parseFloat(n||0).toFixed(2).replace('.',',')+' €'; };
+  doc.setFillColor(97,0,0); doc.rect(0,0,210,60,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(26); doc.setFont(undefined,'bold'); doc.text('Pizzeria San Carino',105,22,{align:'center'});
+  doc.setFontSize(16); doc.setFont(undefined,'normal'); doc.text('Tagesabschluss',105,33,{align:'center'});
+  doc.setFontSize(13); doc.text(datum,105,43,{align:'center'});
+  var y = 75;
+  var boxW = 85; var boxH = 28; var gap = 10;
+  var boxes = [
+    {label:'Einnahmen',  val:fmt(ta.einnahmen), r:0,g:200,b:83, tr:0,tg:100,tb:40},
+    {label:'Ausgaben',   val:fmt(ta.ausgaben),  r:255,g:82,b:82, tr:183,tg:28,tb:28},
+    {label:'Saldo',      val:fmt(ta.saldo),      r:66,g:165,b:245, tr:13,tg:71,tb:161},
+    {label:'Kassendiff', val:ta.kassenschnitt_differenz!=null?fmt(ta.kassenschnitt_differenz):'—', r:255,g:167,b:38, tr:230,tg:81,tb:0},
+  ];
+  boxes.forEach(function(b, i) {
+    var x = 15 + i*(boxW+gap)*(i<2?1:0) + (i>=2?0:0);
+    if (i===0) x=15; else if(i===1) x=15+boxW+gap; else if(i===2) x=15; else x=15+boxW+gap;
+    var yy = i<2?y:y+boxH+8;
+    doc.setFillColor(b.r,b.g,b.b); doc.roundedRect(x,yy,boxW,boxH,4,4,'F');
+    doc.setTextColor(b.tr,b.tg,b.tb); doc.setFontSize(9); doc.setFont(undefined,'bold');
+    doc.text(b.label.toUpperCase(),x+boxW/2,yy+9,{align:'center'});
+    doc.setFontSize(16); doc.text(b.val,x+boxW/2,yy+21,{align:'center'});
+  });
+  y = y + boxH*2 + 28;
+  doc.setDrawColor(220,190,184); doc.setLineWidth(0.5); doc.line(15,y,195,y); y+=10;
+  doc.setTextColor(38,24,22); doc.setFontSize(11); doc.setFont(undefined,'bold');
+  doc.text('Details',15,y); y+=8;
+  doc.setFont(undefined,'normal'); doc.setFontSize(10); doc.setTextColor(90,64,60);
+  doc.text('Offene Aufgaben: '+(ta.offene_aufgaben||0),15,y); y+=7;
+  doc.text('Fehlmaterial: '+(ta.fehlmaterial||0),15,y); y+=7;
+  doc.text('Erstellt: '+(ta.erstellt?ta.erstellt.replace('T',' ').slice(0,16):datum),15,y); y+=18;
+  doc.setDrawColor(220,190,184); doc.line(15,y,195,y); y+=14;
+  doc.setFontSize(10); doc.setTextColor(90,64,60); doc.setFont(undefined,'normal');
+  doc.text('Unterschrift Verantwortlicher: ___________________________',15,y); y+=14;
+  doc.text('Unterschrift Leitung:          ___________________________',15,y);
+  doc.save('tagesabschluss_'+datum+'.pdf');
 }
 
 // ═══════════════════════════════════════════════════════════════
