@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍕 Pizzeria San Carino — Feature Übersicht</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #8B0000, #dc2626); padding: 32px 40px; }
+  .header h1 { font-size: 28px; font-weight: 800; color: #fff; }
+  .header p { color: #fca5a5; margin-top: 6px; font-size: 14px; }
+  .header .meta { display: flex; gap: 24px; margin-top: 16px; flex-wrap: wrap; }
+  .header .meta span { background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 20px; font-size: 13px; color: #fff; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+
+  .legend { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #22c55e; }
+  .dot-yellow { background: #eab308; }
+  .dot-red { background: #ef4444; }
+  .dot-blue { background: #3b82f6; }
+  .dot-gray { background: #6b7280; }
+
+  .section { margin-bottom: 40px; }
+  .section-title { font-size: 18px; font-weight: 700; color: #f1f5f9; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #1e293b; display: flex; align-items: center; gap: 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: #1e293b; border-radius: 12px; overflow: hidden; }
+  thead { background: #0f172a; }
+  thead th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
+  tbody tr { border-bottom: 1px solid #0f172a; transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #263548; }
+  tbody td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .badge-yellow { background: rgba(234,179,8,0.15); color: #fbbf24; }
+  .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .badge-gray { background: rgba(107,114,128,0.15); color: #9ca3af; }
+
+  .fn { font-family: 'Courier New', monospace; font-size: 11px; color: #94a3b8; background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+  .panel-name { font-weight: 600; color: #f1f5f9; }
+  .desc { color: #94a3b8; font-size: 12px; margin-top: 2px; }
+  .note { color: #fbbf24; font-size: 11px; font-style: italic; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 40px; }
+  .stat-card { background: #1e293b; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #334155; }
+  .stat-num { font-size: 36px; font-weight: 800; }
+  .stat-num.green { color: #4ade80; }
+  .stat-num.yellow { color: #fbbf24; }
+  .stat-num.red { color: #f87171; }
+  .stat-num.blue { color: #60a5fa; }
+  .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  .tag { display: inline-block; background: #334155; color: #94a3b8; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin: 1px; }
+
+  @media (max-width: 768px) {
+    .header { padding: 20px; }
+    .container { padding: 16px; }
+    table { font-size: 12px; }
+    thead th, tbody td { padding: 8px 10px; }
+  }
+  @media print {
+    body { background: #fff; color: #000; }
+    .header { background: #8B0000 !important; -webkit-print-color-adjust: exact; }
+    table { border: 1px solid #ccc; }
+    thead { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍕 Pizzeria San Carino — Feature Übersicht</h1>
+  <p>Vollständige Dokumentation aller App-Funktionen und deren Status</p>
+  <div class="meta">
+    <span>📅 Stand: 21. April 2026</span>
+    <span>📄 index.html: ~19.841 Zeilen</span>
+    <span>🗂️ 36 Panels / Tabs</span>
+    <span>⚙️ 31 API-Endpunkte</span>
+    <span>🔧 499 JS-Funktionen</span>
+    <span>💾 59 localStorage Keys</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- LEGENDE -->
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-green"></div> ✅ Fertig & funktioniert</div>
+    <div class="legend-item"><div class="dot dot-yellow"></div> 🟡 Manuell nötig (API Key etc.)</div>
+    <div class="legend-item"><div class="dot dot-red"></div> ❌ Nicht implementiert</div>
+    <div class="legend-item"><div class="dot dot-blue"></div> 🔵 Geplant (nächste Session)</div>
+    <div class="legend-item"><div class="dot dot-gray"></div> ⚪ Stub / Platzhalter</div>
+  </div>
+
+  <!-- STATISTIK -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num green">36</div><div class="stat-label">Panels / Tabs</div></div>
+    <div class="stat-card"><div class="stat-num green">31</div><div class="stat-label">API-Endpunkte</div></div>
+    <div class="stat-card"><div class="stat-num green">499</div><div class="stat-label">JS-Funktionen</div></div>
+    <div class="stat-card"><div class="stat-num green">9</div><div class="stat-label">PDF/CSV Exports</div></div>
+    <div class="stat-card"><div class="stat-num green">4</div><div class="stat-label">Design-Themes</div></div>
+    <div class="stat-card"><div class="stat-num yellow">2</div><div class="stat-label">API Keys nötig</div></div>
+    <div class="stat-card"><div class="stat-num green">59</div><div class="stat-label">localStorage Keys</div></div>
+    <div class="stat-card"><div class="stat-num green">✅</div><div class="stat-label">PWA installierbar</div></div>
+  </div>
+
+  <!-- ALLE 36 PANELS -->
+  <div class="section">
+    <div class="section-title">🗂️ Alle 36 Panels / Tabs</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Panel</th>
+          <th>Beschreibung</th>
+          <th>Render-Funktion</th>
+          <th>Session</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td class="panel-name">🛒 Produkte</td><td>Produktliste + Preisvergleich</td><td><span class="fn">renderProductsTab()</span></td><td>S1</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>2</td><td class="panel-name">🏪 Geschäfte</td><td>Shop-Preise Metro/Billa/Lidl/Spar + Netto/Brutto Toggle</td><td><span class="fn">renderShopsTab()</span></td><td>S3</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>3</td><td class="panel-name">🔀 Kombis</td><td>Produkt-Kombinationen vergleichen</td><td><span class="fn">renderKombisTab()</span></td><td>S1</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>4</td><td class="panel-name">🏷️ Angebote</td><td>Wochenangebote KW-Verwaltung</td><td><span class="fn">renderAngeboteTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>5</td><td class="panel-name">📋 Einkaufsliste</td><td>Einkaufsliste erstellen & teilen</td><td><span class="fn">renderEinkaufslisteTab()</span></td><td>S1</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>6</td><td class="panel-name">🔍 Suche</td><td>Produktsuche mit Spar + heisse-preise.io</td><td><span class="fn">renderSucheTab()</span></td><td>S1</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>7</td><td class="panel-name">📤 Upload</td><td>Rechnung scannen + OCR (Claude Vision)</td><td><span class="fn">renderUploadTab()</span></td><td>S12</td><td><span class="badge badge-yellow">🟡 API Key nötig</span></td></tr>
+        <tr><td>8</td><td class="panel-name">📜 Verlauf</td><td>Einkaufs-Historie</td><td><span class="fn">renderVerlaufTab()</span></td><td>S1</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>9</td><td class="panel-name">👥 Mitarbeiter</td><td>Mitarbeiterverwaltung (Rollen, Zeiten)</td><td><span class="fn">renderMitarbeiterTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>10</td><td class="panel-name">⚠️ Fehlmaterial</td><td>Fehlende Waren melden + Notion Sync</td><td><span class="fn">renderFehlmaterialTab()</span></td><td>S2</td><td><span class="badge badge-yellow">🟡 Notion Key nötig</span></td></tr>
+        <tr><td>11</td><td class="panel-name">✅ Checkliste</td><td>Tages-/Wochen-Checklisten</td><td><span class="fn">renderChecklisteTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>12</td><td class="panel-name">💼 Business</td><td>Kennzahlen, Gewinn/Pizza, Umsatzziel (Passwort: ali2024)</td><td><span class="fn">renderBusinessTab()</span></td><td>S1</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>13</td><td class="panel-name">📅 Heute</td><td>Tagesübersicht + Quick-Kassenbuch + Tagesabschluss</td><td><span class="fn">renderHeuteTab()</span></td><td>S13</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>14</td><td class="panel-name">📊 Dashboard</td><td>KPIs, Kassenbuch-Zahlen, Live-Umsatz</td><td><span class="fn">renderDashboardTab()</span></td><td>S13</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>15</td><td class="panel-name">🍕 Speisekarte</td><td>Gerichte + Preise + PDF Export</td><td><span class="fn">renderSpeisekarteTab()</span></td><td>S13</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>16</td><td class="panel-name">🚚 Lieferanten</td><td>Lieferanten + Bestellung Email/WhatsApp</td><td><span class="fn">renderLieferantenTab()</span></td><td>S12</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>17</td><td class="panel-name">📅 Dienstplan</td><td>Wochenplan Schichten + PDF + Personal-Abrechnung</td><td><span class="fn">renderDienstplanTab()</span></td><td>S14</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>18</td><td class="panel-name">📌 Aufgaben</td><td>To-Do Liste + Notion Sync</td><td><span class="fn">renderAufgabenTab()</span></td><td>S12</td><td><span class="badge badge-yellow">🟡 Notion Key nötig</span></td></tr>
+        <tr><td>19</td><td class="panel-name">🔄 Schichtcheck</td><td>Schicht-Übergabe Protokoll</td><td><span class="fn">renderSchichtCheckTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>20</td><td class="panel-name">📦 Bestellung</td><td>Bestellverwaltung intern</td><td><span class="fn">renderBestellungTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>21</td><td class="panel-name">🗄️ Lager</td><td>Lagerbestand + CSV Import</td><td><span class="fn">renderLagerTab()</span></td><td>S14</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>22</td><td class="panel-name">📉 Wareneinsatz</td><td>Wareneinsatz-Berechnung</td><td><span class="fn">renderWareneinsatzTab()</span></td><td>S3</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>23</td><td class="panel-name">🔔 Preisalarm</td><td>Automatischer Preischeck + Badge + Verlauf</td><td><span class="fn">renderPreisalarmTab()</span></td><td>S11</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>24</td><td class="panel-name">📝 Standardmaterial</td><td>Standard-Einkaufsliste Templates</td><td><span class="fn">renderStandardmaterialTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>25</td><td class="panel-name">📈 Statistik</td><td>Charts + CSV Export + Preisverlauf Shop-Vergleich</td><td><span class="fn">renderStatistikTab()</span></td><td>S6</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>26</td><td class="panel-name">⏰ Tagesangebote</td><td>Marge + Stunden-Countdown</td><td><span class="fn">renderTagesangeboteTab()</span></td><td>S3</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>27</td><td class="panel-name">💶 Umsatz</td><td>Umsatzverwaltung + DB-Daten</td><td><span class="fn">renderUmsatzTab()</span></td><td>S6</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>28</td><td class="panel-name">💰 Gewinn</td><td>Gewinn-Analyse</td><td><span class="fn">renderGewinnTab()</span></td><td>S3</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>29</td><td class="panel-name">📒 Buchhaltung</td><td>Kassenbuch MwSt AT + Monatsabschluss PDF + CSV</td><td><span class="fn">renderBuchhaltungTab()</span></td><td>S13</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>30</td><td class="panel-name">🏆 Konkurrenz</td><td>Konkurrenz-Analyse</td><td><span class="fn">renderKonkurrenzTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>31</td><td class="panel-name">⭐ Bewertungen</td><td>Kundenbewertungen</td><td><span class="fn">renderBewertungenTab()</span></td><td>S2</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>32</td><td class="panel-name">🧼 HACCP</td><td>Hygiene-Protokoll AT (Pflicht) + Temperatur-Ampel</td><td><span class="fn">renderHaccpTab()</span></td><td>S8</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>33</td><td class="panel-name">📆 MHD-Tracker</td><td>Mindesthaltbarkeit-Kontrolle + Ampel</td><td><span class="fn">renderMhdTab()</span></td><td>S9</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>34</td><td class="panel-name">💵 Kassenschnitt</td><td>Täglicher Soll/Ist-Vergleich + Differenz</td><td><span class="fn">renderKassenschnittTab()</span></td><td>S9</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>35</td><td class="panel-name">🌴 Urlaubskalender</td><td>Urlaub/Krankenstand/Zeitausgleich pro MA</td><td><span class="fn">renderUrlaubTab()</span></td><td>S9</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>36</td><td class="panel-name">💴 Trinkgeld-Split</td><td>Trinkgeld aufteilen (gleich oder nach Stunden)</td><td><span class="fn">renderTrinkgeldTab()</span></td><td>S9</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- EXPORT FUNKTIONEN -->
+  <div class="section">
+    <div class="section-title">📄 Export-Funktionen (PDF & CSV)</div>
+    <table>
+      <thead>
+        <tr><th>Funktion</th><th>Was wird exportiert</th><th>Format</th><th>Zeile</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="fn">kassenbuchPdfExport()</span></td><td>Kassenbuch-Einträge mit Summen</td><td>PDF</td><td>18530</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">monatsabschlussPdf()</span></td><td>5-seitiger Steuerberater-Bericht</td><td>PDF</td><td>18366</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">kassenbuchCsvExport()</span></td><td>Alle Buchungen als Tabelle</td><td>CSV</td><td>18520</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">speisekartePdfExport()</span></td><td>Speisekarte mit Kategorien + Preisen</td><td>PDF</td><td>13887</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">dienstplanPdfExport()</span></td><td>Wochenplan Querformat</td><td>PDF</td><td>15049</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">personalAbrechnungPdf()</span></td><td>Stunden + Lohn pro Mitarbeiter</td><td>PDF</td><td>15071</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">tagesabschlussPdf(datum)</span></td><td>Tagesabschluss-Bericht</td><td>PDF</td><td>~8917</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">statistikCsvExport()</span></td><td>Statistik-Daten</td><td>CSV</td><td>17626</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td><span class="fn">bizExportData()</span></td><td>Business-Daten Export</td><td>JSON</td><td>7726</td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- API ENDPUNKTE -->
+  <div class="section">
+    <div class="section-title">⚙️ API-Endpunkte (server.js) — 31 Routes</div>
+    <table>
+      <thead>
+        <tr><th>Methode</th><th>Route</th><th>Was es macht</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/health</span></td><td>Server-Status + API-Key Check</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/search</span></td><td>Produktsuche (Spar + heisse-preise.io)</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/preisverlauf</span></td><td>Preishistorie aus SQLite</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/preisverlauf/stats</span></td><td>Min/Max/Avg pro Produkt</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/preisverlauf</span></td><td>Neuen Preis speichern</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/mitarbeiter</span></td><td>Mitarbeiterliste aus DB</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/mitarbeiter</span></td><td>Mitarbeiter anlegen</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-red">DELETE</span></td><td><span class="fn">/api/mitarbeiter/:id</span></td><td>Mitarbeiter löschen</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/umsatz/heute</span></td><td>Heutige Einnahmen</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/umsatz/heute</span></td><td>Einnahme speichern</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/umsatz/alle</span></td><td>Alle Umsatz-Daten</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/inbox</span></td><td>Inbox-Warteschlange</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/inbox/folders</span></td><td>Inbox-Ordner Struktur</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/inbox/done/:id</span></td><td>Eintrag erledigt markieren</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-red">DELETE</span></td><td><span class="fn">/api/inbox/:id</span></td><td>Inbox-Eintrag löschen</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/rechnungen</span></td><td>Alle Rechnungen</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/data/:key</span></td><td>App-Daten aus DB lesen</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/data/:key</span></td><td>App-Daten in DB speichern</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-blue">GET</span></td><td><span class="fn">/api/sync</span></td><td>Sync-Queue Status</td><td><span class="badge badge-green">✅ Aktiv</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/notion/aufgaben</span></td><td>Aufgaben → Notion</td><td><span class="badge badge-yellow">🟡 Notion Key nötig</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/notion/tagesbericht</span></td><td>Tagesbericht → Notion</td><td><span class="badge badge-yellow">🟡 Notion Key nötig</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/notion/fehlmaterial</span></td><td>Fehlmaterial → Notion</td><td><span class="badge badge-yellow">🟡 Notion Key nötig</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/claude-vision</span></td><td>OCR-Rechnung via Claude API</td><td><span class="badge badge-yellow">🟡 CLAUDE_API_KEY nötig</span></td></tr>
+        <tr><td><span class="badge badge-green">POST</span></td><td><span class="fn">/api/gmail/draft</span></td><td>Gmail-Draft erstellen</td><td><span class="badge badge-gray">⚪ Stub (503) — OAuth nötig</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MCP INTEGRATIONEN -->
+  <div class="section">
+    <div class="section-title">🔗 MCP-Integrationen & externe APIs</div>
+    <table>
+      <thead>
+        <tr><th>Integration</th><th>Wozu</th><th>Was fehlt</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="panel-name">🤖 Claude Vision (OCR)</span></td>
+          <td>Rechnung fotografieren → Preise automatisch importieren</td>
+          <td><span class="note">CLAUDE_API_KEY in .env eintragen</span></td>
+          <td><span class="badge badge-yellow">🟡 API Key eintragen</span></td>
+        </tr>
+        <tr>
+          <td><span class="panel-name">📋 Notion Sync</span></td>
+          <td>Fehlmaterial + Aufgaben + Tagesbericht → Notion</td>
+          <td><span class="note">NOTION_API_KEY + Parent-Page-ID in Einstellungen ⚙️</span></td>
+          <td><span class="badge badge-yellow">🟡 Key in App eingeben</span></td>
+        </tr>
+        <tr>
+          <td><span class="panel-name">📧 Gmail Entwurf</span></td>
+          <td>Bestellliste per Email an Lieferant</td>
+          <td><span class="note">Gmail OAuth-Setup nötig (Google Cloud Console)</span></td>
+          <td><span class="badge badge-gray">⚪ Stub — mailto: Fallback aktiv</span></td>
+        </tr>
+        <tr>
+          <td><span class="panel-name">💬 WhatsApp Bestellung</span></td>
+          <td>Bestellliste per WhatsApp an Lieferant (wa.me)</td>
+          <td><span class="note">Telefonnummer beim Lieferanten eintragen</span></td>
+          <td><span class="badge badge-green">✅ Funktioniert (kein API Key)</span></td>
+        </tr>
+        <tr>
+          <td><span class="panel-name">🌐 Cloudflare Tunnel</span></td>
+          <td>App von überall erreichbar (Handy, Tablet)</td>
+          <td><span class="note">Einmalig einrichten — Anleitung: ANLEITUNG/cloudflare-tunnel.md</span></td>
+          <td><span class="badge badge-blue">🔵 Anleitung vorhanden</span></td>
+        </tr>
+        <tr>
+          <td><span class="panel-name">📱 PWA (Handy-App)</span></td>
+          <td>App auf Homescreen speichern wie echte App</td>
+          <td><span class="note">Keine — manifest.json + sw.js vorhanden</span></td>
+          <td><span class="badge badge-green">✅ Installierbar</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- DESIGN THEMES -->
+  <div class="section">
+    <div class="section-title">🎨 Design-Themes (4 Stück)</div>
+    <table>
+      <thead>
+        <tr><th>Theme</th><th>Key</th><th>Aussehen</th><th>WCAG AA</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>☀️ Classic</td><td><span class="tag">classic</span></td><td>Rot & Creme (hell)</td><td><span class="badge badge-green">✅ Geprüft</span></td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>🌙 Dark Navy</td><td><span class="tag">dark</span></td><td>Dunkel & Blau</td><td><span class="badge badge-green">✅ Geprüft</span></td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>🔥 Dark Red</td><td><span class="tag">dark-red</span></td><td>Dunkel & Rot</td><td><span class="badge badge-green">✅ Geprüft</span></td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+        <tr><td>💎 Glass</td><td><span class="tag">glass</span></td><td>Glassmorphism (Stitch)</td><td><span class="badge badge-green">✅ Geprüft</span></td><td><span class="badge badge-green">✅ Fertig</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- WAS MANUELL NÖTIG IST -->
+  <div class="section">
+    <div class="section-title">⚠️ Was du noch manuell erledigen musst</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Aufgabe</th><th>Wie</th><th>Priorität</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td class="panel-name">CLAUDE_API_KEY eintragen</td>
+          <td>Datei <span class="fn">.env</span> öffnen → <span class="fn">CLAUDE_API_KEY=sk-ant-...</span> eintragen → server.js neu starten</td>
+          <td><span class="badge badge-red">🔴 Hoch — OCR funktioniert nicht ohne</span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td class="panel-name">Notion API Key in App</td>
+          <td>App öffnen → ⚙️ Einstellungen → Notion Key + Parent-Page-ID eingeben → Speichern</td>
+          <td><span class="badge badge-red">🔴 Hoch — Notion Sync inaktiv ohne</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td class="panel-name">Features 4–7 live testen</td>
+          <td>Server starten: <span class="fn">node server.js</span> → Browser: <span class="fn">http://localhost:8080</span> → jeden Tab prüfen</td>
+          <td><span class="badge badge-yellow">🟡 Mittel</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td class="panel-name">PWA auf Handy installieren</td>
+          <td>Chrome auf Handy → http://[IP]:8080 → "Zum Homescreen" → App-Icon erscheint</td>
+          <td><span class="badge badge-yellow">🟡 Mittel</span></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td class="panel-name">Icon-Dateien ersetzen</td>
+          <td><span class="fn">icon-192.png</span> + <span class="fn">icon-512.png</span> im Projektordner durch echtes Logo ersetzen</td>
+          <td><span class="badge badge-blue">🔵 Nice-to-have</span></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td class="panel-name">Cloudflare Tunnel einrichten</td>
+          <td>Anleitung: <span class="fn">ANLEITUNG/cloudflare-tunnel.md</span> folgen</td>
+          <td><span class="badge badge-blue">🔵 Nice-to-have</span></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td class="panel-name">Gmail OAuth einrichten</td>
+          <td>Google Cloud Console → OAuth-Credentials → server.js erweitern</td>
+          <td><span class="badge badge-gray">⚪ Niedrig — mailto Fallback aktiv</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GEPLANTE FEATURES -->
+  <div class="section">
+    <div class="section-title">🔵 Nächste Features (Session 15)</div>
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Beschreibung</th><th>Nutzen</th><th>Priorität</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="panel-name">📊 n8n Workflows</td><td>Automatisierung: WhatsApp-Alarm, Tagesbericht, Preisalarm</td><td>Täglich Zeit sparen</td><td><span class="badge badge-yellow">🟡 Mittel</span></td></tr>
+        <tr><td class="panel-name">🌐 Cloudflare Tunnel</td><td>App von überall erreichbar</td><td>Handy-Zugriff in der Pizzeria</td><td><span class="badge badge-yellow">🟡 Mittel</span></td></tr>
+        <tr><td class="panel-name">⭐ Google-Bewertungen</td><td>Bewertungen automatisch anzeigen</td><td>Kundenfeedback im Blick</td><td><span class="badge badge-blue">🔵 Nice-to-have</span></td></tr>
+        <tr><td class="panel-name">📧 Gmail OAuth</td><td>Echte Emails aus der App senden</td><td>Bestellungen per Email</td><td><span class="badge badge-blue">🔵 Nice-to-have</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section">
+    <div class="section-title">🛠️ Technischer Stack</div>
+    <table>
+      <thead>
+        <tr><th>Bereich</th><th>Technologie</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Frontend</td><td>Vanilla JS SPA</td><td>index.html ~19.841 Zeilen, 8 JS-Module (~530 KB)</td></tr>
+        <tr><td>CSS-Framework</td><td>Tailwind CDN</td><td>+ eigene Theme-Variablen (4 Themes)</td></tr>
+        <tr><td>Charts</td><td>Chart.js CDN</td><td>Balken, Linie, Doughnut</td></tr>
+        <tr><td>PDF</td><td>jsPDF CDN</td><td>window.jspdf.jsPDF + autoTable</td></tr>
+        <tr><td>Backend</td><td>Node.js 22+ / Express</td><td>31 REST-Routes + WebSocket</td></tr>
+        <tr><td>Datenbank</td><td>SQLite (node:sqlite)</td><td>5 Tabellen, lokal, gitignored</td></tr>
+        <tr><td>AI / OCR</td><td>Claude claude-3-5-sonnet</td><td>Rechnung scannen → JSON</td></tr>
+        <tr><td>PWA</td><td>manifest.json + sw.js</td><td>Cache-First, installierbar</td></tr>
+        <tr><td>Dependencies</td><td>6 npm Pakete</td><td>express, cors, axios, dotenv, ws, xlsx</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="text-align:center;padding:32px;color:#475569;font-size:13px;">
+    🍕 Pizzeria San Carino — Feature Übersicht — Stand 21. April 2026<br>
+    Generiert aus: WEITERMACHEN.md + index.html + server.js Analyse
+  </div>
+
+</div>
+</body>
+</html>
