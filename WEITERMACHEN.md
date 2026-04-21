@@ -180,15 +180,27 @@ node server.js        # → http://localhost:8080
 - `pizzeria_preisalarm_log` — Alarm-Log `[{id,datum,produkt,shop,typ,schwelle,ist_preis,diff_pct,regel_id}]`
 - `pizzeria_bestellungen` — Bestellungen `[{id,datum,lieferant_name,lieferant_email,positionen,status}]`
 
-## Offene Aufgaben
+## Session 13 (2026-04-21) — Offene Aufgaben NEXT
 
-### Priorität Hoch
-- **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
-- **Gmail OAuth** — für echte Gmail-Drafts: Google Cloud Credentials + Token einrichten
-- **Notion API Key** — `pizzeria_notion_key` in Einstellungen eingeben + Parent-Page-ID
+### 🔴 Priorität Hoch — Sofort erledigen
+| # | Aufgabe | Was genau |
+|---|---------|-----------|
+| A1 | **.env Datei erstellen** | `CLAUDE_API_KEY=sk-ant-...` → OCR Feature 7 funktioniert erst dann |
+| A2 | **Notion API Key eintragen** | Einstellungen ⚙️ → Notion Key + Parent-Page-ID → Feature 6 aktiv |
+| A3 | **Features 4-7 live testen** | Jeden Feature-Tab öffnen, Daten eingeben, Fehler dokumentieren |
+| A4 | **Bugs fixen** | Alle gefundenen Fehler aus A3 beheben |
 
-### Priorität Mittel
+### 🟡 Priorität Mittel — Neue Features
+| # | Feature | Panel | Details |
+|---|---------|-------|---------|
+| B1 | **Kassenbuch-Tab** | `buchhaltung` | Einnahmen/Ausgaben täglich, MwSt 10%/20% AT, Monatsauswertung |
+| B2 | **Dashboard aufwerten** | `dashboard` | Live-Zahlen aus DB, Umsatz-Chart heute, KPIs |
+| B3 | **Dienstplan Print/PDF** | `dienstplan` | PRÜFEN ob bereits gebaut (war in Prompt B Feature 3) |
+
+### 🟢 Priorität Niedrig
 - **n8n Workflows** installieren und aktivieren
+- **Cloudflare Tunnel** für externen Zugriff
+- **Gmail OAuth** für echte Gmail-Drafts
 
 ---
 
