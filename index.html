@@ -14863,6 +14863,17 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Design-Stil wird sofort angewendet und gespeichert.</p>
       </div>
 
+      <!-- Externer Zugriff (Cloudflare Tunnel) -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🌐</span> Externer Zugriff
+          </label>
+          <button onclick="showCloudflareTunnelInfo()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;color:#610000;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Anleitung anzeigen</button>
+        </div>
+        <p style="font-size:11px;color:#8d6562;margin:0">Mit Cloudflare Tunnel ist die App von überall via HTTPS erreichbar — kein Router nötig.</p>
+      </div>
+
       <div style="display:flex;gap:10px">
         <button onclick="saveApiKey()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
         ${hasKey?`<button onclick="clearApiKey()" style="padding:13px 16px;background:#ffdad6;color:#93000a;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Löschen</button>`:''}
@@ -14901,6 +14912,34 @@ function clearApiKey() {
     document.getElementById('settings-modal')?.remove();
     _showToast('API Key gelöscht', 'info');
   }, { okLabel: 'Löschen' });
+}
+
+function showCloudflareTunnelInfo() {
+  var existing = document.getElementById('cf-tunnel-modal');
+  if (existing) { existing.remove(); return; }
+  document.getElementById('settings-modal')?.remove();
+  var html = '<div id="cf-tunnel-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.remove()">'
+    +'<div style="background:#fff;border-radius:20px;padding:28px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'
+    +'<h2 style="font-size:18px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:8px"><span style="font-size:22px">🌐</span>Externer Zugriff — Cloudflare Tunnel</h2>'
+    +'<button onclick="document.getElementById(\'cf-tunnel-modal\').remove()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:16px">✕</button>'
+    +'</div>'
+    +'<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:#1e40af">'
+    +'<strong>Was ist das?</strong> Ein Cloudflare Tunnel macht deine lokale App über das Internet erreichbar — ohne Router-Konfiguration, mit HTTPS.'
+    +'</div>'
+    +'<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:10px">Schnell-Test (kein Konto nötig):</div>'
+    +'<div style="background:#1e1e2e;border-radius:10px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc;margin-bottom:16px;user-select:all">cloudflared tunnel --url http://localhost:8080</div>'
+    +'<div style="font-size:12px;color:#5a403c;margin-bottom:16px">→ Gibt eine temporäre HTTPS-URL aus. Kein Login nötig. URL ist ~24h gültig.</div>'
+    +'<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:10px">Installation:</div>'
+    +'<div style="background:#1e1e2e;border-radius:10px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc;margin-bottom:16px;user-select:all">winget install Cloudflare.cloudflared</div>'
+    +'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px;margin-bottom:20px;font-size:12px;color:#991b1b">'
+    +'⚠️ <strong>Sicherheit:</strong> Tunnel macht die App öffentlich. Business-Passwort vorher ändern falls fremde Personen Zugriff haben könnten.'
+    +'</div>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button onclick="document.getElementById(\'cf-tunnel-modal\').remove()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Verstanden</button>'
+    +'</div>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 // ═══════════════════════════════════════════════════════════════
