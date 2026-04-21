@@ -134,6 +134,18 @@ node server.js        # → http://localhost:8080
   - Tabellen-Striping verbessert
   - Branch: `fix/ui-a11y-2026-04-20` → in `main` gemergt
 
+## Session 11 (2026-04-21) — Was gebaut wurde
+
+- **Feature 4: Preisalarm komplett neu** ✅
+  - `renderPreisalarmTab()` — vollständig neu, alle Farben via CSS-Variablen (theme-kompatibel)
+  - `preisalarmAdd()` — Produkt hinzufügen (mit `aktiv:true`)
+  - `preisalarmUpdate(id)` — Preis aktualisieren + Historie schreiben
+  - `preisalarmToggle(id)` — NEU: Alarm pro Produkt ein/aus (🔔/🔕)
+  - `preisalarmDelete(id)` — Produkt löschen
+  - `checkPreisalarme()` — NEU: scannt PRICE_MAP aus DB, aktualisiert Preise automatisch, zeigt Alarm-Zusammenfassung
+  - Button "🔄 Preise prüfen" im Tab-Header
+  - Backwards-kompatibel: ältere Einträge ohne `aktiv`-Feld werden automatisch auf `true` gesetzt
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
