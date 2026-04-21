@@ -671,6 +671,73 @@ app.post('/api/notion/tagesbericht', express.json(), async (req, res) => {
   }
 });
 
+// POST /api/notion/aufgaben — Aufgaben-Liste als Notion-Seite (upsert)
+app.post('/api/notion/aufgaben', express.json(), async (req, res) => {
+  try {
+    const { aufgaben, apiKey, parentId } = req.body;
+    if (!apiKey) return res.status(400).json({ error: 'Notion API Key fehlt' });
+    const title = 'Aufgaben — Pizzeria San Carino';
+    const headers = { 'Authorization': `Bearer ${apiKey}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' };
+    // Search for existing page
+    const searchResp = await axios.post('https://api.notion.com/v1/search', { query: title, filter: { value: 'page', property: 'object' } }, { headers });
+    const existing = searchResp.data.results?.[0];
+    const blocks = (aufgaben||[]).map(a => ({
+      object: 'block', type: 'to_do',
+      to_do: { rich_text: [{ type: 'text', text: { content: (a.titel||a.text||'Aufgabe') + (a.faellig ? ' — fällig: ' + a.faellig : '') + (a.mitarbeiter && a.mitarbeiter !== 'alle' ? ' (' + a.mitarbeiter + ')' : '') } }], checked: a.status === 'erledigt' || !!a.erledigt }
+    }));
+    if (!blocks.length) blocks.push({ object:'block', type:'paragraph', paragraph:{ rich_text:[{ type:'text', text:{ content:'Keine offenen Aufgaben.' } }] } });
+    let pageId;
+    if (existing) {
+      // Clear and replace children
+      const childResp = await axios.get(`https://api.notion.com/v1/blocks/${existing.id}/children`, { headers });
+      for (const block of (childResp.data.results||[])) {
+        await axios.delete(`https://api.notion.com/v1/blocks/${block.id}`, { headers }).catch(() => {});
+      }
+      await axios.patch(`https://api.notion.com/v1/blocks/${existing.id}/children`, { children: blocks }, { headers });
+      pageId = existing.id;
+    } else {
+      const parent = parentId ? { page_id: parentId } : { workspace: true };
+      const createResp = await axios.post('https://api.notion.com/v1/pages', { parent, properties: { title: [{ type:'text', text:{ content: title } }] }, children: blocks }, { headers });
+      pageId = createResp.data.id;
+    }
+    res.json({ success: true, page_id: pageId });
+  } catch(e) {
+    res.status(500).json({ error: e.response?.data?.message || e.message });
+  }
+});
+
+// POST /api/gmail/draft — Gmail Entwurf (benötigt Gmail OAuth — fällt auf mailto zurück)
+app.post('/api/gmail/draft', express.json(), async (_req, res) => {
+  res.status(503).json({ error: 'Gmail API nicht konfiguriert — bitte mailto-Fallback nutzen' });
+});
+
+// POST /api/claude-vision — OCR Rechnung via Anthropic API
+app.post('/api/claude-vision', express.json({ limit: '15mb' }), async (req, res) => {
+  const { image, mimeType } = req.body;
+  if (!image) return res.status(400).json({ error: 'Kein Bild übermittelt' });
+  const apiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'CLAUDE_API_KEY fehlt in .env' });
+  try {
+    const resp = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      system: 'Du analysierst eine Restaurantrechnung. Extrahiere alle Artikel mit Preis, Menge und Shop-Name. Antworte NUR mit validem JSON ohne Markdown: {"shop":"","datum":"YYYY-MM-DD","positionen":[{"produkt":"","menge":1,"einheit":"kg","preis_brutto":0.00}]}',
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType || 'image/jpeg', data: image } },
+        { type: 'text', text: 'Analysiere diese Rechnung und gib das JSON zurück.' }
+      ]}]
+    }, {
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
+    });
+    const text = (resp.data.content?.[0]?.text || '').trim();
+    const parsed = JSON.parse(text);
+    res.json(parsed);
+  } catch(e) {
+    const msg = e.response?.data?.error?.message || e.message;
+    res.status(500).json({ error: msg });
+  }
+});
+
 // ── Universeller App-Datenspeicher (localStorage Backup) ─────────────────────
 app.get('/api/data/:key', (req, res) => {
   try {

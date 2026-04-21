@@ -3623,6 +3623,58 @@ async function fmNotionSync() {
   }
 }
 
+async function syncAufgabenNotion() {
+  const apiKey = localStorage.getItem('pizzeria_notion_key');
+  if (!apiKey) { _showToast('Notion API Key fehlt → Einstellungen ⚙️', 'error'); return; }
+  let aufgaben = []; try { aufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]'); } catch(e) {}
+  if (!aufgaben.length) { _showToast('Keine Aufgaben vorhanden', 'info'); return; }
+  _showToast('Synchronisiere Aufgaben nach Notion…', 'info');
+  try {
+    const parentId = localStorage.getItem('pizzeria_notion_parent_id') || '';
+    const resp = await fetch('/api/notion/aufgaben', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ aufgaben, apiKey, parentId }) });
+    const data = await resp.json();
+    if (data.success) _showToast('✅ Notion aktualisiert: Aufgaben', 'success');
+    else _showToast('❌ Notion-Fehler: ' + (data.error||'Unbekannt'), 'error');
+  } catch(e) {
+    _showToast('Notion MCP nicht verbunden', 'error');
+  }
+}
+async function syncTagesberichtNotion() {
+  const apiKey = localStorage.getItem('pizzeria_notion_key');
+  if (!apiKey) { _showToast('Notion API Key fehlt → Einstellungen ⚙️', 'error'); return; }
+  const today = new Date().toISOString().slice(0,10);
+  const datum = new Date().toLocaleDateString('de-AT');
+  let einnahmen = 0, ausgaben = 0;
+  try {
+    const kb = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]');
+    kb.forEach(e => {
+      const d = (e.datum||'').slice(0,10);
+      if (d === today) {
+        if (e.typ === 'einnahme') einnahmen += parseFloat(e.brutto||0);
+        else if (e.typ === 'ausgabe') ausgaben += parseFloat(e.brutto||0);
+      }
+    });
+  } catch(_) {}
+  const saldo = einnahmen - ausgaben;
+  let fehlAnzahl = 0; try { fehlAnzahl = JSON.parse(localStorage.getItem('pizzeria_fehlmaterial')||'[]').length; } catch(_) {}
+  let offAufg = 0; try { offAufg = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]').filter(a => !a.erledigt && a.status !== 'erledigt').length; } catch(_) {}
+  const bericht = {
+    umsatz: `Einnahmen: €${einnahmen.toFixed(2)} | Ausgaben: €${ausgaben.toFixed(2)} | Saldo: €${saldo.toFixed(2)}`,
+    fehlmaterial: fehlAnzahl + ' Positionen',
+    checklisten: offAufg + ' offene Aufgaben'
+  };
+  _showToast('Sende Tagesbericht nach Notion…', 'info');
+  try {
+    const parentId = localStorage.getItem('pizzeria_notion_parent_id') || '';
+    const resp = await fetch('/api/notion/tagesbericht', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ apiKey, parentId, bericht, datum }) });
+    const data = await resp.json();
+    if (data.success) _showToast('✅ Notion aktualisiert: Tagesbericht ' + datum, 'success');
+    else _showToast('❌ Notion-Fehler: ' + (data.error||'Unbekannt'), 'error');
+  } catch(e) {
+    _showToast('Notion MCP nicht verbunden', 'error');
+  }
+}
+
 function fmUpdateBadge() {
   const openAll      = FM_DATA.filter(x => x.status === 'offen').length;
   const openDringend = FM_DATA.filter(x => x.status === 'offen' && x.prioritaet === 'dringend').length;
@@ -5143,7 +5195,126 @@ function renderUploadTab() {
 
   inner += renderHandlistSection();
   inner += renderPricelistSection();
+
+  // ── OCR-Rechnung Sektion ──────────────────────────────────────
+  inner += `
+  <div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;margin-top:20px" id="ocr-sektion">
+    <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      <span class="material-symbols-outlined" style="color:var(--red)">document_scanner</span>Rechnung scannen (KI)
+    </div>
+    <div id="ocr-dropzone"
+      ondragover="event.preventDefault();this.style.borderColor='var(--red)'"
+      ondragleave="this.style.borderColor='var(--border)'"
+      ondrop="event.preventDefault();this.style.borderColor='var(--border)';const f=event.dataTransfer.files[0];if(f)ocrRechnung(f)"
+      style="border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:12px"
+      onclick="document.getElementById('ocr-file-input').click()">
+      <span class="material-symbols-outlined" style="font-size:36px;color:var(--text-3);display:block;margin-bottom:8px">upload_file</span>
+      <div style="font-size:14px;font-weight:600;color:var(--text-2)">Rechnung hier ablegen oder klicken</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:4px">JPG, PNG, WebP · max. 10 MB</div>
+    </div>
+    <input id="ocr-file-input" type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="if(this.files[0])ocrRechnung(this.files[0])">
+    <div id="ocr-status"></div>
+    <div id="ocr-ergebnis"></div>
+  </div>`;
+
   panel.innerHTML = inner;
+}
+
+// ── OCR-FUNKTIONEN ───────────────────────────────────────────────────────────
+async function ocrRechnung(file) {
+  if (file.size > 10 * 1024 * 1024) { _showToast('Datei zu groß (max 10 MB)', 'error'); return; }
+  const status = document.getElementById('ocr-status');
+  const ergebnis = document.getElementById('ocr-ergebnis');
+  if (status) status.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:12px;color:var(--text-2)"><span class="spinner-sm" style="border-color:rgba(139,0,0,.3);border-top-color:var(--red)"></span> KI liest Rechnung…</div>';
+  if (ergebnis) ergebnis.innerHTML = '';
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const resp = await fetch('http://localhost:8080/api/claude-vision', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ image:base64, mimeType:file.type }) });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({error:resp.statusText}));
+      if (err.error?.includes('CLAUDE_API_KEY')) { _showToast('Claude API-Key fehlt — in .env setzen', 'error'); }
+      else { _showToast('KI-Fehler: ' + (err.error||resp.statusText), 'warning'); }
+      if (status) status.innerHTML = '';
+      return;
+    }
+    const data = await resp.json();
+    if (status) status.innerHTML = '';
+    window._ocrData = data;
+    const pos = data.positionen || [];
+    if (!pos.length) { _showToast('KI konnte Rechnung nicht lesen — besseres Foto versuchen', 'warning'); return; }
+    if (ergebnis) ergebnis.innerHTML = `
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-3);display:block;margin-bottom:3px">SHOP</label>
+            <input id="ocr-shop" value="${_esc(data.shop||'')}" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:var(--text-3);display:block;margin-bottom:3px">DATUM</label>
+            <input id="ocr-datum" type="date" value="${_esc(data.datum||new Date().toISOString().slice(0,10))}" style="padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px">
+          <thead><tr style="background:var(--bg)">
+            <th style="padding:6px 8px;text-align:center;border-bottom:1px solid var(--border);width:32px">✓</th>
+            <th style="padding:6px 8px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Produkt</th>
+            <th style="padding:6px 8px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Menge</th>
+            <th style="padding:6px 8px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Einheit</th>
+            <th style="padding:6px 8px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Preis €</th>
+          </tr></thead>
+          <tbody>${pos.map((p,i) => `
+            <tr style="border-bottom:1px solid var(--border-2)">
+              <td style="padding:6px 8px;text-align:center"><input type="checkbox" id="ocr-cb-${i}" checked style="cursor:pointer"></td>
+              <td style="padding:6px 8px"><input id="ocr-p-${i}" value="${_esc(p.produkt||'')}" style="width:100%;padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text)"></td>
+              <td style="padding:6px 8px;text-align:right"><input id="ocr-m-${i}" type="number" value="${p.menge||1}" style="width:60px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text);text-align:right"></td>
+              <td style="padding:6px 8px"><input id="ocr-e-${i}" value="${_esc(p.einheit||'Stk')}" style="width:50px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text)"></td>
+              <td style="padding:6px 8px;text-align:right"><input id="ocr-pr-${i}" type="number" step="0.01" value="${parseFloat(p.preis_brutto||0).toFixed(2)}" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-family:inherit;background:var(--bg);color:var(--text);text-align:right"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        <button onclick="importOcrPreise(${pos.length})" style="padding:10px 20px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:700;cursor:pointer">✅ Preise importieren</button>
+      </div>`;
+  } catch(e) {
+    if (status) status.innerHTML = '';
+    if (e.message?.includes('Failed to fetch') || e.message?.includes('NetworkError')) { _showToast('Server nicht aktiv — node server.js starten', 'error'); }
+    else { _showToast('KI konnte Rechnung nicht lesen — besseres Foto versuchen', 'warning'); }
+  }
+}
+async function importOcrPreise(count) {
+  const shop = document.getElementById('ocr-shop')?.value || '';
+  const datum = document.getElementById('ocr-datum')?.value || new Date().toISOString().slice(0,10);
+  const positionen = [];
+  for (let i = 0; i < count; i++) {
+    const cb = document.getElementById('ocr-cb-'+i);
+    if (!cb?.checked) continue;
+    const produkt = document.getElementById('ocr-p-'+i)?.value?.trim() || '';
+    const menge = parseFloat(document.getElementById('ocr-m-'+i)?.value) || 1;
+    const einheit = document.getElementById('ocr-e-'+i)?.value?.trim() || 'Stk';
+    const preis = parseFloat(document.getElementById('ocr-pr-'+i)?.value) || 0;
+    if (produkt) positionen.push({ produkt, menge, einheit, preis_brutto: preis });
+  }
+  if (!positionen.length) { _showToast('Keine Positionen ausgewählt', 'info'); return; }
+  let imported = 0;
+  for (const pos of positionen) {
+    try {
+      await fetch('http://localhost:8080/api/preisverlauf', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ produkt:pos.produkt, shop, datum, preis:pos.preis_brutto }) });
+      imported++;
+    } catch(e) {}
+    // Auch in localStorage history
+    try {
+      const hist = JSON.parse(localStorage.getItem('pizzeria_history')||'[]');
+      hist.push({ id:Date.now()+Math.random(), datum, name:pos.produkt, shop, preis:pos.preis_brutto, einheit:pos.einheit, menge:pos.menge });
+      localStorage.setItem('pizzeria_history', JSON.stringify(hist.slice(-500)));
+    } catch(e) {}
+  }
+  _showToast('✅ ' + imported + ' Preise importiert', 'success');
+  const ergebnis = document.getElementById('ocr-ergebnis');
+  if (ergebnis) ergebnis.innerHTML = '';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -8650,6 +8821,13 @@ function renderHeuteTab() {
     : `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">${dringendCount>0?`<span style="background:#fef2f2;border:1px solid #fecaca;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#dc2626">🔴 ${dringendCount} dringend</span>`:''} ${normalCount>0?`<span style="background:#fffbeb;border:1px solid #fde68a;border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#d97706">🟡 ${normalCount} normal</span>`:''}</div><ul style="margin:0 0 16px;padding:0;list-style:none">${top3Aufgaben.map(a=>{const d=a.prioritaet==='dringend'||a.dringend;return`<li style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f3f4f6"><span style="flex-shrink:0">${d?'🔴':'🟡'}</span><span style="font-size:15px;color:#261816;font-weight:600">${escHtml(a.titel||a.name||'Aufgabe')}${d?' <span style="font-size:11px;font-weight:700;color:#dc2626;background:#fee2e2;padding:1px 6px;border-radius:4px">DRINGEND</span>':''}</span></li>`;}).join('')}</ul>`;
   html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">📋</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Aufgaben</h3></div>${aufgabenBody}<button onclick="switchTab('aufgaben')" style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'"><span style="font-size:18px">→</span> Alle Aufgaben anzeigen</button></div>`;
   html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">☑️</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Schicht-Checkliste</h3></div><div style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px"><div style="background:${oeffStatus.bg};border-radius:12px;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:16px;font-weight:700;color:#261816">Öffnung</span><span style="font-size:15px;font-weight:700;color:${oeffStatus.farbe}">${oeffStatus.label}</span></div><div style="font-size:14px;color:#5a403c;margin-bottom:6px">${oeffDone} / ${oeffItems.length} erledigt</div>${_hProgressBar(oeffDone,oeffItems.length,oeffStatus.farbe)}</div><div style="background:${schlStatus.bg};border-radius:12px;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:16px;font-weight:700;color:#261816">Schließung</span><span style="font-size:15px;font-weight:700;color:${schlStatus.farbe}">${schlStatus.label}</span></div><div style="font-size:14px;color:#5a403c;margin-bottom:6px">${schlDone} / ${schlItems.length} erledigt</div>${_hProgressBar(schlDone,schlItems.length,schlStatus.farbe)}</div></div><button onclick="switchTab('schichtcheck')" style="width:100%;min-height:48px;padding:12px 16px;background:#8B0000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px" onmouseover="this.style.background='#6b0000'" onmouseout="this.style.background='#8B0000'"><span style="font-size:18px">→</span> Zur Checkliste</button></div>`;
+  html += `<div style="background:var(--surface);border-radius:16px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div>
+      <div style="font-weight:700;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px"><span style="font-size:18px">📋</span>Tagesbericht</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px">Umsatz, Fehlmaterial & Aufgaben nach Notion senden</div>
+    </div>
+    <button onclick="syncTagesberichtNotion()" style="padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Tagesbericht → Notion</button>
+  </div>`;
   html += `</div>`;
   panel.innerHTML = html;
 }
@@ -13737,6 +13915,7 @@ function lfGenId() { return 'lf' + Date.now(); }
 function renderLieferantenTab() {
   const panel = document.getElementById('panel-lieferanten');
   if (!panel) return;
+  if (!window._bestellPositionen) window._bestellPositionen = [];
   try {
     const list = lfLoad();
     let html = `
@@ -13777,7 +13956,42 @@ function renderLieferantenTab() {
       </div>`;
     }
     html += `</div>`;
+    // ── Bestellungs-Sektion ──────────────────────────────────────
+    const lager = (function(){ try { return JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e){ return []; } })();
+    const liefOptionen = list.map(lf => `<option value="${escHtml(lf.id||lf.name)}" data-email="${escHtml(lf.email||'')}">${escHtml(lf.name)}</option>`).join('');
+    html += `
+    <div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:20px;margin-top:20px">
+      <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px">
+        <span class="material-symbols-outlined" style="color:var(--red)">local_shipping</span>Neue Bestellung
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px">LIEFERANT</div>
+          <select id="bestell-lieferant" style="width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+            <option value="">— bitte wählen —</option>${liefOptionen}
+          </select>
+        </div>
+        <button onclick="bestellLagerVorschlag()" style="padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📦 Lager-Vorschlag</button>
+        <button onclick="sendBestellungEmail()" style="padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📧 Email senden</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap">
+        <input id="bestell-produkt" placeholder="Produkt..." style="flex:2;min-width:120px;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        <input id="bestell-menge" type="number" min="0" step="0.1" placeholder="Menge" style="width:78px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+        <select id="bestell-einheit" style="padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+          <option>kg</option><option>Stk</option><option>L</option><option>Pkg</option>
+        </select>
+        <button onclick="bestellAddPos()" style="padding:8px 18px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer">+</button>
+      </div>
+      <div id="bestell-positionen-liste" style="margin-bottom:14px"></div>
+      <details style="border-top:1px solid var(--border);padding-top:12px">
+        <summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--text-2)">📋 Letzte 10 Bestellungen</summary>
+        <div id="bestell-verlauf-liste" style="margin-top:8px"></div>
+      </details>
+    </div>`;
     panel.innerHTML = html;
+    bestellRenderPos();
+    const vl = document.getElementById('bestell-verlauf-liste');
+    if (vl) vl.innerHTML = renderBestellVerlauf();
   } catch(err) {
     console.error('Lieferanten Fehler:', err);
     panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
@@ -13786,6 +14000,104 @@ function renderLieferantenTab() {
 
 function lfNeu() { _lfShowForm(null); }
 function lfBearbeiten(id) { _lfShowForm(id); }
+
+// ── BESTELLUNGS-FUNKTIONEN ───────────────────────────────────────────────────
+function bestellRenderPos() {
+  const c = document.getElementById('bestell-positionen-liste');
+  if (!c) return;
+  if (!window._bestellPositionen || !window._bestellPositionen.length) {
+    c.innerHTML = '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:10px 0">Noch keine Positionen — füge Produkte hinzu</div>';
+    return;
+  }
+  c.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="background:var(--bg)">
+      <th style="padding:6px 8px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Produkt</th>
+      <th style="padding:6px 8px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Menge</th>
+      <th style="padding:6px 8px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Einheit</th>
+      <th style="padding:6px 8px;border-bottom:1px solid var(--border)"></th>
+    </tr></thead>
+    <tbody>${window._bestellPositionen.map((p,i) =>
+      `<tr style="border-bottom:1px solid var(--border-2)">
+        <td style="padding:6px 8px;color:var(--text)">${_esc(p.produkt)}</td>
+        <td style="padding:6px 8px;text-align:right;color:var(--text)">${p.menge}</td>
+        <td style="padding:6px 8px;color:var(--text-2)">${_esc(p.einheit)}</td>
+        <td style="padding:6px 8px;text-align:right"><button onclick="bestellRemovePos(${i})" style="padding:2px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--red);font-size:12px;cursor:pointer">✕</button></td>
+      </tr>`
+    ).join('')}</tbody>
+  </table>`;
+}
+function bestellAddPos() {
+  const produkt = (document.getElementById('bestell-produkt')?.value||'').trim();
+  const menge = parseFloat(document.getElementById('bestell-menge')?.value);
+  const einheit = document.getElementById('bestell-einheit')?.value || 'Stk';
+  if (!produkt) { _showToast('Bitte Produkt eingeben', 'error'); return; }
+  if (!menge || menge <= 0) { _showToast('Bitte Menge eingeben', 'error'); return; }
+  if (!window._bestellPositionen) window._bestellPositionen = [];
+  window._bestellPositionen.push({ produkt, menge, einheit });
+  document.getElementById('bestell-produkt').value = '';
+  document.getElementById('bestell-menge').value = '';
+  bestellRenderPos();
+}
+function bestellRemovePos(idx) {
+  if (!window._bestellPositionen) return;
+  window._bestellPositionen.splice(idx, 1);
+  bestellRenderPos();
+}
+function bestellLagerVorschlag() {
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(e) {}
+  const mangel = lager.filter(a => a.menge != null && a.mindest != null && parseFloat(a.menge) <= parseFloat(a.mindest));
+  if (!mangel.length) { _showToast('Kein Lager unter Mindestbestand', 'info'); return; }
+  if (!window._bestellPositionen) window._bestellPositionen = [];
+  mangel.forEach(a => {
+    const bedarf = parseFloat(a.mindest) * 2 - parseFloat(a.menge);
+    window._bestellPositionen.push({ produkt: a.name||a.produkt||'Unbekannt', menge: Math.max(1, Math.round(bedarf * 10) / 10), einheit: a.einheit||'Stk' });
+  });
+  bestellRenderPos();
+  _showToast(mangel.length + ' Lager-Positionen vorgeschlagen', 'success');
+}
+function renderBestellVerlauf() {
+  let b = []; try { b = JSON.parse(localStorage.getItem('pizzeria_bestellungen')||'[]'); } catch(e) {}
+  if (!b.length) return '<div style="color:var(--text-3);font-size:13px;padding:8px 0">Noch keine Bestellungen.</div>';
+  return b.slice().reverse().slice(0,10).map(o =>
+    `<div style="display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border-2);font-size:13px">
+      <span style="color:var(--text-3);flex-shrink:0">${o.datum}</span>
+      <span style="font-weight:600;color:var(--text);flex:1">${_esc(o.lieferant_name)}</span>
+      <span style="color:var(--text-2)">${(o.positionen||[]).length} Pos.</span>
+      <span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:${o.status==='gesendet'?'#e8f5e9':'#fff8e1'};color:${o.status==='gesendet'?'#2e7d32':'#e65100'}">${o.status}</span>
+    </div>`
+  ).join('');
+}
+async function sendBestellungEmail() {
+  if (!window._bestellPositionen || !window._bestellPositionen.length) { _showToast('Bitte mindestens eine Position hinzufügen', 'error'); return; }
+  const sel = document.getElementById('bestell-lieferant');
+  let lieferanten = []; try { lieferanten = JSON.parse(localStorage.getItem('pizzeria_lieferanten')||'[]'); } catch(e) {}
+  const lf = lieferanten.find(l => (l.id||l.name) === sel?.value);
+  if (!lf) { _showToast('Bitte Lieferant wählen', 'error'); return; }
+  if (!lf.email) { _showToast('Dieser Lieferant hat keine Email-Adresse', 'error'); return; }
+  const datum = new Date().toLocaleDateString('de-AT', {day:'2-digit',month:'2-digit',year:'numeric'});
+  const betreff = 'Bestellung vom ' + datum + ' — Pizzeria San Carino';
+  const tRows = window._bestellPositionen.map(p => `<tr><td style="padding:6px 12px;border:1px solid #ddd">${_esc(p.produkt)}</td><td style="padding:6px 12px;border:1px solid #ddd;text-align:right">${p.menge}</td><td style="padding:6px 12px;border:1px solid #ddd">${_esc(p.einheit)}</td></tr>`).join('');
+  const htmlBody = `<p>Sehr geehrte Damen und Herren,</p><p>hiermit bestellen wir folgende Artikel:</p><table style="border-collapse:collapse"><thead><tr><th style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5">Artikel</th><th style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5">Menge</th><th style="padding:6px 12px;border:1px solid #ddd;background:#f5f5f5">Einheit</th></tr></thead><tbody>${tRows}</tbody></table><p>Mit freundlichen Grüßen,<br>Ali Shama<br>Pizzeria San Carino</p>`;
+  const eintrag = { id:Date.now(), datum, lieferant_name:lf.name, lieferant_email:lf.email, positionen:[...window._bestellPositionen], status:'entwurf' };
+  let bestellungen = []; try { bestellungen = JSON.parse(localStorage.getItem('pizzeria_bestellungen')||'[]'); } catch(e) {}
+  bestellungen.push(eintrag);
+  localStorage.setItem('pizzeria_bestellungen', JSON.stringify(bestellungen));
+  let gmailOk = false;
+  try {
+    const resp = await fetch('/api/gmail/draft', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ to:lf.email, subject:betreff, body:htmlBody }) });
+    const data = await resp.json();
+    if (resp.ok && data.success) { gmailOk = true; eintrag.status = 'gesendet'; localStorage.setItem('pizzeria_bestellungen', JSON.stringify(bestellungen)); _showToast('📧 Gmail-Entwurf erstellt — bitte in Gmail senden!', 'success'); }
+  } catch(e) {}
+  if (!gmailOk) {
+    const txtBody = 'Sehr geehrte Damen und Herren,\n\nhiermit bestellen wir:\n\n' + window._bestellPositionen.map(p => p.produkt+': '+p.menge+' '+p.einheit).join('\n') + '\n\nMit freundlichen Grüßen,\nAli Shama\nPizzeria San Carino';
+    window.open(`mailto:${encodeURIComponent(lf.email)}?subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(txtBody)}`, '_blank');
+    _showToast('📧 Email-Programm geöffnet', 'info');
+  }
+  window._bestellPositionen = [];
+  bestellRenderPos();
+  const vl = document.getElementById('bestell-verlauf-liste');
+  if (vl) vl.innerHTML = renderBestellVerlauf();
+}
 
 function _lfShowForm(id) {
   const list = lfLoad();
@@ -14419,8 +14731,11 @@ function renderAufgabenTab() {
     return `<button type="button" onclick="aufgabenSetPrio('${p}')" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid ${active?pr.color:pr.border};background:${active?pr.bg:'#fff'};color:${active?pr.color:'#5a403c'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">${pr.label}</button>`;
   }).join('');
 
+  const notionAufgBtn = `<button onclick="syncAufgabenNotion()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--text);font-family:inherit;cursor:pointer">
+    <img src="https://www.notion.so/images/favicon.ico" style="width:14px;height:14px;border-radius:2px" onerror="this.style.display='none'"> 🔄 Nach Notion
+  </button>`;
   panel.innerHTML = `
-  ${_pageHdr('task_alt', 'Aufgaben', offenCount + ' offen')}
+  ${_pageHdr('task_alt', 'Aufgaben', offenCount + ' offen', notionAufgBtn)}
 
   <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:20px">
     <div style="font-size:14px;font-weight:800;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:6px">
