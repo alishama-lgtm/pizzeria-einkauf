@@ -15166,8 +15166,8 @@ function dienstplanPdfExport() {
   if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
   const p = document.getElementById('panel-dienstplan');
   const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
-  const MA_LABELS = { kueche:'Küche', pizza:'Pizza', fahrer:'Fahrer', reinigung:'Reinigung', service:'Service' };
   let plan = {}; try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(_) {}
+  let mitarbeiter = []; try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(_) {}
   const offset = parseInt(p.dataset.weekOffset||'0');
   const now = new Date(); const monday = new Date(now);
   monday.setDate(now.getDate() - ((now.getDay()+6)%7) + offset*7); monday.setHours(0,0,0,0);
@@ -15175,11 +15175,55 @@ function dienstplanPdfExport() {
   const weekDates = DAYS.map((_,i) => { const d=new Date(monday); d.setDate(monday.getDate()+i); return d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'}); });
   const kw = (() => { const d=new Date(Date.UTC(monday.getFullYear(),monday.getMonth(),monday.getDate())); const dn=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dn); return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7); })();
   const doc = new window.jspdf.jsPDF({orientation:'landscape'});
-  doc.setFontSize(14); doc.text('Dienstplan KW ' + kw + ' — ' + weekDates[0] + ' bis ' + weekDates[6], 14, 16);
-  doc.setFontSize(9); doc.text('Pizzeria San Carino — Export: ' + new Date().toLocaleDateString('de-AT'), 14, 22);
-  const head = [['Mitarbeiter',...DAYS.map((d,i)=>d+'\n'+weekDates[i])]];
-  const body = Object.keys(MA_LABELS).map(ma => [MA_LABELS[ma],...DAYS.map(day=>(plan[weekKey]?.[ma]?.[day]||'—'))]);
-  if (doc.autoTable) { doc.autoTable({ head, body, startY: 26, styles:{fontSize:8,cellPadding:4}, headStyles:{fillColor:[97,0,0],textColor:255}, alternateRowStyles:{fillColor:[255,248,246]} }); }
+  // Titel
+  doc.setFontSize(16); doc.setFont(undefined,'bold');
+  doc.text('Dienstplan KW ' + kw + ' — ' + weekDates[0] + ' bis ' + weekDates[6] + '.', 14, 16);
+  doc.setFontSize(9); doc.setFont(undefined,'normal');
+  doc.text('Pizzeria San Carino — Export: ' + new Date().toLocaleDateString('de-AT'), 14, 22);
+  // Tabellen-Kopf: Mitarbeiter | Mo 20.04 | Di 21.04 | ...
+  const head = [['Mitarbeiter','Abteilung',...DAYS.map((d,i)=>d+' '+weekDates[i])]];
+  // Zeilen: nach Abteilung gruppiert
+  const rollenOrder = ['Küche','Pizza','Service','Lieferung','Fahrer','Reinigung'];
+  const gruppen = {};
+  mitarbeiter.forEach(ma => {
+    const r = ma.rolle || 'Sonstige';
+    if (!gruppen[r]) gruppen[r] = [];
+    gruppen[r].push(ma);
+  });
+  const body = [];
+  const rollenInDaten = [...new Set(mitarbeiter.map(m=>m.rolle||'Sonstige'))].sort((a,b)=>{
+    const ia = rollenOrder.indexOf(a); const ib = rollenOrder.indexOf(b);
+    return (ia===-1?99:ia) - (ib===-1?99:ib);
+  });
+  rollenInDaten.forEach(rolle => {
+    (gruppen[rolle]||[]).forEach(ma => {
+      const key = ma.id || ma.name;
+      const dayPlan = (plan[weekKey]||{})[key] || {};
+      const row = [ma.name, rolle, ...DAYS.map(day => {
+        const v = dayPlan[day] || '';
+        return v === 'arbeitet' ? '✓' : v === 'frei' ? '✗' : '—';
+      })];
+      body.push(row);
+    });
+  });
+  if (!body.length) { body.push(['Keine Mitarbeiter eingetragen','','','','','','','','']); }
+  if (doc.autoTable) {
+    doc.autoTable({
+      head, body, startY: 28,
+      styles: { fontSize: 9, cellPadding: 4, halign: 'center' },
+      columnStyles: { 0: { halign: 'left', fontStyle: 'bold', cellWidth: 40 }, 1: { halign: 'left', cellWidth: 28 } },
+      headStyles: { fillColor: [97, 0, 0], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      alternateRowStyles: { fillColor: [255, 248, 246] },
+      didParseCell: function(data) {
+        if (data.section === 'body' && data.column.index >= 2) {
+          const v = data.cell.raw;
+          if (v === '✓') { data.cell.styles.textColor = [30, 120, 30]; data.cell.styles.fontStyle = 'bold'; }
+          else if (v === '✗') { data.cell.styles.textColor = [180, 30, 30]; }
+          else { data.cell.styles.textColor = [180, 180, 180]; }
+        }
+      }
+    });
+  }
   doc.save('dienstplan-kw'+kw+'-'+weekKey+'.pdf');
   _showToast('PDF gespeichert', 'success');
 }
