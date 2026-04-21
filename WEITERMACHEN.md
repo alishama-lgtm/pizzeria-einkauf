@@ -150,11 +150,42 @@ node server.js        # → http://localhost:8080
   - `@keyframes pulse` CSS + `.pa-pulse-row` Klasse hinzugefügt
   - Dashboard-Referenz auf neues Schema geupdated
 
+## Session 12 (2026-04-21) — Features 5, 6, 7
+
+- **Feature 5: Lieferantenbestellung** ✅
+  - Bestellungs-Sektion am Ende von `renderLieferantenTab()`
+  - Lieferant-Select (aus `pizzeria_lieferanten`), Lager-Vorschlag (Artikel ≤ Mindestbestand)
+  - Manuelle Positionen: Produkt + Menge + Einheit
+  - `bestellAddPos()` / `bestellRemovePos(idx)` / `bestellLagerVorschlag()` / `bestellRenderPos()`
+  - `sendBestellungEmail()`: versucht `/api/gmail/draft` → Fallback: `mailto:` mit Bestelltext
+  - `renderBestellVerlauf()`: letzte 10 Bestellungen aus `pizzeria_bestellungen`
+  - localStorage-Key: `pizzeria_bestellungen` `[{id,datum,lieferant_name,lieferant_email,positionen,status}]`
+
+- **Feature 6: Notion-Sync** ✅
+  - `syncAufgabenNotion()`: Aufgaben als to_do-Blöcke → `/api/notion/aufgaben` (upsert: search→update/create)
+  - `syncTagesberichtNotion()`: Kassenbuch-Saldo + Fehlmaterial + Aufgaben → `/api/notion/tagesbericht`
+  - server.js: `POST /api/notion/aufgaben` — Notion-API direkt via axios (upsert-Logik)
+  - server.js: `POST /api/gmail/draft` — 503-Stub (für Gmail-OAuth-Setup)
+  - Buttons: "🔄 Nach Notion" in Aufgaben-Tab-Header, "📋 Tagesbericht → Notion" im Heute-Tab
+
+- **Feature 7: OCR-Rechnung** ✅
+  - server.js: `POST /api/claude-vision` — Anthropic API via axios, kein neues npm-Package
+  - Upload-Tab: Drag & Drop + File-Input (JPG/PNG/WebP, max 10 MB)
+  - `ocrRechnung(file)`: FileReader → base64 → `/api/claude-vision` → Vorschau-Tabelle (editierbar, Checkboxen)
+  - `importOcrPreise(count)`: POST `/api/preisverlauf` + localStorage `pizzeria_history`
+  - Fehlerbehandlung: Datei zu groß / Server offline / API-Key fehlt / JSON-Parse-Fehler
+
+## Neue localStorage-Keys (Session 11-12)
+- `pizzeria_preisalarm_rules` — Preisalarm-Regeln `[{id,produkt,shop,typ,schwelle,aktiv,erstellt}]`
+- `pizzeria_preisalarm_log` — Alarm-Log `[{id,datum,produkt,shop,typ,schwelle,ist_preis,diff_pct,regel_id}]`
+- `pizzeria_bestellungen` — Bestellungen `[{id,datum,lieferant_name,lieferant_email,positionen,status}]`
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
 - **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
-- **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
+- **Gmail OAuth** — für echte Gmail-Drafts: Google Cloud Credentials + Token einrichten
+- **Notion API Key** — `pizzeria_notion_key` in Einstellungen eingeben + Parent-Page-ID
 
 ### Priorität Mittel
 - **n8n Workflows** installieren und aktivieren
