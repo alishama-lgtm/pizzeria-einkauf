@@ -154,10 +154,26 @@ node server.js        # → http://localhost:8080
   - Dateiname: `Speisekarte_SanCarino_YYYY-MM-DD.pdf`
   - Branch: `feature/session-2026-04-20` (noch nicht in main gemergt)
 
+## Session 11b (2026-04-21) — Was gebaut wurde
+
+- **Dienstplan Tab komplett neu** ✅ — `renderDienstplanTab()` erweitert
+  - `<input type="week">` für Wochenauswahl (ISO-Woche)
+  - Mitarbeiter aus localStorage `pizzeria_mitarbeiter` (Fallback: Ali/Maria/Thomas/Sofia)
+  - Neue SCHICHTEN: F=Früh, M=Mittag, S=Spät, D=Doppel, X=Frei (je mit Farbe + Stunden)
+  - Schicht-Modal: Klick auf Zelle → 5 Buttons, speichert sofort
+  - Stunden/Woche pro MA: >40h → orange + ⚠️
+  - 🖨️ Drucken-Button mit `@media print` CSS (nur `#dp-print-area` sichtbar)
+  - 📄 PDF-Button: jsPDF Querformat, Schicht-Farben, Unterschriften-Zeile
+  - localStorage Format: `{ 'YYYY-WXX': { 'NAME##YYYY-MM-DD': 'F'|'M'|'S'|'D'|'X' } }`
+  - Branch: `feature/session-2026-04-20`
+
+- **Feature 4 (Preisalarm)** — noch OFFEN, bitte im nächsten Account weitermachen
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
-- **PR mergen** — `feature/session-2026-04-20` → `main` (Kassenbuch + Speisekarte PDF)
+- **Feature 4 Preisalarm** — `renderPreisalarmTab()` komplett neu (Schwellenwert, AutoCheck, Badge, Verlauf)
+- **PR mergen** — `feature/session-2026-04-20` → `main`
 - **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
 - **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
 
