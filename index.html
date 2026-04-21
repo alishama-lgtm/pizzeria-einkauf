@@ -1021,6 +1021,8 @@
     /* ════ ANIMATIONS ════ */
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+    .pa-pulse-row { animation: pulse 1.5s infinite; }
     .spinner { width:40px; height:40px; border:3px solid #ddd; border-top-color:#8B0000; border-radius:50%; animation:spin .7s linear infinite; margin:0 auto 16px; }
     .spinner-sm { width:18px; height:18px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:inline-block; vertical-align:middle; }
     .progress-fill { transition: width .3s ease; }
@@ -12644,8 +12646,8 @@ function renderDashboardTab() {
     // Preisalarm
     let preisAlarm = 0;
     try {
-      const pa = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]');
-      preisAlarm = pa.filter(e => e.aktuell > e.ziel).length;
+      const pa = JSON.parse(localStorage.getItem('pizzeria_preisalarm_rules')||'[]');
+      preisAlarm = pa.filter(e => e.aktiv && e._ausgeloest).length;
     } catch(_) {}
 
     // Aufgaben
@@ -15867,131 +15869,255 @@ function weGericht(id, action) {
 // ═══════════════════════════════════════════════════════════════
 function renderPreisalarmTab() {
   const p = document.getElementById('panel-preisalarm');
-  let liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
-  liste.forEach(e => { if (e.aktiv === undefined) e.aktiv = true; });
+  let regeln = []; try { regeln = JSON.parse(localStorage.getItem('pizzeria_preisalarm_rules')||'[]'); } catch(e) {}
+  let log = []; try { log = JSON.parse(localStorage.getItem('pizzeria_preisalarm_log')||'[]'); } catch(e) {}
 
-  const isAlarm = e => e.aktiv && e.aktuell > e.ziel;
-  const alarmCount = liste.filter(isAlarm).length;
+  const ausgeloest = regeln.filter(r => r.aktiv && r._ausgeloest).length;
+  const typLabel = {unter:'Unter', ueber:'Über', aend:'Änderung'};
+  const shopLabel = {alle:'Alle', metro:'Metro', billa:'Billa', lidl:'Lidl', spar:'Spar'};
 
-  const rows = liste.length ? liste.map(e => {
-    const alarm = isAlarm(e);
-    const diff = e.ziel > 0 ? ((e.aktuell - e.ziel) / e.ziel * 100).toFixed(1) : '0.0';
-    const histHtml = (e.historie||[]).slice(-5).reverse().map(h =>
-      `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);padding:2px 0"><span>${h.datum}</span><span style="font-weight:600;color:var(--text)">${parseFloat(h.preis).toFixed(2)} €</span></div>`
-    ).join('');
-    return `<div style="background:var(--surface);border-radius:14px;border:1.5px solid ${alarm?'#e53935':'var(--border)'};padding:16px;margin-bottom:10px;transition:border-color .2s">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:800;font-size:14px;color:var(--text)">${alarm?'🔔':(!e.aktiv?'🔕 ':'')}${_esc(e.produkt)}</div>
-          <div style="font-size:12px;color:var(--text-2);margin-top:2px">Lieferant: <b>${_esc(e.lieferant)}</b>${!e.aktiv?' · <span style="color:var(--text-3);font-style:italic">Alarm deaktiviert</span>':''}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px">
-          <div style="font-size:18px;font-weight:800;color:${alarm?'#e53935':'#2e7d32'}">${parseFloat(e.aktuell).toFixed(2)} €</div>
-          <div style="font-size:11px;color:var(--text-3)">Ziel: ${parseFloat(e.ziel).toFixed(2)} €${alarm?' <span style="color:#e53935;font-weight:700">(+'+diff+'%)</span>':' ✓'}</div>
-        </div>
-      </div>
-      ${alarm?`<div style="padding:8px 12px;border-radius:8px;background:#ffebee;border:1px solid #ef9a9a;font-size:12px;font-weight:700;color:#c62828;margin-bottom:10px">⚠️ ALARM: Preis um ${diff}% über Zielpreis!</div>`:''}
-      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-        <input id="pa-preis-${e.id}" type="number" step="0.01" value="${e.aktuell}" style="width:100px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
-        <button onclick="preisalarmUpdate(${e.id})" style="padding:5px 12px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:12px;font-weight:700;cursor:pointer">Speichern</button>
-        <button onclick="preisalarmToggle(${e.id})" title="${e.aktiv?'Alarm deaktivieren':'Alarm aktivieren'}" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);font-size:13px;cursor:pointer">${e.aktiv?'🔔':'🔕'}</button>
-        <button onclick="preisalarmDelete(${e.id})" style="padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--red);font-size:12px;cursor:pointer">🗑️</button>
-      </div>
-      ${(e.historie||[]).length?`<div style="padding:8px;background:var(--bg);border-radius:8px;border:1px solid var(--border-2)"><div style="font-size:10px;font-weight:700;color:var(--text-3);margin-bottom:4px">PREISHISTORIE</div>${histHtml}</div>`:''}
-    </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:var(--text-3);font-size:14px">Noch keine Preisalarme — füge Produkte hinzu</div>`;
+  function paAmpel(r) {
+    if (!r.aktiv) return '⚫';
+    if (r._ausgeloest) return '🔴';
+    if (r._letzterPreis == null) return '🟢';
+    const s = r.schwelle, pr = r._letzterPreis;
+    if (r.typ === 'unter') return (pr - s) / s < 0.1 ? '🟡' : '🟢';
+    if (r.typ === 'ueber') return (s - pr) / s < 0.1 ? '🟡' : '🟢';
+    if (r.typ === 'aend' && r._basisPreis) {
+      const pct = Math.abs(pr - r._basisPreis) / r._basisPreis * 100;
+      return pct > r.schwelle * 0.8 ? '🟡' : '🟢';
+    }
+    return '🟢';
+  }
+  function paDiff(r) {
+    if (r._letzterPreis == null) return '—';
+    const pr = r._letzterPreis, s = r.schwelle;
+    if (r.typ === 'unter' || r.typ === 'ueber') {
+      const pct = ((pr - s) / s * 100).toFixed(1);
+      return (pct > 0 ? '+' : '') + pct + '%';
+    }
+    if (!r._basisPreis) return '—';
+    const pct = ((pr - r._basisPreis) / r._basisPreis * 100).toFixed(1);
+    return (pct > 0 ? '+' : '') + pct + '%';
+  }
+  const schwelleLabel = r => r.typ === 'aend' ? r.schwelle + '%' : parseFloat(r.schwelle).toFixed(2) + ' €';
+
+  const tabelleHtml = regeln.length ? `
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--bg)">
+        <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Produkt</th>
+        <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Shop</th>
+        <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Typ</th>
+        <th style="padding:8px 10px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Schwelle</th>
+        <th style="padding:8px 10px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Letzter Preis</th>
+        <th style="padding:8px 10px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Diff</th>
+        <th style="padding:8px 10px;text-align:center;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Ampel</th>
+        <th style="padding:8px 10px;text-align:center;color:var(--text-3);font-weight:700;border-bottom:2px solid var(--border)">Ein/Aus</th>
+        <th style="padding:8px 10px;border-bottom:2px solid var(--border)"></th>
+      </tr></thead>
+      <tbody>
+        ${regeln.map(r => {
+          const amp = paAmpel(r);
+          const isRed = amp === '🔴';
+          return `<tr class="${isRed?'pa-pulse-row':''}" style="background:${isRed?'rgba(239,68,68,0.12)':'transparent'};border-bottom:1px solid var(--border-2)">
+            <td style="padding:8px 10px;font-weight:600;color:var(--text)">${_esc(r.produkt)}</td>
+            <td style="padding:8px 10px;color:var(--text-2)">${shopLabel[r.shop]||r.shop}</td>
+            <td style="padding:8px 10px;color:var(--text-2)">${typLabel[r.typ]||r.typ}</td>
+            <td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--text)">${schwelleLabel(r)}</td>
+            <td style="padding:8px 10px;text-align:right;color:var(--text)">${r._letzterPreis != null ? parseFloat(r._letzterPreis).toFixed(2)+' €' : '—'}</td>
+            <td style="padding:8px 10px;text-align:right;color:${isRed?'#e53935':'var(--text-2)'}">${paDiff(r)}</td>
+            <td style="padding:8px 10px;text-align:center;font-size:16px">${amp}</td>
+            <td style="padding:8px 10px;text-align:center">
+              <button onclick="preisalarmToggle(${r.id})" style="padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:${r.aktiv?'var(--red)':'var(--bg)'};color:${r.aktiv?'#fff':'var(--text-3)'};font-size:11px;font-weight:700;cursor:pointer">${r.aktiv?'AN':'AUS'}</button>
+            </td>
+            <td style="padding:8px 10px;text-align:center">
+              <button onclick="preisalarmDelete(${r.id})" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--red);font-size:12px;cursor:pointer">🗑️</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>` : `<div style="text-align:center;padding:40px;color:var(--text-3);font-size:14px">Noch keine Preisalarme angelegt</div>`;
+
+  const logHtml = log.length ? log.slice().reverse().slice(0,20).map(l =>
+    `<tr style="border-bottom:1px solid var(--border-2)">
+      <td style="padding:6px 10px;color:var(--text-3);font-size:12px">${l.datum}</td>
+      <td style="padding:6px 10px;color:var(--text);font-size:12px;font-weight:600">${_esc(l.produkt)}</td>
+      <td style="padding:6px 10px;color:var(--text-2);font-size:12px">${shopLabel[l.shop]||l.shop}</td>
+      <td style="padding:6px 10px;color:var(--text-2);font-size:12px">${typLabel[l.typ]||l.typ}</td>
+      <td style="padding:6px 10px;text-align:right;color:var(--text);font-size:12px">${parseFloat(l.schwelle).toFixed(2)}</td>
+      <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--text);font-size:12px">${parseFloat(l.ist_preis).toFixed(2)} €</td>
+      <td style="padding:6px 10px;text-align:right;color:#e53935;font-size:12px;font-weight:700">${l.diff_pct != null ? parseFloat(l.diff_pct).toFixed(1)+'%' : '—'}</td>
+    </tr>`
+  ).join('') : `<tr><td colspan="7" style="padding:20px;text-align:center;color:var(--text-3)">Noch keine Alarme ausgelöst</td></tr>`;
+
+  // Interval starten (alle 30 min)
+  clearInterval(window._preisalarmInterval);
+  window._preisalarmInterval = setInterval(checkPreisalarme, 30*60*1000);
 
   p.innerHTML = `
-    ${_pageHdr('notifications_active', 'Preisalarm', liste.length + ' Produkte überwacht' + (alarmCount?' · <span style="color:#e53935;font-weight:700">'+alarmCount+' Alarm(e) aktiv</span>':' · Alles im Rahmen ✓'), '<button onclick="checkPreisalarme()" style="padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer">🔄 Preise prüfen</button>')}
-    ${alarmCount?`<div style="padding:14px 18px;border-radius:12px;background:#ffebee;border:1.5px solid #ef9a9a;margin-bottom:20px;font-size:14px;font-weight:700;color:#c62828">🔔 ${alarmCount} Produkt(e) über Zielpreis — bitte Lieferant kontaktieren!</div>`:''}
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
-      <div>${rows}</div>
-      <div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);position:sticky;top:20px">
-        <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:14px">➕ Produkt überwachen</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <input id="pa-produkt" placeholder="Produktname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
-          <input id="pa-lieferant" placeholder="Lieferant..." style="padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
-          <input id="pa-aktuell" type="number" placeholder="Aktueller Preis €" min="0" step="0.01" style="padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
-          <input id="pa-ziel" type="number" placeholder="Zielpreis € (Alarm wenn darüber)" min="0" step="0.01" style="padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
-          <button onclick="preisalarmAdd()" style="padding:12px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
+    ${_pageHdr('notifications_active', 'Preisalarm', regeln.length + ' Alarm-Regeln · ' + (ausgeloest?'<span style="color:#e53935;font-weight:700">'+ausgeloest+' ausgelöst</span>':'Alles OK ✓'), '<button onclick="checkPreisalarme()" style="padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer">🔄 Jetzt prüfen</button>')}
+
+    <div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:20px">
+      <div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:14px">➕ Neuer Preisalarm</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:2;min-width:140px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px">PRODUKT</div>
+          <input id="pa-produkt" placeholder="Produktname..." style="width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);box-sizing:border-box">
         </div>
+        <div style="flex:1;min-width:110px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px">SHOP</div>
+          <select id="pa-shop" style="width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+            <option value="alle">Alle</option>
+            <option value="metro">Metro</option>
+            <option value="billa">Billa</option>
+            <option value="lidl">Lidl</option>
+            <option value="spar">Spar</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:150px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px">TYP</div>
+          <select id="pa-typ" style="width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
+            <option value="unter">Unter (Schnäppchen)</option>
+            <option value="ueber">Über (zu teuer)</option>
+            <option value="aend">Änderung > X%</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);margin-bottom:4px">SCHWELLE (€ oder %)</div>
+          <input id="pa-schwelle" type="number" step="0.01" min="0" placeholder="z.B. 2.50 oder 5" style="width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);box-sizing:border-box">
+        </div>
+        <button onclick="preisalarmAdd()" style="padding:9px 20px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0">Hinzufügen</button>
       </div>
-    </div>`;
+    </div>
+
+    <div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:20px">
+      ${tabelleHtml}
+    </div>
+
+    <details style="background:var(--surface);border-radius:16px;border:1px solid var(--border)">
+      <summary style="padding:16px 20px;font-weight:700;font-size:14px;color:var(--text);cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px">
+        <span class="material-symbols-outlined" style="font-size:18px;color:var(--text-3)">history</span>
+        Letzte 20 ausgelöste Alarme (${log.length} gesamt)
+      </summary>
+      <div style="padding:0 20px 20px;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="background:var(--bg)">
+            <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Datum</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Produkt</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Shop</th>
+            <th style="padding:8px 10px;text-align:left;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Typ</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Schwelle</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Ist-Preis</th>
+            <th style="padding:8px 10px;text-align:right;color:var(--text-3);font-weight:700;border-bottom:1px solid var(--border)">Diff%</th>
+          </tr></thead>
+          <tbody>${logHtml}</tbody>
+        </table>
+      </div>
+    </details>`;
+
+  // Initial-Check beim Tab-Öffnen (nur wenn nicht kürzlich gelaufen)
+  if (!window._preisalarmLastCheck || Date.now() - window._preisalarmLastCheck > 5*60*1000) {
+    setTimeout(checkPreisalarme, 400);
+  }
 }
 function preisalarmAdd() {
-  const produkt = document.getElementById('pa-produkt')?.value.trim();
-  const lieferant = document.getElementById('pa-lieferant')?.value.trim();
-  if (!produkt) _markField('pa-produkt', true);
-  if (!lieferant) _markField('pa-lieferant', true);
-  if (!produkt || !lieferant) { _showToast('Bitte Produkt und Lieferant eingeben', 'error'); return; }
-  let liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
-  const aktuell = parseFloat(document.getElementById('pa-aktuell')?.value)||0;
-  const ziel = parseFloat(document.getElementById('pa-ziel')?.value)||aktuell;
-  liste.push({ id:Date.now(), produkt, lieferant, aktuell, ziel, aktiv:true, historie:[{datum:new Date().toLocaleDateString('de-AT'), preis:aktuell}] });
-  localStorage.setItem('pizzeria_preisalarm', JSON.stringify(liste));
-  _showToast('Produkt hinzugefügt', 'success');
-  renderPreisalarmTab();
-}
-function preisalarmUpdate(id) {
-  let liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
-  const e = liste.find(x => x.id === id);
-  if (!e) return;
-  const neuerPreis = parseFloat(document.getElementById('pa-preis-'+id)?.value)||e.aktuell;
-  if (neuerPreis !== e.aktuell) {
-    e.aktuell = neuerPreis;
-    if (!e.historie) e.historie = [];
-    e.historie.push({ datum:new Date().toLocaleDateString('de-AT'), preis:neuerPreis });
-  }
-  localStorage.setItem('pizzeria_preisalarm', JSON.stringify(liste));
-  _showToast(e.aktiv && neuerPreis > e.ziel ? 'ALARM: Preis über Zielwert!' : 'Preis aktualisiert', e.aktiv && neuerPreis > e.ziel ? 'warning' : 'success');
+  const produkt = (document.getElementById('pa-produkt')?.value||'').trim();
+  const shop = document.getElementById('pa-shop')?.value || 'alle';
+  const typ = document.getElementById('pa-typ')?.value || 'ueber';
+  const schwelle = parseFloat(document.getElementById('pa-schwelle')?.value);
+  if (!produkt) { _markField('pa-produkt', true); _showToast('Bitte Produktname eingeben', 'error'); return; }
+  if (isNaN(schwelle) || schwelle < 0) { _markField('pa-schwelle', true); _showToast('Bitte gültige Schwelle eingeben', 'error'); return; }
+  let regeln = []; try { regeln = JSON.parse(localStorage.getItem('pizzeria_preisalarm_rules')||'[]'); } catch(e) {}
+  regeln.push({ id:Date.now(), produkt, shop, typ, schwelle, aktiv:true, erstellt:new Date().toLocaleDateString('de-AT') });
+  localStorage.setItem('pizzeria_preisalarm_rules', JSON.stringify(regeln));
+  _showToast('Preisalarm angelegt', 'success');
   renderPreisalarmTab();
 }
 function preisalarmToggle(id) {
-  let liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
-  const e = liste.find(x => x.id === id);
-  if (!e) return;
-  e.aktiv = !e.aktiv;
-  localStorage.setItem('pizzeria_preisalarm', JSON.stringify(liste));
-  _showToast(e.aktiv ? 'Alarm aktiviert' : 'Alarm deaktiviert', 'info');
+  let regeln = []; try { regeln = JSON.parse(localStorage.getItem('pizzeria_preisalarm_rules')||'[]'); } catch(e) {}
+  const r = regeln.find(x => x.id === id);
+  if (!r) return;
+  r.aktiv = !r.aktiv;
+  localStorage.setItem('pizzeria_preisalarm_rules', JSON.stringify(regeln));
+  _showToast(r.aktiv ? 'Alarm aktiviert' : 'Alarm deaktiviert', 'info');
   renderPreisalarmTab();
 }
 function preisalarmDelete(id) {
-  let liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
-  localStorage.setItem('pizzeria_preisalarm', JSON.stringify(liste.filter(x => x.id !== id)));
-  _showToast('Gelöscht', 'info');
+  if (!confirm('Preisalarm wirklich löschen?')) return;
+  let regeln = []; try { regeln = JSON.parse(localStorage.getItem('pizzeria_preisalarm_rules')||'[]'); } catch(e) {}
+  localStorage.setItem('pizzeria_preisalarm_rules', JSON.stringify(regeln.filter(x => x.id !== id)));
+  _showToast('Alarm gelöscht', 'info');
   renderPreisalarmTab();
 }
-function checkPreisalarme() {
-  let liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_preisalarm')||'[]'); } catch(e) {}
-  if (!liste.length) { _showToast('Keine Produkte überwacht', 'info'); return; }
-  let aktualisiert = 0;
-  const pm = window.PRICE_MAP || {};
-  liste.forEach(eintrag => {
-    if (!eintrag.aktiv) return;
-    const such = eintrag.produkt.toLowerCase().replace(/[^a-z0-9]/g, '');
-    outer: for (const shop of Object.keys(pm)) {
-      for (const pid of Object.keys(pm[shop])) {
-        const pidClean = pid.replace(/[^a-z0-9]/g, '');
-        if (pidClean.includes(such) || such.includes(pidClean.slice(0,6))) {
-          const dbPreis = pm[shop][pid];
-          if (dbPreis != null && dbPreis !== eintrag.aktuell) {
-            eintrag.aktuell = dbPreis;
-            if (!eintrag.historie) eintrag.historie = [];
-            eintrag.historie.push({ datum:new Date().toLocaleDateString('de-AT'), preis:dbPreis });
-            aktualisiert++;
-          }
-          break outer;
-        }
-      }
+async function checkPreisalarme() {
+  window._preisalarmLastCheck = Date.now();
+  let regeln = []; try { regeln = JSON.parse(localStorage.getItem('pizzeria_preisalarm_rules')||'[]'); } catch(e) {}
+  let log = []; try { log = JSON.parse(localStorage.getItem('pizzeria_preisalarm_log')||'[]'); } catch(e) {}
+  const aktive = regeln.filter(r => r.aktiv);
+  if (!aktive.length) return;
+
+  // Preisdaten holen
+  let preisRows = [];
+  try {
+    const resp = await fetch('http://localhost:8080/api/preisverlauf?limit=200');
+    if (resp.ok) preisRows = await resp.json();
+  } catch(_) {
+    try {
+      const hist = JSON.parse(localStorage.getItem('pizzeria_history')||'[]');
+      preisRows = hist.map(e => ({ produkt:e.name||e.produkt||'', shop_id:e.shop||e.lieferant||'', preis:e.preis||0, datum:e.datum||'' }));
+    } catch(_) {}
+  }
+
+  let geaendert = false;
+  aktive.forEach(regel => {
+    const suchProdukt = (regel.produkt||'').toLowerCase();
+    const suchShop = regel.shop === 'alle' ? null : regel.shop;
+    const treffer = preisRows.filter(r => {
+      const nameMatch = (r.produkt||r.name||'').toLowerCase().includes(suchProdukt) || suchProdukt.includes(((r.produkt||r.name||'').toLowerCase()).slice(0,6));
+      const shopMatch = !suchShop || (r.shop_id||r.shop||'').toLowerCase().includes(suchShop);
+      return nameMatch && (nameMatch && shopMatch);
+    });
+    if (!treffer.length) return;
+    const istPreis = parseFloat(treffer[0].preis);
+    if (isNaN(istPreis) || istPreis <= 0) return;
+
+    const ro = regeln.find(r => r.id === regel.id);
+    if (!ro) return;
+    if (!ro._basisPreis) ro._basisPreis = istPreis;
+    ro._letzterPreis = istPreis;
+    ro._letztePruefung = new Date().toLocaleDateString('de-AT');
+    geaendert = true;
+
+    let ausgeloest = false, diff_pct = null;
+    if (regel.typ === 'unter') {
+      ausgeloest = istPreis < regel.schwelle;
+      diff_pct = regel.schwelle > 0 ? (istPreis - regel.schwelle) / regel.schwelle * 100 : 0;
+    } else if (regel.typ === 'ueber') {
+      ausgeloest = istPreis > regel.schwelle;
+      diff_pct = regel.schwelle > 0 ? (istPreis - regel.schwelle) / regel.schwelle * 100 : 0;
+    } else if (regel.typ === 'aend') {
+      diff_pct = ro._basisPreis > 0 ? Math.abs(istPreis - ro._basisPreis) / ro._basisPreis * 100 : 0;
+      ausgeloest = diff_pct > regel.schwelle;
+    }
+    ro._ausgeloest = ausgeloest;
+
+    if (ausgeloest) {
+      const shopText = regel.shop === 'alle' ? 'alle Shops' : (regel.shop.charAt(0).toUpperCase()+regel.shop.slice(1));
+      _showToast('🔔 Preisalarm: '+regel.produkt+' ('+shopText+') — '+istPreis.toFixed(2)+'€', 'warning');
+      if (typeof notifAdd === 'function') notifAdd('pa_'+regel.id+'_'+Date.now(), '🔔 Preisalarm: '+regel.produkt, shopText+' · '+istPreis.toFixed(2)+'€', 'warning', 'preisalarm');
+      log.push({ id:Date.now()+Math.random(), datum:new Date().toLocaleDateString('de-AT'), produkt:regel.produkt, shop:regel.shop, typ:regel.typ, schwelle:regel.schwelle, ist_preis:istPreis, diff_pct, regel_id:regel.id });
     }
   });
-  if (aktualisiert > 0) localStorage.setItem('pizzeria_preisalarm', JSON.stringify(liste));
-  const alarme = liste.filter(e => e.aktiv && e.aktuell > e.ziel).length;
-  const msg = aktualisiert > 0
-    ? `${aktualisiert} Preis(e) aktualisiert · ${alarme} Alarm(e) aktiv`
-    : alarme > 0 ? `${alarme} Alarm(e) aktiv` : 'Alle Preise im Rahmen ✓';
-  _showToast(msg, alarme > 0 ? 'warning' : 'success');
-  renderPreisalarmTab();
+
+  if (log.length > 100) log = log.slice(-100);
+  if (geaendert) localStorage.setItem('pizzeria_preisalarm_rules', JSON.stringify(regeln));
+  if (log.length) localStorage.setItem('pizzeria_preisalarm_log', JSON.stringify(log));
+
+  // Tab neu rendern wenn gerade offen
+  const panel = document.getElementById('panel-preisalarm');
+  if (panel && panel.style.display !== 'none') renderPreisalarmTab();
 }
 
 // ===== PHASE 4: STATISTIK, TAGESANGEBOTE, UMSATZ =====
