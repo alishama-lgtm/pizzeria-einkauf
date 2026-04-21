@@ -16245,6 +16245,21 @@ function kkLoeschen(id) {
 // PHASE 5 — BEWERTUNGS-MANAGER
 // ═══════════════════════════════════════════════════════════════
 var BW_KEY = 'sc_bewertungen';
+var BW_ANTWORT_TEMPLATES = [
+  { l:'⭐ Positiv',      t:'Vielen herzlichen Dank für Ihre wunderbare Bewertung! Es freut uns sehr, dass Sie bei uns einen schönen Abend verbracht haben. Wir freuen uns auf Ihren nächsten Besuch in der Pizzeria San Carino!' },
+  { l:'👍 Neutral',      t:'Vielen Dank für Ihr Feedback! Wir nehmen Ihre Anmerkungen gerne entgegen und arbeiten kontinuierlich daran, unser Angebot weiter zu verbessern. Wir freuen uns auf ein baldiges Wiedersehen!' },
+  { l:'🙏 Negativ',      t:'Vielen Dank für Ihr ehrliches Feedback. Es tut uns sehr leid, dass wir Ihre Erwartungen diesmal nicht erfüllen konnten. Wir nehmen Ihre Kritik sehr ernst und werden uns verbessern. Gerne laden wir Sie zu einem nächsten Besuch ein.' },
+  { l:'😔 Entschuldig.', t:'Wir möchten uns aufrichtig für die unangenehme Erfahrung entschuldigen. Das entspricht nicht unserem Standard. Bitte kontaktieren Sie uns direkt unter unserer Rufnummer — wir möchten das gerne wiedergutmachen.' },
+  { l:'✉️ Standard',     t:'Herzlichen Dank für Ihre Bewertung! Ihr Feedback ist uns sehr wichtig. Wir freuen uns auf Ihren nächsten Besuch in der Pizzeria San Carino!' }
+];
+function bwTemplateInsert(idx) {
+  var ta = document.getElementById('bw-f-antwortText');
+  var cb = document.getElementById('bw-f-geantwortet');
+  if (ta && BW_ANTWORT_TEMPLATES[idx]) {
+    ta.value = BW_ANTWORT_TEMPLATES[idx].t;
+    if (cb) cb.checked = true;
+  }
+}
 var BW_PLATTFORMEN = [
   { id:'google',      label:'Google',      icon:'🔵' },
   { id:'tripadvisor', label:'TripAdvisor', icon:'🟢' },
@@ -16448,6 +16463,11 @@ function bwFormular(item) {
   html += '<label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#5a403c;cursor:pointer;margin-bottom:8px">';
   html += '<input type="checkbox" id="bw-f-geantwortet"' + (b.geantwortet?' checked':'') + '> Beantwortet</label>';
   html += '<label style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Unsere Antwort (optional)</label>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin:6px 0">';
+  BW_ANTWORT_TEMPLATES.forEach(function(t, i) {
+    html += '<button type="button" onclick="bwTemplateInsert(' + i + ')" style="padding:3px 9px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#610000;font-size:11px;font-weight:600;cursor:pointer">' + t.l + '</button>';
+  });
+  html += '</div>';
   html += '<textarea id="bw-f-antwortText" class="ws-input" rows="2" placeholder="Was wir zurück geschrieben haben...">' + escHtml(b.antwortText||'') + '</textarea>';
   html += '</div>';
 
@@ -18610,6 +18630,31 @@ function renderBuchhaltungTab() {
     html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📊 Letzte 14 Tage</div>';
     html += '<canvas id="kb-chart" style="max-height:200px"></canvas>';
     html += '</div>';
+
+    // Jahresübersicht letzte 12 Monate
+    var jahresEin = [], jahresAus = [], jahresLabels = [];
+    var jNow = new Date();
+    var jMonthNames = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    for (var ji = 11; ji >= 0; ji--) {
+      var jm = new Date(jNow.getFullYear(), jNow.getMonth() - ji, 1);
+      var jmStr = jm.getFullYear() + '-' + String(jm.getMonth()+1).padStart(2,'0');
+      jahresLabels.push(jMonthNames[jm.getMonth()] + ' ' + String(jm.getFullYear()).slice(2));
+      jahresEin.push(kbAll.filter(function(e){ return e.typ==='einnahme' && (e.datum||'').slice(0,7)===jmStr; }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); }, 0));
+      jahresAus.push(kbAll.filter(function(e){ return e.typ==='ausgabe'  && (e.datum||'').slice(0,7)===jmStr; }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); }, 0));
+    }
+    var jahresSaldo = jahresEin.map(function(v,i){ return parseFloat((v - jahresAus[i]).toFixed(2)); });
+    var jahresGesEin = jahresEin.reduce(function(s,v){ return s+v; }, 0);
+    var jahresGesAus = jahresAus.reduce(function(s,v){ return s+v; }, 0);
+    html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">';
+    html += '<div style="font-size:13px;font-weight:700;color:var(--text)">📅 Jahresübersicht — letzte 12 Monate</div>';
+    html += '<div style="display:flex;gap:12px;font-size:11px">';
+    html += '<span style="color:#2e7d32;font-weight:700">Ein: €' + jahresGesEin.toFixed(2).replace('.',',') + '</span>';
+    html += '<span style="color:#c62828;font-weight:700">Aus: €' + jahresGesAus.toFixed(2).replace('.',',') + '</span>';
+    html += '<span style="color:' + (jahresGesEin-jahresGesAus>=0?'#1565c0':'#c62828') + ';font-weight:700">Saldo: €' + (jahresGesEin-jahresGesAus).toFixed(2).replace('.',',') + '</span>';
+    html += '</div></div>';
+    html += '<canvas id="kb-jahres-chart" style="max-height:220px"></canvas>';
+    html += '</div>';
   }
 
   // ── Kassenbuch-Tabelle ──
@@ -18782,6 +18827,29 @@ function renderBuchhaltungTab() {
           scales: {
             x: { grid: { display: false }, ticks: { font: { size: 10 } } },
             y: { beginAtZero: true, ticks: { callback: function(v){ return v.toFixed(0)+' €'; }, font: { size: 10 } } }
+          }
+        }
+      });
+    }
+    var ctxJ = document.getElementById('kb-jahres-chart');
+    if (ctxJ && typeof jahresLabels !== 'undefined' && jahresLabels.length) {
+      if (window._kbJahresChart) window._kbJahresChart.destroy();
+      window._kbJahresChart = new Chart(ctxJ, {
+        type: 'bar',
+        data: {
+          labels: jahresLabels,
+          datasets: [
+            { label: 'Einnahmen', data: jahresEin, backgroundColor: 'rgba(46,125,50,0.65)', borderRadius: 4 },
+            { label: 'Ausgaben',  data: jahresAus, backgroundColor: 'rgba(198,40,40,0.65)', borderRadius: 4 },
+            { label: 'Saldo',     data: jahresSaldo, type: 'line', borderColor: '#1565c0', backgroundColor: 'rgba(21,101,192,0.1)', borderWidth: 2, pointRadius: 3, tension: 0.3, yAxisID: 'y' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: true,
+          plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+            y: { beginAtZero: true, ticks: { callback: function(v){ return '€'+v.toFixed(0); }, font: { size: 10 } } }
           }
         }
       });
