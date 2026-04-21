@@ -134,9 +134,30 @@ node server.js        # → http://localhost:8080
   - Tabellen-Striping verbessert
   - Branch: `fix/ui-a11y-2026-04-20` → in `main` gemergt
 
+## Session 11 (2026-04-20) — Was gebaut wurde
+
+- **Kassenbuch Tab (Buchhaltung neu)** ✅ — Einnahmen/Ausgaben mit MwSt AT
+  - 5 Stat-Kacheln: Heute Einnahmen/Ausgaben/Saldo + Monat Einnahmen/Ausgaben
+  - Formular mit Typ, Kategorie, Betrag, MwSt (10%/20%), Datum, Notiz, Live-MwSt-Berechnung
+  - Chart.js Balkendiagramm (letzte 30 Tage, Einnahmen grün / Ausgaben rot)
+  - Tabelle letzte 50 Einträge mit Löschen-Button
+  - CSV Export + PDF Export (jsPDF)
+  - localStorage Key: `pizzeria_kassenbuch`
+  - Zugriff: admin + manager
+  - Alte Buchhaltung (Dokumenten-Upload) bleibt unverändert erhalten
+- **Speisekarte PDF Export** ✅ — `generateSpeisekartePdf()`
+  - Deckblatt mit Pizzeria-Name, Datum (dunkelrot)
+  - Alle aktiven Gerichte, nach Kategorie gruppiert
+  - Kategorie-Balken in Altrosa, Preise rechts in Dunkelrot
+  - Beschreibungen in grauer Schrift
+  - Fußzeile mit MwSt-Hinweis (AT)
+  - Dateiname: `Speisekarte_SanCarino_YYYY-MM-DD.pdf`
+  - Branch: `feature/session-2026-04-20` (noch nicht in main gemergt)
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
+- **PR mergen** — `feature/session-2026-04-20` → `main` (Kassenbuch + Speisekarte PDF)
 - **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
 - **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
 
