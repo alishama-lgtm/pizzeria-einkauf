@@ -1429,100 +1429,48 @@
 
     /* ════ MOBILE APP STYLES (iPhone) ════ */
     @media (max-width: 767px) {
-      /* Vollbild App-Feeling */
-      body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+      body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
 
-      /* Hauptinhalt: kein seitlicher Abstand, volle Breite */
+      /* Hauptinhalt: volle Breite */
       #app-main {
-        padding: 12px 12px 100px !important;
+        padding: 10px 10px 110px !important;
         max-width: 100% !important;
         margin: 0 !important;
+        box-sizing: border-box;
+        width: 100% !important;
       }
 
-      /* Header kompakter */
-      #app-header { height: 56px !important; }
-      #app-header .header-inner { height: 56px !important; padding: 0 12px !important; gap: 8px !important; }
-      .header-logo-text { font-size: 16px !important; }
-      .header-logo-icon { font-size: 22px !important; }
+      /* Panels füllen volle Breite */
+      [id^="panel-"] { width: 100%; box-sizing: border-box; overflow-x: hidden; }
+      [id^="panel-"] > div { max-width: 100% !important; box-sizing: border-box; }
 
-      /* Header-Buttons kleiner */
-      #app-header button { padding: 6px 10px !important; font-size: 12px !important; }
-      #notif-btn, #settings-btn { padding: 6px !important; }
+      /* Inputs: verhindert Zoom auf iPhone */
+      input, select, textarea { font-size: 16px !important; }
 
-      /* Panels: volle Breite, kein Overflow */
-      [id^="panel-"] {
-        padding: 0 !important;
-        overflow-x: hidden;
-      }
+      /* Buttons Touch-freundlich */
+      button { touch-action: manipulation; }
 
-      /* Alle Karten: volle Breite, keine Seitenränder */
-      [id^="panel-"] > div { max-width: 100% !important; }
+      /* Tabellen horizontal scrollbar */
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-      /* Grids auf 1 Spalte */
-      [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
-      [style*="display:grid"], [style*="display: grid"] { grid-template-columns: 1fr !important; }
-
-      /* Ausnahme: 2er-Grid erlaubt für kleine Kacheln */
-      .mob-2col { grid-template-columns: 1fr 1fr !important; }
-
-      /* Tabellen scrollbar */
-      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
-
-      /* Buttons: Touch-freundlich */
-      button, .btn, [role="button"] {
-        min-height: 44px !important;
-        touch-action: manipulation;
-      }
-
-      /* Inputs größer */
-      input, select, textarea {
-        font-size: 16px !important; /* verhindert Zoom auf iPhone */
-        min-height: 44px;
-        padding: 10px 12px !important;
-      }
-
-      /* Bottom Nav: iPhone safe area */
+      /* Bottom Nav mit iPhone Notch */
       #mobile-bottom-nav {
-        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
-        height: auto !important;
+        padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
       }
 
-      /* Footer verstecken auf Mobile */
+      /* Footer ausblenden */
       #app-footer { display: none !important; }
 
-      /* Karten-Stil für Panels */
-      [id^="panel-"] .ws-card,
-      [id^="panel-"] > div > div[style*="background:#fff"],
-      [id^="panel-"] > div > div[style*="background: #fff"] {
-        border-radius: 16px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-      }
+      /* Header kompakter */
+      #app-header .header-inner { padding: 0 10px !important; }
 
-      /* Panel-Überschriften */
-      [id^="panel-"] h2 { font-size: 20px !important; }
-      [id^="panel-"] h3 { font-size: 16px !important; }
-
-      /* Stats-Dashboard ausblenden */
-      #stats-dashboard { padding: 0 12px !important; }
-
-      /* Mehr-Drawer besser */
+      /* Mehr-Drawer runder */
       #mehr-drawer { border-radius: 28px 28px 0 0 !important; }
-      .drawer-grid { grid-template-columns: repeat(3, 1fr) !important; }
-      .drawer-item { padding: 16px 4px 14px !important; font-size: 12px !important; border-radius: 16px !important; }
-      .drawer-item .material-symbols-outlined { font-size: 28px !important; }
+      .drawer-item { padding: 16px 4px 14px !important; }
+      .drawer-item .material-symbols-outlined { font-size: 26px !important; }
 
-      /* Mobile Nav Buttons größer */
-      .mob-nav-btn { padding: 8px 2px !important; font-size: 10px !important; }
-      .mob-nav-btn .material-symbols-outlined { font-size: 26px !important; }
-
-      /* Inline-Styles mit padding:20px überschreiben */
-      [id^="panel-"] > div[style*="padding:16px"],
-      [id^="panel-"] > div[style*="padding: 16px"],
-      [id^="panel-"] > div[style*="padding:20px"],
-      [id^="panel-"] > div[style*="padding: 20px"] {
-        padding: 12px !important;
-      }
+      /* Mobile Nav etwas größer */
+      .mob-nav-btn .material-symbols-outlined { font-size: 24px !important; }
     }
 
     /* ════ STITCH DESIGN ════ */
