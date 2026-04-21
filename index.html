@@ -14688,6 +14688,11 @@ function renderDienstplanTab() {
         <button onclick="dienstplanPdfExport()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">picture_as_pdf</span>PDF</button>
         <button onclick="window.print()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">print</span>Drucken</button>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:#8d6562">Personal-Abrechnung:</span>
+        <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:6px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff;color:#261816">
+        <button onclick="personalAbrechnungPdf()" style="padding:7px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">💰 Personal-Abrechnung PDF</button>
+      </div>
       <div style="overflow-x:auto">
         <table style="border-collapse:collapse;width:100%;min-width:700px">
           <thead><tr>
@@ -14744,6 +14749,116 @@ function dienstplanPdfExport() {
   if (doc.autoTable) { doc.autoTable({ head, body, startY: 26, styles:{fontSize:8,cellPadding:4}, headStyles:{fillColor:[97,0,0],textColor:255}, alternateRowStyles:{fillColor:[255,248,246]} }); }
   doc.save('dienstplan-kw'+kw+'-'+weekKey+'.pdf');
   _showToast('PDF gespeichert', 'success');
+}
+
+function personalAbrechnungPdf() {
+  if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  var monat = document.getElementById('abr-monat')?.value || new Date().toISOString().slice(0,7);
+  var monatParts = monat.split('-');
+  var monatLabel = ['','Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][parseInt(monatParts[1])] + ' ' + monatParts[0];
+
+  var plan = {}; try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(_) {}
+  var mitarbeiter = []; try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(_) {}
+
+  // Stundenmapping
+  var STUNDEN = {'Früh (08-16)':8,'Spät (14-22)':8,'Nacht (20-04)':8,'Frei':0,'':0};
+  var DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  var fmt = function(n){return parseFloat(n||0).toFixed(2).replace('.',',') + ' €';};
+
+  // Alle KWs des Monats sammeln
+  var kwKeys = Object.keys(plan).filter(function(wk){
+    var d = new Date(wk); return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1) === monat || (() => {
+      for(var i=0;i<7;i++){var dd=new Date(d);dd.setDate(d.getDate()+i);var m2=dd.getFullYear()+'-'+(dd.getMonth()+1<10?'0':'')+(dd.getMonth()+1);if(m2===monat)return true;}return false;
+    })();
+  });
+
+  if (!mitarbeiter.length) { _showToast('Keine Mitarbeiter eingetragen', 'warning'); return; }
+
+  var doc = new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+  // Deckblatt
+  doc.setFillColor(139,0,0); doc.rect(0,0,210,297,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont(undefined,'bold');
+  doc.text('Pizzeria San Carino', 105, 110, {align:'center'});
+  doc.setFontSize(18); doc.text('Personal-Abrechnung', 105, 127, {align:'center'});
+  doc.setFontSize(16); doc.text(monatLabel, 105, 143, {align:'center'});
+  doc.setFontSize(10); doc.setFont(undefined,'normal');
+  doc.text('Erstellt: ' + new Date().toLocaleDateString('de-AT'), 105, 158, {align:'center'});
+
+  var gesamtUebersicht = [];
+
+  mitarbeiter.forEach(function(ma) {
+    doc.addPage();
+    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(139,0,0);
+    doc.text(ma.name + (ma.rolle?' — '+ma.rolle:''), 14, 18);
+    doc.setDrawColor(225,190,184); doc.line(14,22,196,22);
+
+    var stundenGesamt = 0;
+    var tableRows = [];
+
+    kwKeys.forEach(function(wk) {
+      var weekPlan = (plan[wk]||{});
+      // Finde MA-Key (entweder ma.id oder ma.name lowercase oder Rolle)
+      var maKeys = Object.keys(weekPlan);
+      var maKey = maKeys.find(function(k){ return k === ma.id || k === (ma.name||'').toLowerCase().replace(/\s/g,'') || k === (ma.rolle||'').toLowerCase(); }) || null;
+      var dayData = maKey ? (weekPlan[maKey]||{}) : {};
+      var row = [wk];
+      var rowStunden = 0;
+      DAYS.forEach(function(d){
+        var s = dayData[d]||'';
+        var h = STUNDEN[s]||0;
+        rowStunden += h;
+        row.push(s ? s.split(' ')[0] : '—');
+      });
+      row.push(rowStunden + ' h');
+      stundenGesamt += rowStunden;
+      tableRows.push(row);
+    });
+
+    if (!tableRows.length) tableRows.push([monat,'—','—','—','—','—','—','—','0 h']);
+
+    var stundenlohn = parseFloat(ma.lohn||ma.stundenlohn||12);
+    var lohnGesamt = stundenGesamt * stundenlohn;
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        head:[['KW','Mo','Di','Mi','Do','Fr','Sa','So','Stunden']],
+        body: tableRows,
+        startY:26, styles:{fontSize:8,cellPadding:3},
+        headStyles:{fillColor:[139,0,0],textColor:255,fontStyle:'bold'},
+        alternateRowStyles:{fillColor:[255,248,246]}
+      });
+    }
+    var y = (doc.lastAutoTable?.finalY||80) + 10;
+    doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(38,24,22);
+    doc.text('Gesamt: ' + stundenGesamt + ' Stunden × ' + stundenlohn.toFixed(2).replace('.',',') + ' €/h = ' + fmt(lohnGesamt), 14, y);
+    y += 16;
+    doc.setDrawColor(150,150,150); doc.line(14,y,90,y); doc.line(110,y,196,y);
+    doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(90,64,60);
+    doc.text('Datum / Unterschrift Mitarbeiter', 14, y+6);
+    doc.text('Datum / Unterschrift Betrieb', 110, y+6);
+
+    gesamtUebersicht.push([ma.name, stundenGesamt+' h', stundenlohn.toFixed(2).replace('.',',')+' €', fmt(lohnGesamt)]);
+  });
+
+  // Letzte Seite: Gesamtübersicht
+  doc.addPage();
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(139,0,0);
+  doc.text('Gesamtübersicht — ' + monatLabel, 14, 18);
+  doc.setDrawColor(225,190,184); doc.line(14,22,196,22);
+  var gesamtLohn = gesamtUebersicht.reduce(function(s,r){ return s+parseFloat(r[3].replace(',','.').replace(' €',''));},0);
+  if (doc.autoTable) {
+    doc.autoTable({
+      head:[['Mitarbeiter','Stunden','€/h','Lohn gesamt']],
+      body: gesamtUebersicht,
+      foot:[['GESAMT','','',fmt(gesamtLohn)]],
+      startY:26, styles:{fontSize:9,cellPadding:4},
+      headStyles:{fillColor:[139,0,0],textColor:255,fontStyle:'bold'},
+      footStyles:{fillColor:[240,228,226],fontStyle:'bold'}
+    });
+  }
+  doc.save('personal_abrechnung_' + monat + '.pdf');
+  _showToast('Personal-Abrechnung ' + monatLabel + ' gespeichert ✓', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
