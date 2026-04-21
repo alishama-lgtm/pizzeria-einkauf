@@ -17686,10 +17686,75 @@ function buchDropHandler(e) {
   _showToast(file.name + ' ausgewählt', 'info');
 }
 
+// ── Kassenbuch-Hilfsfunktionen ──
+function kbMwstUpdate() {
+  var netto = parseFloat(document.getElementById('kb-netto')?.value||0)||0;
+  var satz  = parseFloat(document.getElementById('kb-mwst')?.value||0)||0;
+  var brutto = netto * (1 + satz/100);
+  var el = document.getElementById('kb-brutto');
+  if (el) el.value = brutto.toFixed(2).replace('.',',') + ' €';
+}
+function kassenbuchAdd() {
+  var typ   = document.getElementById('kb-typ')?.value;
+  var desc  = document.getElementById('kb-desc')?.value.trim();
+  var netto = parseFloat(document.getElementById('kb-netto')?.value||0)||0;
+  var satz  = parseFloat(document.getElementById('kb-mwst')?.value||0)||0;
+  if (!desc) { _showToast('Bitte Beschreibung eingeben', 'error'); return; }
+  if (netto <= 0) { _showToast('Bitte Netto-Betrag eingeben', 'error'); return; }
+  var brutto = netto * (1 + satz/100);
+  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  list.push({ id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: netto.toFixed(2), mwst_satz: satz, mwst_betrag: (brutto-netto).toFixed(2), brutto: brutto.toFixed(2) });
+  _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list));
+  _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' gespeichert ✓', 'success');
+  renderBuchhaltungTab();
+}
+function kassenbuchLoeschen(id) {
+  _showConfirm('Eintrag wirklich löschen?', function() {
+    var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+    _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list.filter(function(e){return e.id!==id;})));
+    renderBuchhaltungTab();
+  });
+}
+function kassenbuchCsvExport() {
+  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  if (!list.length) { _showToast('Keine Einträge', 'info'); return; }
+  var rows = ['Datum;Typ;Beschreibung;Netto;MwSt%;MwSt-Betrag;Brutto'];
+  list.forEach(function(e) {
+    rows.push([(e.datum||'').slice(0,10), e.typ, '"'+String(e.beschreibung||'').replace(/"/g,'""')+'"', parseFloat(e.netto||0).toFixed(2), e.mwst_satz||0, parseFloat(e.mwst_betrag||0).toFixed(2), parseFloat(e.brutto||0).toFixed(2)].join(';'));
+  });
+  var blob = new Blob(['﻿'+rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='kassenbuch_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+}
+function kassenbuchPdfExport() {
+  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  if (!list.length) { _showToast('Keine Einträge', 'info'); return; }
+  if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  var doc = new window.jspdf.jsPDF();
+  doc.setFontSize(16); doc.text('Kassenbuch — Pizzeria San Carino', 14, 18);
+  doc.setFontSize(10); doc.text('Exportiert: ' + new Date().toLocaleDateString('de-AT'), 14, 26);
+  var rows = list.map(function(e) { return [(e.datum||'').slice(0,10), e.typ==='einnahme'?'Einnahme':'Ausgabe', String(e.beschreibung||'').slice(0,30), parseFloat(e.netto||0).toFixed(2)+' €', (e.mwst_satz||0)+'%', parseFloat(e.brutto||0).toFixed(2)+' €']; });
+  if (doc.autoTable) {
+    doc.autoTable({ head:[['Datum','Typ','Beschreibung','Netto','MwSt','Brutto']], body:rows, startY:32, styles:{fontSize:8}, headStyles:{fillColor:[97,0,0]} });
+  }
+  doc.save('kassenbuch_'+new Date().toISOString().slice(0,10)+'.pdf');
+}
+
 // ── Render ──
 function renderBuchhaltungTab() {
   var panel = document.getElementById('panel-buchhaltung');
   if (!panel) return;
+
+  // ── Kassenbuch-Daten ──
+  var kbAll = []; try { kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var today = new Date().toISOString().slice(0,10);
+  var thisMonth = today.slice(0,7);
+  var kbToday = kbAll.filter(function(e){return (e.datum||'').slice(0,10)===today;});
+  var kbMonth  = kbAll.filter(function(e){return (e.datum||'').slice(0,7)===thisMonth;});
+  var einH = kbToday.filter(function(e){return e.typ==='einnahme';}).reduce(function(s,e){return s+parseFloat(e.brutto||0);},0);
+  var ausH = kbToday.filter(function(e){return e.typ==='ausgabe'; }).reduce(function(s,e){return s+parseFloat(e.brutto||0);},0);
+  var einM = kbMonth.filter(function(e){return e.typ==='einnahme';}).reduce(function(s,e){return s+parseFloat(e.brutto||0);},0);
+  var ausM = kbMonth.filter(function(e){return e.typ==='ausgabe'; }).reduce(function(s,e){return s+parseFloat(e.brutto||0);},0);
+  var saldoH = einH - ausH;
 
   var docs = buchLoad();
   var filterTyp = panel.dataset.filterTyp || '';
@@ -17705,8 +17770,58 @@ function renderBuchhaltungTab() {
 
   var currentMonth = new Date().toISOString().slice(0, 7);
 
-  var html = _pageHdr('account_balance', 'Buchhaltung', 'Dokumente für den Steuerberater',
-    '<button onclick="renderBuchhaltungTab()" style="padding:7px 14px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">refresh</span>Aktualisieren</button>');
+  var html = _pageHdr('account_balance', 'Buchhaltung', 'Kassenbuch & Steuerberater-Dokumente',
+    '<button onclick="renderBuchhaltungTab()" style="padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-size:12px;font-weight:700;color:var(--red);cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">refresh</span>Aktualisieren</button>');
+
+  // ── Kassenbuch-Kacheln ──
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">';
+  [{i:'💰',l:'Einnahmen heute',v:'€'+einH.toFixed(2).replace('.',','),c:'#2e7d32'},{i:'📤',l:'Ausgaben heute',v:'€'+ausH.toFixed(2).replace('.',','),c:'#c62828'},{i:'⚖️',l:'Saldo heute',v:'€'+saldoH.toFixed(2).replace('.',','),c:saldoH>=0?'#2e7d32':'#c62828'},{i:'📈',l:'Einnahmen Monat',v:'€'+einM.toFixed(2).replace('.',','),c:'#1565c0'},{i:'📉',l:'Ausgaben Monat',v:'€'+ausM.toFixed(2).replace('.',','),c:'#7b1fa2'}].forEach(function(k){
+    html += '<div style="background:var(--surface);border-radius:14px;padding:16px;border:1px solid var(--border);text-align:center"><div style="font-size:20px;margin-bottom:4px">'+k.i+'</div><div style="font-size:11px;color:var(--text-3);margin-bottom:4px">'+k.l+'</div><div style="font-size:17px;font-weight:800;color:'+k.c+'">'+k.v+'</div></div>';
+  });
+  html += '</div>';
+
+  // ── Kassenbuch-Formular ──
+  html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';
+  html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">➕ Eintrag erfassen</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Typ</div><select id="kb-typ" onchange="kbMwstUpdate()" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)"><option value="einnahme">Einnahme</option><option value="ausgabe">Ausgabe</option></select></div>';
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Beschreibung</div><input id="kb-desc" type="text" placeholder="z.B. Tageseinnahme" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box"></div>';
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">';
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Netto (€)</div><input id="kb-netto" type="number" step="0.01" min="0" placeholder="0.00" oninput="kbMwstUpdate()" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box"></div>';
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">MwSt</div><select id="kb-mwst" onchange="kbMwstUpdate()" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)"><option value="10">10% (Speisen)</option><option value="20">20% (Getränke)</option><option value="0">0%</option></select></div>';
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Brutto (€)</div><input id="kb-brutto" type="text" readonly placeholder="0,00 €" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:monospace;background:var(--bg);color:var(--text);box-sizing:border-box"></div>';
+  html += '<button onclick="kassenbuchAdd()" style="padding:10px 18px;border-radius:10px;border:none;background:#610000;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Speichern</button>';
+  html += '</div></div>';
+
+  // ── Kassenbuch-Tabelle ──
+  var kbRecent = kbAll.slice().reverse().slice(0,30);
+  html += '<div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px">';
+  html += '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:700;color:var(--text)">📋 Letzte Einträge</span><div style="display:flex;gap:8px"><button onclick="kassenbuchCsvExport()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:11px;font-weight:600;cursor:pointer">📥 CSV</button><button onclick="kassenbuchPdfExport()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:11px;font-weight:600;cursor:pointer">🖨️ PDF</button></div></div>';
+  if (!kbRecent.length) {
+    html += '<div style="padding:30px;text-align:center;color:var(--text-3);font-size:13px">Noch keine Einträge — oben ersten Eintrag erfassen</div>';
+  } else {
+    html += '<table style="width:100%;border-collapse:collapse"><thead><tr style="background:var(--bg)">';
+    ['Datum','Typ','Beschreibung','Netto','MwSt','Brutto',''].forEach(function(h){html+='<th style="padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3)">'+h+'</th>';});
+    html += '</tr></thead><tbody>';
+    kbRecent.forEach(function(e){
+      var isEin = e.typ==='einnahme';
+      html += '<tr style="border-bottom:1px solid var(--border)">';
+      html += '<td style="padding:8px 10px;font-size:12px;color:var(--text-2)">'+(e.datum||'').slice(0,10)+'</td>';
+      html += '<td style="padding:8px 10px;font-size:12px;font-weight:700;color:'+(isEin?'#2e7d32':'#c62828')+'">'+(isEin?'+ Einnahme':'− Ausgabe')+'</td>';
+      html += '<td style="padding:8px 10px;font-size:12px;color:var(--text)">'+_esc(e.beschreibung||'')+'</td>';
+      html += '<td style="padding:8px 10px;font-size:12px;color:var(--text-2);text-align:right">'+parseFloat(e.netto||0).toFixed(2).replace('.',',')+'</td>';
+      html += '<td style="padding:8px 10px;font-size:12px;color:var(--text-3);text-align:right">'+(e.mwst_satz||0)+'%</td>';
+      html += '<td style="padding:8px 10px;font-size:12px;font-weight:700;color:var(--text);text-align:right">'+parseFloat(e.brutto||0).toFixed(2).replace('.',',')+' €</td>';
+      html += '<td style="padding:8px 10px;text-align:right"><button onclick="kassenbuchLoeschen(\''+e.id+'\')" style="padding:3px 7px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-3);font-size:11px;cursor:pointer">✕</button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>';
+
+  // ── Steuerberater-Dokumente ──
+  html += '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;padding-top:8px">📁 Steuerberater-Dokumente</div>';
 
   // ── Upload-Bereich ──
   html += '<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;margin-bottom:16px">';
