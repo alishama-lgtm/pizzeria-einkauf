@@ -307,6 +307,64 @@ Prüfe bei jeder Preisänderung:
 
 ---
 
+## Aktueller Stand — Session 2026-04-21
+
+### Was diese Session gemacht hat:
+1. **Port geändert**: server.js läuft auf Port **3000** (nicht 8080 — IIS belegt 8080)
+2. **Login repariert**: users.js mit PIN-Feldern erstellt (admin PIN: 1234, manager: 2222, employee: 3333, kitchen: 4444, fahrer: 5555, service: 6666, reinigung: 7777)
+3. **Neue Login-Rollen**: fahrer, service, reinigung in ROLE_TABS eingetragen
+4. **API-URLs**: Alle hardcodierten `localhost:8080` → relative `/api/...` Pfade
+5. **HACCP**: Dynamische Kühlgeräte — hinzufügen/löschen via UI
+6. **iPhone/Mobile**: Cloudflare Tunnel + PWA (manifest.json + sw.js), viewport-fit=cover
+7. **Mobile CSS**: touch-freundlich, safe-area-inset, 16px inputs
+8. **Dienstplan komplett neu**:
+   - Echte Mitarbeiternamen aus `localStorage pizzeria_mitarbeiter`
+   - Gruppiert nach Abteilung (Küche, Lieferung, Service, ...)
+   - Schicht fest: **11:00–23:00 Uhr**
+   - Toggle-Button pro Tag: `— —` → `✅ Arbeitet` → `❌ Frei` → `— —`
+   - Funktion: `dienstplanToggle(weekKey, maId, day)`
+   - Daten gespeichert in `localStorage pizzeria_dienstplan` mit Mitarbeiter-ID als Key
+9. **Dienstplan PDF repariert**:
+   - jsPDF-AutoTable Plugin eingebunden (`jspdf.plugin.autotable.min.js`)
+   - Zeigt echte Mitarbeiter nach Abteilung gruppiert
+   - ✓ grün = Arbeitet, ✗ rot = Frei, — grau = nicht eingetragen
+
+### App starten auf neuem PC:
+```bash
+cd C:\Users\<username>\pizzeria-einkauf
+git pull
+npm install
+node server.js
+# → http://localhost:3000
+```
+
+### Wichtig: users.js manuell erstellen (gitignored!)
+```js
+const PIZZERIA_USERS = [
+  { username:'admin',    password:'ali2024',    pin:'1234', role:'admin',    label:'👑 Admin'      },
+  { username:'manager',  password:'manager1',   pin:'2222', role:'manager',  label:'🏢 Manager'    },
+  { username:'employee', password:'pizza123',   pin:'3333', role:'employee', label:'👤 Mitarbeiter' },
+  { username:'kitchen',  password:'kueche1',    pin:'4444', role:'kitchen',  label:'👨‍🍳 Küche'      },
+  { username:'fahrer',   password:'fahrer1',    pin:'5555', role:'fahrer',   label:'🚗 Fahrer'      },
+  { username:'service',  password:'service1',   pin:'6666', role:'service',  label:'🍽️ Service'     },
+  { username:'reinigung',password:'reinigung1', pin:'7777', role:'reinigung',label:'🧹 Reinigung'   },
+];
+```
+
+### Cloudflare Tunnel (iPhone-Zugriff):
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+→ URL ändert sich bei jedem Neustart!
+
+### Business-Tab Passwort zurücksetzen (Browser-Konsole):
+```js
+localStorage.removeItem('biz_pw_hash')
+```
+Dann neu laden → Passwort ist wieder `ali2024`
+
+---
+
 ## Dokumentation
 
 Alle Anleitungen: `ANLEITUNG/` Ordner (README.md, tabs.md, datenspeicherung.md, server.md, charts.md, pdf-export.md, rollen.md, git.md, uebersicht.md)
