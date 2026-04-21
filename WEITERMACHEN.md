@@ -134,11 +134,19 @@ node server.js        # → http://localhost:8080
   - Tabellen-Striping verbessert
   - Branch: `fix/ui-a11y-2026-04-20` → in `main` gemergt
 
+## Session 11 (2026-04-21) — Was gebaut wurde
+
+- **36-Tab Testplan: Theme-Fixes** ✅ — alle 4 neuen Tabs (MHD, Kassenschnitt, Urlaub, Trinkgeld) auf Theme-Kompatibilität geprüft und gefixt
+  - CSS-Overrides für Dark + Dark-Red: fehlende Status-Hintergründe `#ffebee`, `#e8f5e9`, `#e3f2fd`, `#f5f5f5`
+  - CSS-Overrides für Dark + Dark-Red: fehlende Textfarben `#c62828`, `#e65100`, `#f57f17`, `#9e9e9e`
+  - `border:1.5px solid #e3beb8` Overrides für alle 3 Dark-Themes
+  - `kassenschnittVorschau()` theme-bewusst — verwendet semantische Farben für dark/glass
+  - Alle 4 Tab-Header auf `_pageHdr()` umgestellt (beach_access, payments, event_busy, point_of_sale)
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
 - **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
-- **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
 
 ### Priorität Mittel
 - **n8n Workflows** installieren und aktivieren
