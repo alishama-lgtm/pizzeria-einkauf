@@ -8854,13 +8854,49 @@ function renderHeuteTab() {
     </div>
   </div>`;
 
-  html += `<div style="background:var(--surface);border-radius:16px;padding:16px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-    <div>
-      <div style="font-weight:700;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px"><span style="font-size:18px">📋</span>Tagesbericht</div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:2px">Umsatz, Fehlmaterial & Aufgaben nach Notion senden</div>
+  // ── Tagesabschluss + Tagesbericht ──
+  html += `<div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(97,0,0,0.3)">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-weight:800;font-size:16px;color:#fff;display:flex;align-items:center;gap:8px"><span style="font-size:22px">🌙</span>Tagesabschluss</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:3px">Alle Zahlen sammeln, speichern & PDF erstellen</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="tagesabschlussErstellen()" style="padding:11px 22px;border-radius:10px;border:2px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.15);color:#fff;font-size:14px;font-weight:800;cursor:pointer;white-space:nowrap">🌙 Tagesabschluss erstellen</button>
+        <button onclick="syncTagesberichtNotion()" style="padding:11px 18px;border-radius:10px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.9);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 → Notion</button>
+      </div>
     </div>
-    <button onclick="syncTagesberichtNotion()" style="padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📋 Tagesbericht → Notion</button>
   </div>`;
+
+  // ── Tagesabschluss-Verlauf ──
+  var taVerlauf = []; try { taVerlauf = JSON.parse(localStorage.getItem('pizzeria_tagesberichte')||'[]'); } catch(_) {}
+  if (taVerlauf.length > 0) {
+    html += `<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">📅 Letzte Tagesabschlüsse</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--bg)">
+          <th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3)">Datum</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Einnahmen</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Ausgaben</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Saldo</th>
+          <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:var(--text-3)">Kassendiff</th>
+          <th style="padding:7px 10px;text-align:center;font-size:11px;font-weight:700;color:var(--text-3)">PDF</th>
+        </tr></thead><tbody>`;
+    taVerlauf.slice(0,30).forEach(function(ta) {
+      var saldo = (ta.einnahmen||0) - (ta.ausgaben||0);
+      var ksD = ta.kassenschnitt_differenz;
+      html += `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:7px 10px;font-size:12px;color:var(--text)">${ta.datum||''}</td>
+        <td style="padding:7px 10px;font-size:12px;color:#2e7d32;text-align:right;font-weight:600">+${parseFloat(ta.einnahmen||0).toFixed(2).replace('.',',')} €</td>
+        <td style="padding:7px 10px;font-size:12px;color:#c62828;text-align:right">−${parseFloat(ta.ausgaben||0).toFixed(2).replace('.',',')} €</td>
+        <td style="padding:7px 10px;font-size:12px;font-weight:700;color:${saldo>=0?'#1b5e20':'#b71c1c'};text-align:right">${saldo.toFixed(2).replace('.',',')} €</td>
+        <td style="padding:7px 10px;font-size:12px;color:${ksD!=null?(ksD<-1?'#c62828':ksD>1?'#2e7d32':'var(--text-2)'):'var(--text-3)'};text-align:right">${ksD!=null?(ksD>=0?'+':'')+ksD.toFixed(2).replace('.',',')+'€':'—'}</td>
+        <td style="padding:7px 10px;text-align:center"><button onclick="tagesabschlussPdf('${ta.datum||''}')" style="padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--red);font-size:11px;cursor:pointer">PDF</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
   html += `</div>`;
   panel.innerHTML = html;
 }
@@ -8876,6 +8912,91 @@ function heuteKbQuickAdd() {
   _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list));
   _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' '+betrag.toFixed(2)+' € gespeichert ✓', 'success');
   renderHeuteTab();
+}
+
+function tagesabschlussErstellen() {
+  var datum = new Date().toISOString().slice(0,10);
+  var kbAll = []; try { kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var einnahmen = kbAll.filter(function(e){ return (e.datum||'').slice(0,10)===datum && e.typ==='einnahme'; }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); },0);
+  var ausgaben  = kbAll.filter(function(e){ return (e.datum||'').slice(0,10)===datum && e.typ==='ausgabe';  }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); },0);
+  var saldo = einnahmen - ausgaben;
+  var ksAll = []; try { ksAll = JSON.parse(localStorage.getItem('pizzeria_kassenschnitt')||'[]'); } catch(_) {}
+  var ks = ksAll.find(function(e){ return e.datum===datum; }) || {};
+  var ksDiff = (ks.ist != null && ks.soll != null) ? (parseFloat(ks.ist)-parseFloat(ks.soll)) : null;
+  var offeneAufgaben = 0; try { offeneAufgaben = JSON.parse(localStorage.getItem('pizzeria_aufgaben')||'[]').filter(function(e){ return !e.erledigt; }).length; } catch(_) {}
+  var fehlmaterial = 0; try { fehlmaterial = JSON.parse(localStorage.getItem('pizzeria_fehlmaterial')||'[]').length; } catch(_) {}
+  var eintrag = { id: Date.now().toString(36), datum: datum, einnahmen: einnahmen, ausgaben: ausgaben, saldo: saldo, kassenschnitt_differenz: ksDiff, offene_aufgaben: offeneAufgaben, fehlmaterial: fehlmaterial, erstellt: new Date().toISOString() };
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_tagesberichte')||'[]'); } catch(_) {}
+  liste = liste.filter(function(e){ return e.datum!==datum; });
+  liste.unshift(eintrag);
+  if (liste.length > 90) liste = liste.slice(0,90);
+  _safeLocalSet('pizzeria_tagesberichte', JSON.stringify(liste));
+  var fmt = function(n){ return parseFloat(n||0).toFixed(2).replace('.',','); };
+  var modalHtml = '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" id="ta-modal-bg" onclick="if(event.target===this)document.getElementById(\'ta-modal-bg\').remove()">'
+    +'<div style="background:#fff;border-radius:20px;padding:28px;max-width:460px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.18)">'
+    +'<div style="text-align:center;margin-bottom:20px"><span style="font-size:40px">🌙</span><h2 style="font-size:22px;font-weight:800;color:#261816;margin:8px 0 2px">Tagesabschluss</h2><div style="font-size:13px;color:#5a403c">'+datum+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">'
+    +'<div style="background:#f0fdf4;border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;margin-bottom:4px">Einnahmen</div><div style="font-size:22px;font-weight:800;color:#2e7d32">+'+fmt(einnahmen)+' €</div></div>'
+    +'<div style="background:#fef2f2;border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;margin-bottom:4px">Ausgaben</div><div style="font-size:22px;font-weight:800;color:#c62828">−'+fmt(ausgaben)+' €</div></div>'
+    +'<div style="background:'+(saldo>=0?'#f0fdf4':'#fef2f2')+';border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;margin-bottom:4px">Saldo</div><div style="font-size:22px;font-weight:800;color:'+(saldo>=0?'#1b5e20':'#b71c1c')+'">'+fmt(saldo)+' €</div></div>'
+    +'<div style="background:#f8fafc;border-radius:12px;padding:14px;text-align:center"><div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;margin-bottom:4px">Kassendiff</div><div style="font-size:22px;font-weight:800;color:'+(ksDiff!=null?(ksDiff<-1?'#c62828':ksDiff>1?'#2e7d32':'#374151'):'#9ca3af')+'">'+(ksDiff!=null?(ksDiff>=0?'+':'')+fmt(ksDiff)+' €':'—')+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<div style="background:#fffbeb;border-radius:10px;padding:10px 14px;flex:1;text-align:center"><div style="font-size:11px;font-weight:700;color:#d97706">Offene Aufgaben</div><div style="font-size:18px;font-weight:800;color:#374151">'+offeneAufgaben+'</div></div>'
+    +'<div style="background:#eff6ff;border-radius:10px;padding:10px 14px;flex:1;text-align:center"><div style="font-size:11px;font-weight:700;color:#1d4ed8">Fehlmaterial</div><div style="font-size:18px;font-weight:800;color:#374151">'+fehlmaterial+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap">'
+    +'<button onclick="tagesabschlussPdf(\''+datum+'\');document.getElementById(\'ta-modal-bg\').remove()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">📄 PDF</button>'
+    +'<button onclick="syncTagesberichtNotion();document.getElementById(\'ta-modal-bg\').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid #e3beb8;background:#fff;color:#261816;font-size:14px;font-weight:700;cursor:pointer">📋 Notion</button>'
+    +'<button onclick="document.getElementById(\'ta-modal-bg\').remove()" style="flex:1;padding:12px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:14px;font-weight:700;cursor:pointer">Schließen</button>'
+    +'</div>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  _showToast('Tagesabschluss gespeichert ✓','success');
+  renderHeuteTab();
+}
+
+function tagesabschlussPdf(datum) {
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_tagesberichte')||'[]'); } catch(_) {}
+  var ta = liste.find(function(e){ return e.datum===datum; });
+  if (!ta) { _showToast('Kein Tagesabschluss für '+datum+' gefunden','error'); return; }
+  var doc = new window.jspdf.jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  var fmt = function(n){ return parseFloat(n||0).toFixed(2).replace('.',',')+' €'; };
+  doc.setFillColor(97,0,0); doc.rect(0,0,210,60,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(26); doc.setFont(undefined,'bold'); doc.text('Pizzeria San Carino',105,22,{align:'center'});
+  doc.setFontSize(16); doc.setFont(undefined,'normal'); doc.text('Tagesabschluss',105,33,{align:'center'});
+  doc.setFontSize(13); doc.text(datum,105,43,{align:'center'});
+  var y = 75;
+  var boxW = 85; var boxH = 28; var gap = 10;
+  var boxes = [
+    {label:'Einnahmen',  val:fmt(ta.einnahmen), r:0,g:200,b:83, tr:0,tg:100,tb:40},
+    {label:'Ausgaben',   val:fmt(ta.ausgaben),  r:255,g:82,b:82, tr:183,tg:28,tb:28},
+    {label:'Saldo',      val:fmt(ta.saldo),      r:66,g:165,b:245, tr:13,tg:71,tb:161},
+    {label:'Kassendiff', val:ta.kassenschnitt_differenz!=null?fmt(ta.kassenschnitt_differenz):'—', r:255,g:167,b:38, tr:230,tg:81,tb:0},
+  ];
+  boxes.forEach(function(b, i) {
+    var x = 15 + i*(boxW+gap)*(i<2?1:0) + (i>=2?0:0);
+    if (i===0) x=15; else if(i===1) x=15+boxW+gap; else if(i===2) x=15; else x=15+boxW+gap;
+    var yy = i<2?y:y+boxH+8;
+    doc.setFillColor(b.r,b.g,b.b); doc.roundedRect(x,yy,boxW,boxH,4,4,'F');
+    doc.setTextColor(b.tr,b.tg,b.tb); doc.setFontSize(9); doc.setFont(undefined,'bold');
+    doc.text(b.label.toUpperCase(),x+boxW/2,yy+9,{align:'center'});
+    doc.setFontSize(16); doc.text(b.val,x+boxW/2,yy+21,{align:'center'});
+  });
+  y = y + boxH*2 + 28;
+  doc.setDrawColor(220,190,184); doc.setLineWidth(0.5); doc.line(15,y,195,y); y+=10;
+  doc.setTextColor(38,24,22); doc.setFontSize(11); doc.setFont(undefined,'bold');
+  doc.text('Details',15,y); y+=8;
+  doc.setFont(undefined,'normal'); doc.setFontSize(10); doc.setTextColor(90,64,60);
+  doc.text('Offene Aufgaben: '+(ta.offene_aufgaben||0),15,y); y+=7;
+  doc.text('Fehlmaterial: '+(ta.fehlmaterial||0),15,y); y+=7;
+  doc.text('Erstellt: '+(ta.erstellt?ta.erstellt.replace('T',' ').slice(0,16):datum),15,y); y+=18;
+  doc.setDrawColor(220,190,184); doc.line(15,y,195,y); y+=14;
+  doc.setFontSize(10); doc.setTextColor(90,64,60); doc.setFont(undefined,'normal');
+  doc.text('Unterschrift Verantwortlicher: ___________________________',15,y); y+=14;
+  doc.text('Unterschrift Leitung:          ___________________________',15,y);
+  doc.save('tagesabschluss_'+datum+'.pdf');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -13597,11 +13718,168 @@ function renderSpeisekarteTab() {
         html += `</div></div>`;
       }
     }
+    html += renderRezepteSektion();
     panel.innerHTML = html;
   } catch(err) {
     console.error('Speisekarte Fehler:', err);
     panel.innerHTML = '<div style="padding:20px;background:#ffdad6;border-radius:12px;color:#93000a;font-size:13px"><strong>Fehler:</strong> ' + _esc(err.message) + '</div>';
   }
+}
+
+function renderRezepteSektion() {
+  var rezepte = []; try { rezepte = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  var lagerNamen = lager.map(function(l){ return l.name.toLowerCase(); });
+  function ampelRezept(r) {
+    if (!r.zutaten || r.zutaten.length === 0) return 'grau';
+    var fehlend = 0, teilw = 0;
+    r.zutaten.forEach(function(z) {
+      var l = lager.find(function(x){ return x.name.toLowerCase()===z.produkt.toLowerCase(); });
+      if (!l || l.menge <= 0) fehlend++;
+      else if (l.menge < l.mindest) teilw++;
+    });
+    if (fehlend > 0) return 'rot';
+    if (teilw > 0) return 'gelb';
+    return 'gruen';
+  }
+  var lagerAutocomplete = lager.map(function(l){ return escHtml(l.name); }).join('|');
+  var html = '<div style="margin-top:32px;border-top:2px solid #e3beb8;padding-top:24px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px">'
+    +'<div><h3 style="font-size:18px;font-weight:800;color:#261816;margin:0">📖 Rezept-Manager</h3>'
+    +'<p style="font-size:12px;color:#5a403c;margin:3px 0 0">Rezepte mit Zutaten-Ampel und Lagerabgleich</p></div>'
+    +'<button onclick="rezeptFormToggle()" style="padding:9px 16px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">+ Neues Rezept</button>'
+    +'</div>';
+  html += '<div id="rezept-form-area" style="margin-bottom:16px"></div>';
+  if (rezepte.length === 0) {
+    html += '<div style="text-align:center;padding:32px;color:#8d6562;background:#fff8f6;border-radius:12px;font-size:14px">Noch keine Rezepte. Klicke "+ Neues Rezept" um zu beginnen.</div>';
+  } else {
+    html += '<div style="display:grid;gap:12px">';
+    rezepte.forEach(function(r) {
+      var amp = ampelRezept(r);
+      var ampCol = amp==='gruen'?'#2e7d32':amp==='gelb'?'#f57f17':amp==='rot'?'#c62828':'#9ca3af';
+      var ampEmoji = amp==='gruen'?'🟢':amp==='gelb'?'🟡':amp==='rot'?'🔴':'⚪';
+      var fehlendZutaten = (r.zutaten||[]).filter(function(z){
+        var l = lager.find(function(x){ return x.name.toLowerCase()===z.produkt.toLowerCase(); });
+        return !l || l.menge <= 0;
+      }).map(function(z){ return z.produkt; });
+      html += '<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:16px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">'
+        +'<div style="flex:1">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+        +'<span style="font-size:18px">'+ampEmoji+'</span>'
+        +'<span style="font-size:16px;font-weight:800;color:#261816">'+escHtml(r.name)+'</span>'
+        +'<span style="background:#f3f4f6;color:#5a403c;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px">'+escHtml(r.kategorie||'')+'</span>'
+        +'</div>'
+        +'<div style="font-size:12px;color:#5a403c;margin-bottom:6px">'+((r.zutaten||[]).length)+' Zutaten · '+((r.portionen||1))+' Portionen</div>'
+        +(fehlendZutaten.length > 0 ? '<div style="font-size:11px;color:#c62828;margin-bottom:6px">Fehlt: '+fehlendZutaten.map(escHtml).join(', ')+'</div>' : '')
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-shrink:0">'
+        +(fehlendZutaten.length > 0 ? '<button onclick="rezeptFehlmaterialPush(\''+r.id+'\')" style="padding:5px 10px;border-radius:8px;border:1px solid #fecaca;background:#fef2f2;color:#c62828;font-size:11px;font-weight:700;cursor:pointer">→ Fehlmaterial</button>' : '')
+        +'<button onclick="rezeptLoeschen(\''+r.id+'\')" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#f9fafb;color:#374151;font-size:11px;cursor:pointer">🗑️</button>'
+        +'</div>'
+        +'</div>'
+        +(r.notizen ? '<div style="font-size:12px;color:#5a403c;margin-top:6px;padding-top:6px;border-top:1px solid #f3f4f6;font-style:italic">'+escHtml(r.notizen)+'</div>' : '')
+        +'</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function rezeptFormToggle() {
+  var area = document.getElementById('rezept-form-area');
+  if (!area) return;
+  if (area.innerHTML.trim()) { area.innerHTML = ''; return; }
+  area.innerHTML = '<div style="background:#fff8f6;border:1.5px solid #e3beb8;border-radius:14px;padding:20px;margin-bottom:4px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:10px;margin-bottom:14px">'
+    +'<input id="rez-name" type="text" placeholder="Rezeptname *" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box">'
+    +'<select id="rez-kat" style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;color:#261816">'
+    +'<option>Pizza</option><option>Pasta</option><option>Salat</option><option>Dessert</option><option>Sonstiges</option></select>'
+    +'<input id="rez-portionen" type="number" min="1" value="4" placeholder="Port." style="padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:14px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'</div>'
+    +'<div style="font-size:12px;font-weight:700;color:#5a403c;margin-bottom:8px">Zutaten</div>'
+    +'<div id="rez-zutaten-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 80px 80px auto;gap:8px;margin-bottom:14px">'
+    +'<input id="rez-z-produkt" type="text" placeholder="Produkt (aus Lager)" list="rez-lager-list" style="padding:9px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'<datalist id="rez-lager-list"></datalist>'
+    +'<input id="rez-z-menge" type="number" step="0.01" min="0" placeholder="Menge" style="padding:9px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'<input id="rez-z-einheit" type="text" placeholder="Einheit" style="padding:9px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;box-sizing:border-box">'
+    +'<button onclick="rezeptZutatAdd()" style="padding:9px 14px;border-radius:10px;border:none;background:#610000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">+</button>'
+    +'</div>'
+    +'<textarea id="rez-notizen" rows="2" placeholder="Notizen (optional)" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff;resize:vertical;box-sizing:border-box;margin-bottom:12px"></textarea>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button onclick="rezeptSpeichern()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Speichern</button>'
+    +'<button onclick="document.getElementById(\'rezept-form-area\').innerHTML=\'\'" style="padding:12px 20px;border-radius:10px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:14px;font-weight:700;cursor:pointer">Abbrechen</button>'
+    +'</div>'
+    +'</div>';
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  var dl = document.getElementById('rez-lager-list');
+  if (dl) lager.forEach(function(l){ var opt=document.createElement('option'); opt.value=l.name; dl.appendChild(opt); });
+  window._rezZutaten = [];
+}
+
+function rezeptZutatAdd() {
+  var prod = (document.getElementById('rez-z-produkt')?.value||'').trim();
+  var menge = parseFloat(document.getElementById('rez-z-menge')?.value||0);
+  var einheit = (document.getElementById('rez-z-einheit')?.value||'').trim()||'Stk';
+  if (!prod) { _showToast('Bitte Produkt eingeben','error'); return; }
+  if (!window._rezZutaten) window._rezZutaten = [];
+  window._rezZutaten.push({produkt:prod, menge:menge, einheit:einheit});
+  var area = document.getElementById('rez-zutaten-list');
+  if (area) {
+    var idx = window._rezZutaten.length-1;
+    var el = document.createElement('div');
+    el.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f9fafb;border-radius:8px;padding:6px 10px';
+    el.innerHTML = '<span style="flex:1;font-size:13px;color:#261816">'+escHtml(prod)+'</span><span style="font-size:12px;color:#5a403c">'+menge+' '+escHtml(einheit)+'</span><button onclick="window._rezZutaten.splice('+idx+',1);this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:14px;color:#c62828">✕</button>';
+    area.appendChild(el);
+  }
+  document.getElementById('rez-z-produkt').value='';
+  document.getElementById('rez-z-menge').value='';
+  document.getElementById('rez-z-einheit').value='';
+}
+
+function rezeptSpeichern() {
+  var name = (document.getElementById('rez-name')?.value||'').trim();
+  if (!name) { _showToast('Bitte Rezeptname eingeben','error'); return; }
+  var kat = document.getElementById('rez-kat')?.value||'Sonstiges';
+  var portionen = parseInt(document.getElementById('rez-portionen')?.value||4)||4;
+  var notizen = (document.getElementById('rez-notizen')?.value||'').trim();
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+  liste.push({id:Date.now().toString(36), name:name, kategorie:kat, portionen:portionen, zutaten:window._rezZutaten||[], notizen:notizen, erstellt:new Date().toISOString()});
+  _safeLocalSet('pizzeria_rezepte', JSON.stringify(liste));
+  window._rezZutaten = [];
+  _showToast('Rezept gespeichert ✓','success');
+  renderSpeisekarteTab();
+}
+
+function rezeptLoeschen(id) {
+  _showConfirm('Rezept wirklich löschen?', function() {
+    var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+    _safeLocalSet('pizzeria_rezepte', JSON.stringify(liste.filter(function(r){ return r.id!==id; })));
+    _showToast('Rezept gelöscht','info');
+    renderSpeisekarteTab();
+  }, {okLabel:'Löschen'});
+}
+
+function rezeptFehlmaterialPush(id) {
+  var liste = []; try { liste = JSON.parse(localStorage.getItem('pizzeria_rezepte')||'[]'); } catch(_) {}
+  var r = liste.find(function(x){ return x.id===id; });
+  if (!r) return;
+  var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  var fehlmat = []; try { fehlmat = JSON.parse(localStorage.getItem('pizzeria_fehlmaterial')||'[]'); } catch(_) {}
+  var added = 0;
+  (r.zutaten||[]).forEach(function(z) {
+    var l = lager.find(function(x){ return x.name.toLowerCase()===z.produkt.toLowerCase(); });
+    if (!l || l.menge <= 0) {
+      if (!fehlmat.find(function(f){ return (f.name||f.artikel||'').toLowerCase()===z.produkt.toLowerCase(); })) {
+        fehlmat.push({id:Date.now().toString(36)+added, name:z.produkt, artikel:z.produkt, menge:z.menge||1, einheit:z.einheit||'Stk', datum:new Date().toISOString().slice(0,10), notiz:'Rezept: '+r.name});
+        added++;
+      }
+    }
+  });
+  _safeLocalSet('pizzeria_fehlmaterial', JSON.stringify(fehlmat));
+  _showToast(added+' Artikel zu Fehlmaterial hinzugefügt','success');
 }
 
 function skNeuesGericht() { _skShowForm(null); }
@@ -14088,6 +14366,7 @@ function renderLieferantenTab() {
         </div>
         <button onclick="bestellLagerVorschlag()" style="padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📦 Lager-Vorschlag</button>
         <button onclick="sendBestellungEmail()" style="padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📧 Email senden</button>
+        <button onclick="sendWhatsappBestellung()" style="padding:9px 18px;border-radius:10px;border:none;background:#25D366;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">💬 Per WhatsApp</button>
       </div>
       <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap">
         <input id="bestell-produkt" placeholder="Produkt..." style="flex:2;min-width:120px;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
@@ -14295,6 +14574,23 @@ function lfLoeschen(id) {
     lfSave(lfLoad().filter(i => i.id !== id));
     renderLieferantenTab();
   });
+}
+
+function sendWhatsappBestellung() {
+  const lfId = document.getElementById('bestell-lieferant')?.value;
+  if (!lfId) { _showToast('Bitte zuerst einen Lieferanten wählen', 'warning'); return; }
+  const positionen = window._bestellPositionen || [];
+  if (!positionen.length) { _showToast('Bitte zuerst Positionen hinzufügen', 'warning'); return; }
+  const lf = lfLoad().find(function(l){ return l.id === lfId; });
+  if (!lf) { _showToast('Lieferant nicht gefunden', 'error'); return; }
+  const tel = (lf.tel || '').replace(/\D/g, '');
+  if (!tel) { _showToast('Bitte Telefonnummer beim Lieferanten eintragen', 'error'); return; }
+  const datum = new Date().toLocaleDateString('de-AT', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const posText = positionen.map(function(p){ return '• ' + p.produkt + ' — ' + p.menge + ' ' + p.einheit; }).join('\n');
+  const text = 'Hallo ' + lf.name + ',\n\nBestellung vom ' + datum + ':\n\n' + posText + '\n\nMit freundlichen Grüßen\nPizzeria San Carino\nAli Shama';
+  const url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+  _showToast('WhatsApp wird geöffnet…', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -14567,6 +14863,17 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Design-Stil wird sofort angewendet und gespeichert.</p>
       </div>
 
+      <!-- Externer Zugriff (Cloudflare Tunnel) -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🌐</span> Externer Zugriff
+          </label>
+          <button onclick="showCloudflareTunnelInfo()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;color:#610000;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Anleitung anzeigen</button>
+        </div>
+        <p style="font-size:11px;color:#8d6562;margin:0">Mit Cloudflare Tunnel ist die App von überall via HTTPS erreichbar — kein Router nötig.</p>
+      </div>
+
       <div style="display:flex;gap:10px">
         <button onclick="saveApiKey()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
         ${hasKey?`<button onclick="clearApiKey()" style="padding:13px 16px;background:#ffdad6;color:#93000a;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Löschen</button>`:''}
@@ -14605,6 +14912,34 @@ function clearApiKey() {
     document.getElementById('settings-modal')?.remove();
     _showToast('API Key gelöscht', 'info');
   }, { okLabel: 'Löschen' });
+}
+
+function showCloudflareTunnelInfo() {
+  var existing = document.getElementById('cf-tunnel-modal');
+  if (existing) { existing.remove(); return; }
+  document.getElementById('settings-modal')?.remove();
+  var html = '<div id="cf-tunnel-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)this.remove()">'
+    +'<div style="background:#fff;border-radius:20px;padding:28px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">'
+    +'<h2 style="font-size:18px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:8px"><span style="font-size:22px">🌐</span>Externer Zugriff — Cloudflare Tunnel</h2>'
+    +'<button onclick="document.getElementById(\'cf-tunnel-modal\').remove()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:16px">✕</button>'
+    +'</div>'
+    +'<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:#1e40af">'
+    +'<strong>Was ist das?</strong> Ein Cloudflare Tunnel macht deine lokale App über das Internet erreichbar — ohne Router-Konfiguration, mit HTTPS.'
+    +'</div>'
+    +'<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:10px">Schnell-Test (kein Konto nötig):</div>'
+    +'<div style="background:#1e1e2e;border-radius:10px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc;margin-bottom:16px;user-select:all">cloudflared tunnel --url http://localhost:8080</div>'
+    +'<div style="font-size:12px;color:#5a403c;margin-bottom:16px">→ Gibt eine temporäre HTTPS-URL aus. Kein Login nötig. URL ist ~24h gültig.</div>'
+    +'<div style="font-size:13px;font-weight:700;color:#261816;margin-bottom:10px">Installation:</div>'
+    +'<div style="background:#1e1e2e;border-radius:10px;padding:12px 16px;font-family:monospace;font-size:13px;color:#a5f3fc;margin-bottom:16px;user-select:all">winget install Cloudflare.cloudflared</div>'
+    +'<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:12px;margin-bottom:20px;font-size:12px;color:#991b1b">'
+    +'⚠️ <strong>Sicherheit:</strong> Tunnel macht die App öffentlich. Business-Passwort vorher ändern falls fremde Personen Zugriff haben könnten.'
+    +'</div>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button onclick="document.getElementById(\'cf-tunnel-modal\').remove()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Verstanden</button>'
+    +'</div>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -14670,6 +15005,11 @@ function renderDienstplanTab() {
         <button onclick="dienstplanPdfExport()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">picture_as_pdf</span>PDF</button>
         <button onclick="window.print()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">print</span>Drucken</button>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:#8d6562">Personal-Abrechnung:</span>
+        <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:6px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff;color:#261816">
+        <button onclick="personalAbrechnungPdf()" style="padding:7px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">💰 Personal-Abrechnung PDF</button>
+      </div>
       <div style="overflow-x:auto">
         <table style="border-collapse:collapse;width:100%;min-width:700px">
           <thead><tr>
@@ -14726,6 +15066,116 @@ function dienstplanPdfExport() {
   if (doc.autoTable) { doc.autoTable({ head, body, startY: 26, styles:{fontSize:8,cellPadding:4}, headStyles:{fillColor:[97,0,0],textColor:255}, alternateRowStyles:{fillColor:[255,248,246]} }); }
   doc.save('dienstplan-kw'+kw+'-'+weekKey+'.pdf');
   _showToast('PDF gespeichert', 'success');
+}
+
+function personalAbrechnungPdf() {
+  if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  var monat = document.getElementById('abr-monat')?.value || new Date().toISOString().slice(0,7);
+  var monatParts = monat.split('-');
+  var monatLabel = ['','Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][parseInt(monatParts[1])] + ' ' + monatParts[0];
+
+  var plan = {}; try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(_) {}
+  var mitarbeiter = []; try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(_) {}
+
+  // Stundenmapping
+  var STUNDEN = {'Früh (08-16)':8,'Spät (14-22)':8,'Nacht (20-04)':8,'Frei':0,'':0};
+  var DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  var fmt = function(n){return parseFloat(n||0).toFixed(2).replace('.',',') + ' €';};
+
+  // Alle KWs des Monats sammeln
+  var kwKeys = Object.keys(plan).filter(function(wk){
+    var d = new Date(wk); return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1) === monat || (() => {
+      for(var i=0;i<7;i++){var dd=new Date(d);dd.setDate(d.getDate()+i);var m2=dd.getFullYear()+'-'+(dd.getMonth()+1<10?'0':'')+(dd.getMonth()+1);if(m2===monat)return true;}return false;
+    })();
+  });
+
+  if (!mitarbeiter.length) { _showToast('Keine Mitarbeiter eingetragen', 'warning'); return; }
+
+  var doc = new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+  // Deckblatt
+  doc.setFillColor(139,0,0); doc.rect(0,0,210,297,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(24); doc.setFont(undefined,'bold');
+  doc.text('Pizzeria San Carino', 105, 110, {align:'center'});
+  doc.setFontSize(18); doc.text('Personal-Abrechnung', 105, 127, {align:'center'});
+  doc.setFontSize(16); doc.text(monatLabel, 105, 143, {align:'center'});
+  doc.setFontSize(10); doc.setFont(undefined,'normal');
+  doc.text('Erstellt: ' + new Date().toLocaleDateString('de-AT'), 105, 158, {align:'center'});
+
+  var gesamtUebersicht = [];
+
+  mitarbeiter.forEach(function(ma) {
+    doc.addPage();
+    doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(139,0,0);
+    doc.text(ma.name + (ma.rolle?' — '+ma.rolle:''), 14, 18);
+    doc.setDrawColor(225,190,184); doc.line(14,22,196,22);
+
+    var stundenGesamt = 0;
+    var tableRows = [];
+
+    kwKeys.forEach(function(wk) {
+      var weekPlan = (plan[wk]||{});
+      // Finde MA-Key (entweder ma.id oder ma.name lowercase oder Rolle)
+      var maKeys = Object.keys(weekPlan);
+      var maKey = maKeys.find(function(k){ return k === ma.id || k === (ma.name||'').toLowerCase().replace(/\s/g,'') || k === (ma.rolle||'').toLowerCase(); }) || null;
+      var dayData = maKey ? (weekPlan[maKey]||{}) : {};
+      var row = [wk];
+      var rowStunden = 0;
+      DAYS.forEach(function(d){
+        var s = dayData[d]||'';
+        var h = STUNDEN[s]||0;
+        rowStunden += h;
+        row.push(s ? s.split(' ')[0] : '—');
+      });
+      row.push(rowStunden + ' h');
+      stundenGesamt += rowStunden;
+      tableRows.push(row);
+    });
+
+    if (!tableRows.length) tableRows.push([monat,'—','—','—','—','—','—','—','0 h']);
+
+    var stundenlohn = parseFloat(ma.lohn||ma.stundenlohn||12);
+    var lohnGesamt = stundenGesamt * stundenlohn;
+
+    if (doc.autoTable) {
+      doc.autoTable({
+        head:[['KW','Mo','Di','Mi','Do','Fr','Sa','So','Stunden']],
+        body: tableRows,
+        startY:26, styles:{fontSize:8,cellPadding:3},
+        headStyles:{fillColor:[139,0,0],textColor:255,fontStyle:'bold'},
+        alternateRowStyles:{fillColor:[255,248,246]}
+      });
+    }
+    var y = (doc.lastAutoTable?.finalY||80) + 10;
+    doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(38,24,22);
+    doc.text('Gesamt: ' + stundenGesamt + ' Stunden × ' + stundenlohn.toFixed(2).replace('.',',') + ' €/h = ' + fmt(lohnGesamt), 14, y);
+    y += 16;
+    doc.setDrawColor(150,150,150); doc.line(14,y,90,y); doc.line(110,y,196,y);
+    doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(90,64,60);
+    doc.text('Datum / Unterschrift Mitarbeiter', 14, y+6);
+    doc.text('Datum / Unterschrift Betrieb', 110, y+6);
+
+    gesamtUebersicht.push([ma.name, stundenGesamt+' h', stundenlohn.toFixed(2).replace('.',',')+' €', fmt(lohnGesamt)]);
+  });
+
+  // Letzte Seite: Gesamtübersicht
+  doc.addPage();
+  doc.setFontSize(14); doc.setFont(undefined,'bold'); doc.setTextColor(139,0,0);
+  doc.text('Gesamtübersicht — ' + monatLabel, 14, 18);
+  doc.setDrawColor(225,190,184); doc.line(14,22,196,22);
+  var gesamtLohn = gesamtUebersicht.reduce(function(s,r){ return s+parseFloat(r[3].replace(',','.').replace(' €',''));},0);
+  if (doc.autoTable) {
+    doc.autoTable({
+      head:[['Mitarbeiter','Stunden','€/h','Lohn gesamt']],
+      body: gesamtUebersicht,
+      foot:[['GESAMT','','',fmt(gesamtLohn)]],
+      startY:26, styles:{fontSize:9,cellPadding:4},
+      headStyles:{fillColor:[139,0,0],textColor:255,fontStyle:'bold'},
+      footStyles:{fillColor:[240,228,226],fontStyle:'bold'}
+    });
+  }
+  doc.save('personal_abrechnung_' + monat + '.pdf');
+  _showToast('Personal-Abrechnung ' + monatLabel + ' gespeichert ✓', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -15212,7 +15662,10 @@ function renderLagerTab() {
 
   // ── Status-Dashboard ──
   var html = _pageHdr('warehouse', 'Lagerbestand', lager.length + ' Artikel verwaltet',
-    (rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;margin-right:8px"><span class="material-symbols-outlined">shopping_cart</span>Kritische bestellen</button>' : '')
+    (rotCount ? '<button onclick="lagerAlleRotBestellen()" class="ws-btn ws-btn-sm" style="background:#ffebee;color:#c62828;border:1.5px solid #ef9a9a;margin-right:4px"><span class="material-symbols-outlined">shopping_cart</span>Kritische bestellen</button>' : '')
+    + '<input type="file" id="lager-csv-input" accept=".csv" style="display:none" onchange="lagerCsvImport(this.files[0])">'
+    + '<button onclick="lagerCsvVorlageDownload()" class="ws-btn ws-btn-sm" style="margin-right:4px">📄 Vorlage</button>'
+    + '<button onclick="document.getElementById(\'lager-csv-input\').click()" class="ws-btn ws-btn-sm" style="margin-right:4px">📥 CSV importieren</button>'
     + '<button onclick="lagerFormToggle()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
 
   html += '<div id="lag-form-area"></div>';
@@ -15465,6 +15918,91 @@ function lagerAlleRotBestellen() {
   });
   _syncedLocalSet('pizzeria_bestellung', JSON.stringify(best));
   _showToast(added+' Artikel zur Bestellliste hinzugefügt', 'success');
+}
+
+function lagerCsvVorlageDownload() {
+  var rows = ['Produkt;Menge;Einheit;Mindestbestand;Kategorie',
+    'Mehl (Typ 00);25;kg;5;Grundzutaten',
+    'Tomatensauce;12;Dose;3;Grundzutaten',
+    'Mozzarella;8;kg;2;Käse',
+    'Olivenöl;4;Liter;1;Küche',
+    'Salami;3;kg;1;Belag'];
+  var blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'lager_vorlage.csv'; a.click();
+}
+
+function lagerCsvImport(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var csvText = e.target.result;
+    var lines = csvText.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+    if (lines.length < 2) { _showToast('CSV leer oder kein Header', 'error'); return; }
+    var sep = lines[0].split(';').length > lines[0].split(',').length ? ';' : ',';
+    var headers = lines[0].split(sep).map(function(h){ return h.trim().toLowerCase().replace(/"/g,''); });
+    var colIdx = function(names) {
+      for (var i=0;i<names.length;i++) { var idx=headers.indexOf(names[i]); if(idx>=0) return idx; } return -1;
+    };
+    var iName = colIdx(['produkt','name','artikel']);
+    var iMenge = colIdx(['menge','bestand','anzahl','stock']);
+    var iEinheit = colIdx(['einheit','unit']);
+    var iMin = colIdx(['mindestbestand','mindest','min','minimum']);
+    var iKat = colIdx(['kategorie','category','kat']);
+    if (iName < 0) { _showToast('Spalte "Produkt" oder "Name" nicht gefunden', 'error'); return; }
+    var lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+    var preview = [];
+    for (var li=1; li<lines.length; li++) {
+      var cols = lines[li].split(sep).map(function(c){ return c.trim().replace(/^"|"$/g,''); });
+      var pName = iName>=0 ? cols[iName]||'' : '';
+      if (!pName) continue;
+      var menge = iMenge>=0 ? parseFloat(cols[iMenge])||0 : 0;
+      if (isNaN(menge)) continue;
+      var einheit = iEinheit>=0 ? cols[iEinheit]||'Stk' : 'Stk';
+      var mindest = iMin>=0 ? parseFloat(cols[iMin])||0 : 0;
+      var kat = iKat>=0 ? cols[iKat]||'Sonstiges' : 'Sonstiges';
+      var existing = lager.find(function(x){ return x.name.toLowerCase()===pName.toLowerCase(); });
+      preview.push({ pName: pName, menge: menge, einheit: einheit, mindest: mindest, kat: kat, isUpdate: !!existing });
+    }
+    if (preview.length === 0) { _showToast('Keine gültigen Zeilen gefunden', 'error'); return; }
+    var tableRows = preview.map(function(r) {
+      return '<tr style="border-bottom:1px solid #f3f4f6">'
+        +'<td style="padding:6px 10px;font-size:13px;color:#261816">'+escHtml(r.pName)+'</td>'
+        +'<td style="padding:6px 10px;font-size:13px;text-align:right">'+r.menge+'</td>'
+        +'<td style="padding:6px 10px;font-size:13px">'+escHtml(r.einheit)+'</td>'
+        +'<td style="padding:6px 10px;font-size:13px;text-align:right">'+r.mindest+'</td>'
+        +'<td style="padding:6px 10px;text-align:center"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:'+(r.isUpdate?'#e3f2fd':'#e8f5e9')+';color:'+(r.isUpdate?'#0d47a1':'#1b5e20')+'">'+(r.isUpdate?'Update':'Neu')+'</span></td>'
+        +'</tr>';
+    }).join('');
+    var modalHtml = '<div id="lager-csv-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">'
+      +'<div style="background:#fff;border-radius:20px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+      +'<h3 style="font-size:18px;font-weight:800;color:#261816;margin:0">📥 CSV Vorschau — '+preview.length+' Artikel</h3>'
+      +'<button onclick="document.getElementById(\'lager-csv-modal\').remove()" style="background:#f3ebe9;border:none;border-radius:8px;padding:6px;cursor:pointer;font-size:16px">✕</button>'
+      +'</div>'
+      +'<table style="width:100%;border-collapse:collapse;margin-bottom:18px">'
+      +'<thead><tr style="background:#f8f9fa"><th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:#5a403c">Produkt</th><th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:#5a403c">Menge</th><th style="padding:7px 10px;font-size:11px;font-weight:700;color:#5a403c">Einheit</th><th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:700;color:#5a403c">Mindest</th><th style="padding:7px 10px;font-size:11px;font-weight:700;color:#5a403c">Status</th></tr></thead>'
+      +'<tbody>'+tableRows+'</tbody></table>'
+      +'<div style="display:flex;gap:10px">'
+      +'<button onclick="(function(){'+
+        'var prev='+JSON.stringify(preview)+';'+
+        'var lager=[];try{lager=JSON.parse(localStorage.getItem(\'pizzeria_lager\')||\'[]\');}catch(_){}'+
+        'var neu=0,upd=0;'+
+        'prev.forEach(function(r){'+
+          'var ex=lager.find(function(x){return x.name.toLowerCase()===r.pName.toLowerCase();});'+
+          'if(ex){ex.menge=r.menge;ex.mindest=r.mindest;ex.einheit=r.einheit;upd++;}'+
+          'else{lager.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:r.pName,menge:r.menge,einheit:r.einheit,mindest:r.mindest,kategorie:r.kat});neu++;}'+
+        '});'+
+        '_syncedLocalSet(\'pizzeria_lager\',JSON.stringify(lager));'+
+        'document.getElementById(\'lager-csv-modal\').remove();'+
+        '_showToast(neu+\' Produkte importiert, \'+upd+\' aktualisiert\',\'success\');'+
+        'renderLagerTab();'+
+        'var inp=document.getElementById(\'lager-csv-input\');if(inp)inp.value=\'\';'+
+      '})()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer">✅ Importieren</button>'
+      +'<button onclick="document.getElementById(\'lager-csv-modal\').remove()" style="padding:13px 20px;border-radius:12px;border:1px solid #d1d5db;background:#f9fafb;color:#374151;font-size:14px;font-weight:700;cursor:pointer">Abbrechen</button>'
+      +'</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
 // ═══════════════════════════════════════════════════════════════
