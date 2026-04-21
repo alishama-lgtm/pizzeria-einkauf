@@ -226,10 +226,30 @@ node server.js        # → http://localhost:8080
 | A2 | **Notion Key in App** | Einstellungen ⚙️ → Notion Key + Parent-Page-ID eingeben → Speichern |
 | A3 | **Features live testen** | Features 4–7 + Kassenbuch + Quick-KB + Dienstplan-PDF testen |
 
+### 🔴 Session 14 — Neue Features (Prompt A)
+| # | Feature | Priorität | Details |
+|---|---------|-----------|---------|
+| S14-1 | **Monatsabschluss-PDF** | Hoch | 1 Knopf → Steuerberater-Bericht: Kassenbuch + Umsatz + Fixkosten + Gewinn |
+| S14-2 | **PWA (Handy-Icon)** | Hoch | manifest.json + Service Worker → App auf Homescreen speichern |
+
+### 🟡 Session 14 — Neue Features (Prompt B)
+| # | Feature | Priorität | Details |
+|---|---------|-----------|---------|
+| S14-3 | **WhatsApp-Bestellung** | Mittel | Lager-Bestellliste → 1 Klick WhatsApp an Lieferant (wa.me Link) |
+| S14-4 | **Personal-Abrechnung PDF** | Mittel | Aus Dienstplan: Stunden/MA, Lohn, Abrechnung → ausdruckfertig |
+| S14-5 | **Tagesabschluss-Automation** | Mittel | 1 Klick: Kassenbuch + Kassenschnitt + Aufgaben → Tagesbericht gespeichert |
+
+### 🟢 Session 14 — Neue Features (Prompt C)
+| # | Feature | Priorität | Details |
+|---|---------|-----------|---------|
+| S14-6 | **Lager CSV-Import** | Nice-to-have | Excel/CSV → Lagerbestand importieren |
+| S14-7 | **Rezept-Manager** | Nice-to-have | Rezepte + Zutaten → verknüpft mit Lager |
+| S14-9 | **Cloudflare Tunnel** | Nice-to-have | App von überall erreichbar |
+
 ### 🟢 Niedrig (zukünftige Sessions)
 - **n8n Workflows** installieren und aktivieren
-- **Cloudflare Tunnel** für externen Zugriff einrichten
 - **Gmail OAuth** für echte Gmail-Drafts (statt mailto: Fallback)
+- **Google-Bewertungen** automatisch im Bewertungen-Tab
 
 ---
 
