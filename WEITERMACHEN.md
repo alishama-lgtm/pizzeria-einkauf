@@ -208,6 +208,21 @@ node server.js        # → http://localhost:8080
 - **Quick-Kassenbuch im Heute-Tab** ✅ — Schnell-Eintrag (Typ, Beschreibung, Brutto) + Live-Saldo direkt auf Hauptseite
 - **Speisekarte PDF** ✅ — `speisekartePdfExport()` erzeugt druckfertige Speisekarte mit Kategorien, Preisen, Beschreibungen
 
+## Session 14 (2026-04-21) — Was gebaut wurde ✅
+
+- **S14-1: Monatsabschluss PDF** ✅ — `monatsabschlussPdf()` im Buchhaltung-Tab
+  - Monatseingabe `<input type='month'>` (Default: aktueller Monat)
+  - 5-seitiges PDF: Deckblatt (dunkelrot), Übersicht-Boxen, Einnahmen-Tabelle, Ausgaben-Tabelle, Steuerberater-Hinweis + Unterschriftsfelder
+  - MwSt-Aufschlüsselung: 10% Speisen + 20% Sonstiges AT
+  - Dateiname: `monatsabschluss_YYYY-MM.pdf`
+  - Fehlerfall: Keine Buchungen → Toast-Warnung
+
+- **S14-2: PWA** ✅ — bereits vollständig vorhanden (aus früherer Session)
+  - `manifest.json`: name, icons, shortcuts, display standalone
+  - `sw.js`: Cache-First (Shell) + Network-First (API)
+  - Icons: `icons/icon-72..512.png` + `apple-touch-icon.png`
+  - Apple Meta-Tags, theme-color, SW-Registrierung alle in index.html
+
 ## Phase 4 Verifikation ✅ (2026-04-21)
 - JS Syntax: OK
 - Panel-IDs: 36 × einmalig, 0 Duplikate
