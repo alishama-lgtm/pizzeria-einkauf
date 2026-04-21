@@ -5234,7 +5234,7 @@ async function ocrRechnung(file) {
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-    const resp = await fetch('http://localhost:8080/api/claude-vision', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ image:base64, mimeType:file.type }) });
+    const resp = await fetch('/api/claude-vision', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ image:base64, mimeType:file.type }) });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({error:resp.statusText}));
       if (err.error?.includes('CLAUDE_API_KEY')) { _showToast('Claude API-Key fehlt — in .env setzen', 'error'); }
@@ -5302,7 +5302,7 @@ async function importOcrPreise(count) {
   let imported = 0;
   for (const pos of positionen) {
     try {
-      await fetch('http://localhost:8080/api/preisverlauf', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ produkt:pos.produkt, shop, datum, preis:pos.preis_brutto }) });
+      await fetch('/api/preisverlauf', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ produkt:pos.produkt, shop, datum, preis:pos.preis_brutto }) });
       imported++;
     } catch(e) {}
     // Auch in localStorage history
@@ -5462,7 +5462,7 @@ function addReceiptItemToInventory(idx, btn) {
 
   // Preis in SQLite Preishistorie speichern (Server läuft lokal)
   if (item.preis != null) {
-    fetch('http://localhost:8080/api/preisverlauf', {
+    fetch('/api/preisverlauf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -9502,7 +9502,7 @@ async function searchViaLocalServer(query) {
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
     const resp = await fetch(
-      `http://localhost:3001/api/search?q=${encodeURIComponent(query)}`,
+      `/api/search?q=${encodeURIComponent(query)}`,
       { signal: controller.signal }
     );
     if (!resp.ok) throw new Error('Server Fehler ' + resp.status);
@@ -12838,6 +12838,9 @@ const ROLE_TABS = {
   manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt','urlaub','trinkgeld'],
   employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp','mhd','urlaub'],
   kitchen:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','bestellung','lager','haccp','mhd'],
+  fahrer:   ['heute','checkliste','schichtcheck','urlaub'],
+  service:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','aufgaben','urlaub'],
+  reinigung:['heute','checkliste','schichtcheck','urlaub'],
 };
 
 const ROLE_COLORS = {
@@ -12845,6 +12848,9 @@ const ROLE_COLORS = {
   manager:  'background:#fff3e0;color:#e65100;border-color:#ffcc80',
   employee: 'background:#e3f2fd;color:#0d47a1;border-color:#90caf9',
   kitchen:  'background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7',
+  fahrer:   'background:#f3e5f5;color:#4a148c;border-color:#ce93d8',
+  service:  'background:#e0f7fa;color:#006064;border-color:#80deea',
+  reinigung:'background:#fafafa;color:#37474f;border-color:#b0bec5',
 };
 
 let currentUser = null;
@@ -14614,7 +14620,7 @@ function sendWhatsappBestellung() {
 // Preise beim Start aus SQLite laden (live mit Datenbank)
 async function loadPricesFromDB() {
   try {
-    const resp = await fetch('http://localhost:8080/api/preisverlauf?limit=2000');
+    const resp = await fetch('/api/preisverlauf?limit=2000');
     if (!resp.ok) return;
     const rows = await resp.json();
     rows.forEach(r => {
@@ -16532,6 +16538,46 @@ function bwLoeschen(id) {
 // ═══════════════════════════════════════════════════════════════
 // HACCP-PROTOKOLL
 // ═══════════════════════════════════════════════════════════════
+
+// Standard-Kühlstellen (immer vorhanden)
+const HACCP_DEFAULT_GERAETE = [
+  { id:'kuehl1', name:'Kühlschrank 1 (Küche)',   soll:'1°C – 4°C',   min:1,  max:4  },
+  { id:'kuehl2', name:'Kühlschrank 2 (Getränke)', soll:'4°C – 8°C',   min:4,  max:8  },
+  { id:'tiefk',  name:'Tiefkühler',               soll:'-18°C – -15°C', min:-20, max:-15 },
+  { id:'prep',   name:'Vorbereitungszone',         soll:'max. 7°C',    min:-5,  max:7  },
+];
+
+function haccpGetGeraete() {
+  let extra = [];
+  try { extra = JSON.parse(localStorage.getItem('psc_haccp_geraete') || '[]'); } catch(e) {}
+  return [...HACCP_DEFAULT_GERAETE, ...extra];
+}
+
+function haccpGeraetHinzufuegen() {
+  const name = document.getElementById('haccp-neu-name').value.trim();
+  const typ  = document.getElementById('haccp-neu-typ').value;
+  const min  = parseFloat(document.getElementById('haccp-neu-min').value);
+  const max  = parseFloat(document.getElementById('haccp-neu-max').value);
+  if (!name) { alert('Bitte einen Namen eingeben.'); return; }
+  if (isNaN(min) || isNaN(max)) { alert('Bitte Temperaturbereich eingeben.'); return; }
+  let extra = [];
+  try { extra = JSON.parse(localStorage.getItem('psc_haccp_geraete') || '[]'); } catch(e) {}
+  const id = 'custom_' + Date.now();
+  const soll = min < 0 ? `${min}°C – ${max}°C` : `${min}°C – ${max}°C`;
+  extra.push({ id, name, soll, min, max, typ });
+  localStorage.setItem('psc_haccp_geraete', JSON.stringify(extra));
+  renderHaccpTab();
+}
+
+function haccpGeraetLoeschen(id) {
+  if (!confirm('Gerät wirklich entfernen?')) return;
+  let extra = [];
+  try { extra = JSON.parse(localStorage.getItem('psc_haccp_geraete') || '[]'); } catch(e) {}
+  extra = extra.filter(g => g.id !== id);
+  localStorage.setItem('psc_haccp_geraete', JSON.stringify(extra));
+  renderHaccpTab();
+}
+
 function renderHaccpTab() {
   const panel = document.getElementById('panel-haccp');
   if (!panel) return;
@@ -16544,13 +16590,10 @@ function renderHaccpTab() {
 
   const heuteProts = protokolle.filter(p => p.datum === heuteKey);
 
-  // Kuehlstellen-Konfiguration
-  const KUEHLSTELLEN = [
-    { id:'kuehl1', name:'Kühlschrank 1 (Küche)',   soll:'1°C – 4°C',   min:1,  max:4  },
-    { id:'kuehl2', name:'Kühlschrank 2 (Getränke)', soll:'4°C – 8°C',   min:4,  max:8  },
-    { id:'tiefk',  name:'Tiefkühler',               soll:'-18°C – -15°C', min:-20, max:-15 },
-    { id:'prep',   name:'Vorbereitungszone',         soll:'max. 7°C',    min:-5,  max:7  },
-  ];
+  // Kuehlstellen-Konfiguration (Standard + benutzerdefinierte)
+  const KUEHLSTELLEN = haccpGetGeraete();
+  let extraGeraete = [];
+  try { extraGeraete = JSON.parse(localStorage.getItem('psc_haccp_geraete') || '[]'); } catch(e) {}
 
   const ampel = (temp, min, max) => {
     if (temp === '' || temp === null) return { farbe:'#9e9e9e', icon:'⬜', ok:false };
@@ -16649,6 +16692,54 @@ function renderHaccpTab() {
         </button>
       </div>
 
+      <!-- Kühlgerät hinzufügen -->
+      <div style="background:#fff;border-radius:16px;border:2px dashed #e3beb8;padding:20px;margin-bottom:20px">
+        <h3 style="font-size:15px;font-weight:700;color:#8B0000;margin:0 0 14px">🔧 Kühlgerät hinzufügen / verwalten</h3>
+        <div style="display:grid;grid-template-columns:2fr 1fr 80px 80px auto;gap:10px;align-items:end;flex-wrap:wrap">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Name</label>
+            <input type="text" id="haccp-neu-name" placeholder="z.B. Kühlschrank 3 (Lager)"
+              style="width:100%;padding:9px;border-radius:8px;border:1.5px solid #e3beb8;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Typ</label>
+            <select id="haccp-neu-typ" style="width:100%;padding:9px;border-radius:8px;border:1.5px solid #e3beb8;font-size:13px;box-sizing:border-box">
+              <option value="kuehlschrank">🧊 Kühlschrank</option>
+              <option value="tiefkuehler">❄️ Tiefkühler</option>
+              <option value="zone">🌡️ Zone</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Min °C</label>
+            <input type="number" id="haccp-neu-min" placeholder="-20" step="0.5"
+              style="width:100%;padding:9px;border-radius:8px;border:1.5px solid #e3beb8;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:4px">Max °C</label>
+            <input type="number" id="haccp-neu-max" placeholder="4" step="0.5"
+              style="width:100%;padding:9px;border-radius:8px;border:1.5px solid #e3beb8;font-size:13px;box-sizing:border-box">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:transparent;display:block;margin-bottom:4px">-</label>
+            <button onclick="haccpGeraetHinzufuegen()" style="background:#8B0000;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Hinzufügen</button>
+          </div>
+        </div>
+
+        ${extraGeraete.length > 0 ? `
+        <div style="margin-top:14px">
+          <div style="font-size:12px;font-weight:600;color:#5a403c;margin-bottom:8px">Eigene Geräte:</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            ${extraGeraete.map(g => `
+              <div style="background:#fff8f6;border-radius:8px;border:1.5px solid #e3beb8;padding:7px 12px;display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="font-weight:700;color:#261816">${_esc(g.name)}</span>
+                <span style="color:#9e6b62">${g.soll}</span>
+                <button onclick="haccpGeraetLoeschen('${g.id}')" style="background:none;border:none;color:#c62828;cursor:pointer;font-size:14px;padding:0;line-height:1">✕</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+
       <!-- Heutige Eintraege -->
       ${heuteProts.length > 0 ? `
       <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:20px">
@@ -16730,7 +16821,7 @@ function haccpSpeichern() {
   const bem  = document.getElementById('haccp-bemerkung').value.trim();
   if (!ma) { alert('Bitte Mitarbeiter-Name eingeben.'); return; }
 
-  const KUEHLSTELLEN = ['kuehl1','kuehl2','tiefk','prep'];
+  const KUEHLSTELLEN = haccpGetGeraete().map(k => k.id);
   const temps = {};
   KUEHLSTELLEN.forEach(k => {
     const el = document.getElementById('haccp-temp-' + k);
@@ -17078,7 +17169,7 @@ async function checkPreisalarme() {
   // Preisdaten holen
   let preisRows = [];
   try {
-    const resp = await fetch('http://localhost:8080/api/preisverlauf?limit=200');
+    const resp = await fetch('/api/preisverlauf?limit=200');
     if (resp.ok) preisRows = await resp.json();
   } catch(_) {
     try {
@@ -17814,7 +17905,7 @@ function renderUmsatzTab() {
   var dbBannerId = 'umsatz-db-banner';
   var dbBannerHtml = '<div id="' + dbBannerId + '" style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#1565c0">&#128197; Lade heutigen DB-Umsatz...</div>';
   (function() {
-    fetch('http://localhost:8080/api/umsatz/heute')
+    fetch('/api/umsatz/heute')
       .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function(d) {
         var el = document.getElementById(dbBannerId);
@@ -19380,7 +19471,7 @@ function einkaufLoggSave() {
       shopName, shopId, quelle: 'einkauf-log', datum: heute,
     });
     if (a.preis != null) {
-      fetch('http://localhost:8080/api/preisverlauf', {
+      fetch('/api/preisverlauf', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ produkt: a.name, preis: a.preis, shop: shopName, shop_id: shopId, datum: heute, quelle: 'einkauf-log' })
       }).catch(() => {});
