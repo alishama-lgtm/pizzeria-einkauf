@@ -14410,8 +14410,12 @@ function openSettings() {
           onfocus="if(this.value.startsWith('•'))this.value=''"
           style="width:100%;padding:10px 14px;border:1.5px solid ${localStorage.getItem('pizzeria_notion_key')?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:8px"
           onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='${localStorage.getItem('pizzeria_notion_key')?'#a5d6a7':'#e3beb8'}'"/>
-        <p style="font-size:11px;color:#8d6562;margin:0 0 6px">Notion Integration Token — <strong>notion.so/my-integrations</strong> → New Integration → Internal Integration Secret</p>
-        <p style="font-size:11px;color:#8d6562;margin:0">Fehlmaterial-Datenbank ID: <code style="font-size:10px;background:#f3ebe9;padding:1px 4px;border-radius:4px">5e9e6747...329703</code> (bereits eingestellt)</p>
+        <p style="font-size:11px;color:#8d6562;margin:0 0 10px">Notion Integration Token — <strong>notion.so/my-integrations</strong> → New Integration → Internal Integration Secret</p>
+        <input id="notion-page-input" type="text" placeholder="Notion Parent Page ID (optional)"
+          value="${localStorage.getItem('pizzeria_notion_parent_id')||''}"
+          style="width:100%;padding:10px 14px;border:1.5px solid ${localStorage.getItem('pizzeria_notion_parent_id')?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:6px"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='${localStorage.getItem('pizzeria_notion_parent_id')?'#a5d6a7':'#e3beb8'}'"/>
+        <p style="font-size:11px;color:#8d6562;margin:0">Parent Page ID: 32-stellige ID aus der Notion-Seiten-URL (für Aufgaben- und Tagesbericht-Sync)</p>
       </div>
 
       <!-- Theme Picker -->
@@ -14471,6 +14475,8 @@ function saveApiKey() {
   if (geminiVal && !geminiVal.startsWith('•')) { _safeLocalSet('pizzeria_gemini_key', geminiVal); GEMINI_API_KEY = geminiVal; }
   const notionVal = document.getElementById('settings-notion-key')?.value.trim();
   if (notionVal && !notionVal.startsWith('•')) { _safeLocalSet('pizzeria_notion_key', notionVal); }
+  const notionPageVal = document.getElementById('notion-page-input')?.value.trim();
+  if (notionPageVal) _safeLocalSet('pizzeria_notion_parent_id', notionPageVal);
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
