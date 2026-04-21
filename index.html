@@ -14088,6 +14088,7 @@ function renderLieferantenTab() {
         </div>
         <button onclick="bestellLagerVorschlag()" style="padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text-2);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">📦 Lager-Vorschlag</button>
         <button onclick="sendBestellungEmail()" style="padding:9px 18px;border-radius:10px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📧 Email senden</button>
+        <button onclick="sendWhatsappBestellung()" style="padding:9px 18px;border-radius:10px;border:none;background:#25D366;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">💬 Per WhatsApp</button>
       </div>
       <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap">
         <input id="bestell-produkt" placeholder="Produkt..." style="flex:2;min-width:120px;padding:8px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text)">
@@ -14295,6 +14296,23 @@ function lfLoeschen(id) {
     lfSave(lfLoad().filter(i => i.id !== id));
     renderLieferantenTab();
   });
+}
+
+function sendWhatsappBestellung() {
+  const lfId = document.getElementById('bestell-lieferant')?.value;
+  if (!lfId) { _showToast('Bitte zuerst einen Lieferanten wählen', 'warning'); return; }
+  const positionen = window._bestellPositionen || [];
+  if (!positionen.length) { _showToast('Bitte zuerst Positionen hinzufügen', 'warning'); return; }
+  const lf = lfLoad().find(function(l){ return l.id === lfId; });
+  if (!lf) { _showToast('Lieferant nicht gefunden', 'error'); return; }
+  const tel = (lf.tel || '').replace(/\D/g, '');
+  if (!tel) { _showToast('Bitte Telefonnummer beim Lieferanten eintragen', 'error'); return; }
+  const datum = new Date().toLocaleDateString('de-AT', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const posText = positionen.map(function(p){ return '• ' + p.produkt + ' — ' + p.menge + ' ' + p.einheit; }).join('\n');
+  const text = 'Hallo ' + lf.name + ',\n\nBestellung vom ' + datum + ':\n\n' + posText + '\n\nMit freundlichen Grüßen\nPizzeria San Carino\nAli Shama';
+  const url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(text);
+  window.open(url, '_blank');
+  _showToast('WhatsApp wird geöffnet…', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
