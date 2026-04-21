@@ -134,11 +134,17 @@ node server.js        # → http://localhost:8080
   - Tabellen-Striping verbessert
   - Branch: `fix/ui-a11y-2026-04-20` → in `main` gemergt
 
+## Session 11 (2026-04-21) — Was gebaut wurde
+
+- **Bug-Fix Kassenschnitt** ✅ — `kasse-soll` Input fehlte `oninput="kassenschnittVorschau()"`, Differenz-Vorschau reagierte nur auf Ist-Betrag, jetzt auch auf Soll-Betrag
+- **Bug-Fix Trinkgeld** ✅ — Mitarbeiter-Checkboxen hatten kein `onchange`, Stunden-Input kein `oninput` → beide triggern jetzt sofort `tgVorschau()`
+- **TESTPLAN.md erweitert** ✅ — von 32 auf 36 Tabs, inkl. vollständige Testpunkte für mhd, kassenschnitt, urlaub, trinkgeld
+
 ## Offene Aufgaben
 
 ### Priorität Hoch
 - **Server online** — Cloudflare Tunnel (Ali richtet zuhause ein)
-- **36-Tab Testplan** — alle Tabs auf DB-Sync + Themes prüfen
+- **36-Tab Testplan** — alle Tabs manuell in der App auf DB-Sync + Themes prüfen (TESTPLAN.md ist bereit)
 
 ### Priorität Mittel
 - **n8n Workflows** installieren und aktivieren

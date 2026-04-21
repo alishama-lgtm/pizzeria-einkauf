@@ -17999,11 +17999,12 @@ function renderTrinkgeldTab() {
   const maCheckboxen = mitarbeiter.length
     ? mitarbeiter.map(m => `
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f4f4;border-radius:8px;cursor:pointer;margin-bottom:6px">
-        <input type="checkbox" class="tg-ma-cb" value="${m.id}" style="width:18px;height:18px;accent-color:#8B0000">
+        <input type="checkbox" class="tg-ma-cb" value="${m.id}" onchange="tgVorschau()" style="width:18px;height:18px;accent-color:#8B0000">
         <span style="width:32px;height:32px;border-radius:50%;background:${m.farbe};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0">${_esc(m.name).charAt(0)}</span>
         <span style="font-weight:600;color:#261816;flex:1">${_esc(m.name)}</span>
         <span style="font-size:12px;color:#6b6b6b">${m.rolle||''}</span>
         <input type="number" class="tg-stunden" data-ma="${m.id}" value="${m.stunden||8}" min="0" max="24" step="0.5"
+          oninput="tgVorschau()"
           style="width:60px;border:1.5px solid #e3beb8;border-radius:6px;padding:4px 6px;font-size:13px;text-align:center" title="Stunden heute">
       </label>`).join('')
     : '<div style="color:#9e9e9e;font-size:13px;text-align:center;padding:20px">Keine Mitarbeiter angelegt</div>';
@@ -18263,6 +18264,7 @@ function renderKassenschnittTab() {
         <div>
           <div style="font-size:12px;color:#5a403c;margin-bottom:4px;font-weight:600">Soll-Betrag (Umsatz) €</div>
           <input id="kasse-soll" type="number" step="0.01" placeholder="0,00" value="${heuteEintrag ? heuteEintrag.soll : ''}"
+            oninput="kassenschnittVorschau()"
             style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:16px;font-weight:700">
         </div>
         <div>

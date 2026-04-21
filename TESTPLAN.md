@@ -23,7 +23,7 @@
 | 2 | `dashboard` | ⬜ | |
 | 3 | `umsatz` | ⬜ | |
 | 4 | `business` | ⬜ | |
-| 5 | `kassabuch → buchhaltung` | ⬜ | |
+| 5 | `buchhaltung` | ⬜ | |
 | 6 | `gewinn` | ⬜ | |
 | 7 | `statistik` | ⬜ | |
 | 8 | `produkte` | ⬜ | |
@@ -50,6 +50,11 @@
 | 29 | `speisekarte` | ⬜ | |
 | 30 | `konkurrenz` | ⬜ | |
 | 31 | `bewertungen` | ⬜ | |
+| 32 | `haccp` | ⬜ | Session 8 gebaut |
+| 33 | `mhd` | ⬜ | Session 9 gebaut |
+| 34 | `kassenschnitt` | ⬜ | Session 9 gebaut |
+| 35 | `urlaub` | ⬜ | Session 9 gebaut |
+| 36 | `trinkgeld` | ⬜ | Session 9 gebaut |
 
 ---
 
@@ -240,7 +245,7 @@
 
 ---
 
-## Tab 32: `haccp` ✅ (Session 8 gebaut)
+## Tab 32: `haccp` (Session 8 gebaut)
 1. Tab öffnet in Betrieb-Gruppe
 2. Temperaturen eintragen → Ampel grün/gelb/rot
 3. Hygiene-Checkliste abhaken → gespeichert
@@ -248,10 +253,52 @@
 
 ---
 
+## Tab 33: `mhd` (Session 9 gebaut)
+
+1. Tab öffnet ohne Fehler
+2. Produkt mit Name + Datum eintragen → erscheint in Liste mit Ampel
+3. Ampel-Farben: 🔴 abgelaufen, 🟠 heute, 🟡 ≤3 Tage, 🟢 OK
+4. Dashboard zeigt MHD-Warnungs-Badge korrekt
+5. F5-Test: Einträge bleiben (psc_mhd in localStorage)
+
+---
+
+## Tab 34: `kassenschnitt` (Session 9 gebaut)
+
+1. Tab öffnet ohne Fehler
+2. Soll + Ist eintragen → Differenz-Vorschau reagiert auf BEIDE Inputs
+3. Speichern → erscheint in Verlauf-Tabelle
+4. Heute aktualisieren → überschreibt bestehenden Eintrag
+5. Löschen-Button → entfernt Eintrag
+6. F5-Test: Einträge bleiben (psc_kassenschnitt in localStorage)
+
+---
+
+## Tab 35: `urlaub` (Session 9 gebaut)
+
+1. Tab öffnet ohne Fehler
+2. Mitarbeiter-Liste im Dropdown (aus Mitarbeiter-Tab)
+3. Urlaub/Krankenstand/Zeitausgleich eintragen → erscheint mit Ampel
+4. Archiv (vergangene Einträge) erscheint als Details-Element
+5. F5-Test: Einträge bleiben (psc_urlaub in localStorage)
+
+---
+
+## Tab 36: `trinkgeld` (Session 9 gebaut)
+
+1. Tab öffnet ohne Fehler
+2. Mitarbeiter auswählen (Checkbox) → Vorschau reagiert sofort
+3. Stunden ändern → Vorschau reagiert sofort (bei Stunden-Modus)
+4. Gleich / Nach Stunden umschalten → Berechnung ändert sich korrekt
+5. Split speichern → erscheint in Verlauf
+6. F5-Test: Einträge bleiben (psc_trinkgeld in localStorage)
+
+---
+
 ## Nach dem Test: Checkliste
 
-- [ ] Alle 32 Tabs mit ✅ markiert
+- [ ] Alle 36 Tabs mit ✅ markiert
 - [ ] Keine offenen ❌ ohne Fix
 - [ ] Glass-Theme in allen Tabs OK
-- [ ] Finaler Commit: `2026-04-20: Testplan alle 32 Tabs abgeschlossen`
+- [ ] Finaler Commit: `2026-04-21: Testplan alle 36 Tabs abgeschlossen`
 - [ ] GitHub push erfolgt
