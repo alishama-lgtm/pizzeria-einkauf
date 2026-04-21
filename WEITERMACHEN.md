@@ -204,18 +204,32 @@ node server.js        # → http://localhost:8080
   - `dienstplanPdfExport()`: Querformat, Wochentabelle, alle Mitarbeiter+Schichten
   - "PDF" + "Drucken" Button im Dienstplan-Header
 
+- **Kassenbuch 14-Tage Chart** ✅ — Chart.js Balkendiagramm (Einnahmen/Ausgaben) im Buchhaltung-Tab
+- **Quick-Kassenbuch im Heute-Tab** ✅ — Schnell-Eintrag (Typ, Beschreibung, Brutto) + Live-Saldo direkt auf Hauptseite
+- **Speisekarte PDF** ✅ — `speisekartePdfExport()` erzeugt druckfertige Speisekarte mit Kategorien, Preisen, Beschreibungen
+
+## Phase 4 Verifikation ✅ (2026-04-21)
+- JS Syntax: OK
+- Panel-IDs: 36 × einmalig, 0 Duplikate
+- Doppelte Funktionen: 0
+- .env: vorhanden, nicht committed, .gitignore schützt
+- dotenv: `import 'dotenv/config'` in server.js
+- Alle neuen Funktionen: je 1× definiert, mehrfach referenziert
+- Server-Endpoints: 26 Routes (health, search, preisverlauf, notion, gmail, claude-vision, umsatz, ...)
+- Letzter Push: `main` → GitHub aktuell
+
 ## Noch offen / Nächste Session
-### 🔴 Sofort nötig
+### 🔴 Sofort nötig (Ali manuell)
 | # | Aufgabe | Was genau |
 |---|---------|-----------|
-| A1 | **.env befüllen** | `CLAUDE_API_KEY=sk-ant-...` eintragen → OCR aktiv |
-| A2 | **Notion Key eintragen** | Einstellungen ⚙️ → Notion Key + Parent-Page-ID |
-| A3 | **Features testen** | Features 4-7 + Kassenbuch live testen |
+| A1 | **.env befüllen** | `CLAUDE_API_KEY=sk-ant-...` → OCR aktiv; `NOTION_API_KEY=secret_...` → Notion-Sync aktiv |
+| A2 | **Notion Key in App** | Einstellungen ⚙️ → Notion Key + Parent-Page-ID eingeben → Speichern |
+| A3 | **Features live testen** | Features 4–7 + Kassenbuch + Quick-KB + Dienstplan-PDF testen |
 
-### 🟢 Niedrig
-- **n8n Workflows** installieren
-- **Cloudflare Tunnel** für externen Zugriff
-- **Gmail OAuth** für echte Gmail-Drafts
+### 🟢 Niedrig (zukünftige Sessions)
+- **n8n Workflows** installieren und aktivieren
+- **Cloudflare Tunnel** für externen Zugriff einrichten
+- **Gmail OAuth** für echte Gmail-Drafts (statt mailto: Fallback)
 
 ---
 
