@@ -254,12 +254,30 @@ node server.js        # → http://localhost:8080
 | S14-4 | **Personal-Abrechnung PDF** | ✅ Stunden+Lohn PDF aus Dienstplan |
 | S14-5 | **Tagesabschluss-Automation** | ✅ 1 Klick → Modal + PDF + Notion + Verlauf |
 
-### 🟢 Session 14 — Neue Features (Prompt C)
-| # | Feature | Priorität | Details |
-|---|---------|-----------|---------|
-| S14-6 | **Lager CSV-Import** | Nice-to-have | Excel/CSV → Lagerbestand importieren |
-| S14-7 | **Rezept-Manager** | Nice-to-have | Rezepte + Zutaten → verknüpft mit Lager |
-| S14-9 | **Cloudflare Tunnel** | Nice-to-have | App von überall erreichbar |
+### ✅ Session 14 — Prompt C abgeschlossen
+| # | Feature | Status |
+|---|---------|--------|
+| S14-6 | **Lager CSV-Import** | ✅ Vorlage-Download + CSV einlesen + Vorschau-Modal + Merge |
+| S14-7 | **Rezept-Manager** | ✅ In Speisekarte-Tab, Zutaten-Ampel, Fehlmaterial-Button |
+| S14-9 | **Cloudflare Tunnel** | ✅ ANLEITUNG/cloudflare-tunnel.md + Modal in Einstellungen |
+
+## Session 14 — KOMPLETT ABGESCHLOSSEN (2026-04-21)
+
+### Alle Features:
+| Feature | Status |
+|---------|--------|
+| S14-1 Monatsabschluss PDF | ✅ |
+| S14-2 PWA | ✅ (bereits vorhanden) |
+| S14-3 WhatsApp-Bestellung | ✅ |
+| S14-4 Personal-Abrechnung PDF | ✅ |
+| S14-5 Tagesabschluss Automation | ✅ |
+| S14-6 Lager CSV-Import | ✅ |
+| S14-7 Rezept-Manager | ✅ |
+| S14-9 Cloudflare Tunnel | ✅ |
+
+### Neue localStorage-Keys (Session 14):
+- `pizzeria_rezepte` — Rezepte `[{id,name,kategorie,portionen,zutaten:[{produkt,menge,einheit}],notizen,erstellt}]`
+- `pizzeria_tagesberichte` — Tagesabschlüsse `[{id,datum,einnahmen,ausgaben,saldo,kassenschnitt_differenz,offene_aufgaben,fehlmaterial,erstellt}]`
 
 ### 🟢 Niedrig (zukünftige Sessions)
 - **n8n Workflows** installieren und aktivieren
