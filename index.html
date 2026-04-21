@@ -15000,11 +15000,25 @@ function showCloudflareTunnelInfo() {
 function renderDienstplanTab() {
   const p = document.getElementById('panel-dienstplan');
   const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
-  const MA_LABELS = { kueche:'👨‍🍳 Küche', pizza:'🍕 Pizza', fahrer:'🚗 Fahrer', reinigung:'🧹 Reinigung', service:'🍽️ Service' };
-  const MITARBEITER = Object.keys(MA_LABELS);
-  const SCHICHTEN = ['Früh (08-16)','Spät (14-22)','Nacht (20-04)','Frei'];
-  const SCHICHT_BG  = { 'Früh (08-16)':'#e3f2fd', 'Spät (14-22)':'#fff3e0', 'Nacht (20-04)':'#1a1a2e', 'Frei':'#f5f5f5' };
-  const SCHICHT_CLR = { 'Früh (08-16)':'#0d47a1', 'Spät (14-22)':'#e65100', 'Nacht (20-04)':'#D4AF37',  'Frei':'#9e9e9e'  };
+  const SCHICHT = '11:00 – 23:00';
+
+  // Mitarbeiter aus localStorage laden
+  let mitarbeiter = [];
+  try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter') || '[]'); } catch(e) {}
+
+  // Nach Abteilung gruppieren
+  const ABTEILUNG_ORDER = ['Küche','Lieferung','Service','Pizza','Reinigung'];
+  const ABTEILUNG_ICONS = { 'Küche':'👨‍🍳', 'Lieferung':'🚗', 'Service':'🍽️', 'Pizza':'🍕', 'Reinigung':'🧹' };
+  const ABTEILUNG_COLORS = { 'Küche':'#e65100', 'Lieferung':'#1565c0', 'Service':'#2e7d32', 'Pizza':'#8B0000', 'Reinigung':'#4a148c' };
+
+  // Alle vorhandenen Abteilungen ermitteln
+  const gruppen = {};
+  for (const ma of mitarbeiter) {
+    const rolle = ma.rolle || 'Sonstige';
+    if (!gruppen[rolle]) gruppen[rolle] = [];
+    gruppen[rolle].push(ma);
+  }
+  const rollenSorted = [...new Set([...ABTEILUNG_ORDER, ...Object.keys(gruppen)])].filter(r => gruppen[r]);
 
   let plan = {};
   try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan') || '{}'); } catch(e) {}
@@ -15026,57 +15040,95 @@ function renderDienstplanTab() {
     return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7);
   })();
 
-  const headerCells = DAYS.map((day,i) =>
-    `<th style="padding:8px 6px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:center;background:#fff8f6;min-width:110px">
-      <div>${day}</div><div style="font-weight:400;color:#5a403c;font-size:11px">${fmt(weekDates[i])}</div>
-    </th>`).join('');
-
-  const rows = MITARBEITER.map(ma => {
-    const cells = DAYS.map(day => {
-      const schicht = (plan[weekKey][ma]||{})[day]||'';
-      const bg  = schicht ? (SCHICHT_BG[schicht]||'#fff8f6')  : '#fff8f6';
-      const clr = schicht ? (SCHICHT_CLR[schicht]||'#5a403c') : '#5a403c';
-      const opts = SCHICHTEN.map(s=>`<option value="${s}" ${schicht===s?'selected':''}>${s}</option>`).join('');
-      return `<td style="padding:6px;border:1px solid #e3beb8">
-        <select onchange="dienstplanSet('${weekKey}','${ma}','${day}',this.value)"
-          style="width:100%;padding:5px 6px;border-radius:8px;border:1px solid #e3beb8;background:${bg};color:${clr};font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">
-          <option value="">— —</option>${opts}
-        </select></td>`;
+  const dayHeaders = `<th style="padding:8px;font-size:13px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6;min-width:120px">Mitarbeiter</th>`
+    + DAYS.map((day,i) => {
+      const isToday = weekDates[i].toDateString() === new Date().toDateString();
+      return `<th style="padding:8px 4px;font-size:12px;font-weight:700;border:1px solid #e3beb8;text-align:center;background:${isToday?'#fff0ee':'#fff8f6'};min-width:90px">
+        <div style="color:${isToday?'#8B0000':'#261816'}">${day}</div>
+        <div style="font-weight:400;color:#9e6b62;font-size:11px">${fmt(weekDates[i])}</div>
+      </th>`;
     }).join('');
-    return `<tr><td style="padding:8px 12px;font-weight:600;font-size:13px;border:1px solid #e3beb8;white-space:nowrap;background:#fff0ee">${MA_LABELS[ma]}</td>${cells}</tr>`;
-  }).join('');
+
+  // Abteilungs-Sektionen bauen
+  let sektionen = '';
+  if (!mitarbeiter.length) {
+    sektionen = `<div style="text-align:center;padding:40px;color:#9e6b62;font-size:15px">⚠️ Keine Mitarbeiter eingetragen.<br>Bitte zuerst Mitarbeiter im Team-Tab hinzufügen.</div>`;
+  } else {
+    for (const rolle of rollenSorted) {
+      const group = gruppen[rolle];
+      if (!group || !group.length) continue;
+      const icon = ABTEILUNG_ICONS[rolle] || '👤';
+      const color = ABTEILUNG_COLORS[rolle] || '#8B0000';
+
+      const maRows = group.map(ma => {
+        const cells = DAYS.map(day => {
+          const key = ma.id || ma.name;
+          const val = (plan[weekKey][key]||{})[day] || '';
+          const arbeitet = val === 'arbeitet';
+          const frei = val === 'frei';
+          return `<td style="padding:5px;border:1px solid #e3beb8;text-align:center">
+            <button onclick="dienstplanToggle('${weekKey}','${key}','${day}')"
+              style="width:100%;padding:7px 4px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;
+              background:${arbeitet?'#e8f5e9':frei?'#fce4ec':'#f5f5f5'};
+              color:${arbeitet?'#2e7d32':frei?'#c62828':'#9e9e9e'}">
+              ${arbeitet?'✅ Arbeitet':frei?'❌ Frei':'— —'}
+            </button>
+          </td>`;
+        }).join('');
+        return `<tr>
+          <td style="padding:8px 12px;font-weight:600;font-size:13px;border:1px solid #e3beb8;background:#fafafa;white-space:nowrap">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${ma.farbe||color};margin-right:6px"></span>
+            ${_esc(ma.name)}
+          </td>${cells}
+        </tr>`;
+      }).join('');
+
+      sektionen += `
+        <div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 14px;background:${color};border-radius:12px">
+            <span style="font-size:20px">${icon}</span>
+            <span style="font-size:16px;font-weight:800;color:#fff">${rolle}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);margin-left:auto">🕐 ${SCHICHT} Uhr</span>
+          </div>
+          <div style="overflow-x:auto;border-radius:10px;border:1px solid #e3beb8">
+            <table style="border-collapse:collapse;width:100%;min-width:600px">
+              <thead><tr>${dayHeaders}</tr></thead>
+              <tbody>${maRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+  }
 
   p.innerHTML = `
     ${_pageHdr('calendar_month', 'Dienstplan', 'KW ' + kw + ' — ' + fmt(weekDates[0]) + ' bis ' + fmt(weekDates[6]))}
     <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <button onclick="dienstplanWoche(-1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">← Vorwoche</button>
-        <span style="font-weight:700;font-size:15px;color:#261816">KW ${kw} — ${fmt(weekDates[0])} bis ${fmt(weekDates[6])}</span>
-        <button onclick="dienstplanWoche(1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">Nächste Woche →</button>
-        <button onclick="dienstplanHeute()" style="padding:8px 14px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-left:auto">Heute</button>
-        <button onclick="dienstplanPdfExport()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">picture_as_pdf</span>PDF</button>
-        <button onclick="window.print()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:15px">print</span>Drucken</button>
+
+      <!-- Navigation -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button onclick="dienstplanWoche(-1)" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">← Vorwoche</button>
+        <span style="font-weight:700;font-size:15px;color:#261816;flex:1;text-align:center">KW ${kw} — ${fmt(weekDates[0])} bis ${fmt(weekDates[6])}</span>
+        <button onclick="dienstplanWoche(1)" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">Nächste Woche →</button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-        <span style="font-size:12px;font-weight:600;color:#8d6562">Personal-Abrechnung:</span>
-        <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:6px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit;background:#fff;color:#261816">
-        <button onclick="personalAbrechnungPdf()" style="padding:7px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">💰 Personal-Abrechnung PDF</button>
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button onclick="dienstplanHeute()" style="padding:9px 16px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer">📅 Heute</button>
+        <button onclick="dienstplanPdfExport()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">📄 PDF</button>
+        <button onclick="window.print()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">🖨️ Drucken</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:7px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit">
+          <button onclick="personalAbrechnungPdf()" style="padding:9px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">💰 Abrechnung PDF</button>
+        </div>
       </div>
-      <div style="overflow-x:auto">
-        <table style="border-collapse:collapse;width:100%;min-width:700px">
-          <thead><tr>
-            <th style="padding:8px 12px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6">Mitarbeiter</th>
-            ${headerCells}
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+
+      <!-- Info-Box -->
+      <div style="background:#fff8f6;border-radius:10px;border:1.5px solid #e3beb8;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:18px">🕐</span>
+        <span style="font-size:14px;font-weight:700;color:#261816">Tagesschicht: <strong style="color:#8B0000">${SCHICHT} Uhr</strong></span>
+        <span style="font-size:12px;color:#9e6b62">— Klicke auf einen Tag um Anwesenheit zu setzen</span>
       </div>
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#e3f2fd;color:#0d47a1;font-weight:600">🌅 Früh 08–16</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#fff3e0;color:#e65100;font-weight:600">🌆 Spät 14–22</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#1a1a2e;color:#D4AF37;font-weight:600">🌙 Nacht 20–04</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#f5f5f5;color:#6b6b6b;font-weight:600">🏖️ Frei</span>
-      </div>
+
+      <!-- Abteilungs-Sektionen -->
+      ${sektionen}
     </div>`;
 }
 function dienstplanSet(weekKey, ma, day, schicht) {
@@ -15087,6 +15139,18 @@ function dienstplanSet(weekKey, ma, day, schicht) {
   if (schicht) plan[weekKey][ma][day] = schicht; else delete plan[weekKey][ma][day];
   localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
   _showToast('Dienstplan gespeichert', 'success');
+}
+function dienstplanToggle(weekKey, maId, day) {
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  if (!plan[weekKey]) plan[weekKey] = {};
+  if (!plan[weekKey][maId]) plan[weekKey][maId] = {};
+  const curr = plan[weekKey][maId][day] || '';
+  const next = curr === '' ? 'arbeitet' : curr === 'arbeitet' ? 'frei' : '';
+  if (next) plan[weekKey][maId][day] = next;
+  else delete plan[weekKey][maId][day];
+  localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  renderDienstplanTab();
 }
 function dienstplanWoche(dir) {
   const p = document.getElementById('panel-dienstplan');
