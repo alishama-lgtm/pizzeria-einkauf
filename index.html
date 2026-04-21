@@ -2099,6 +2099,20 @@
     #_confirm-ok     { background:#8B0000; color:#fff; }
     #_confirm-cancel:hover { background:#e2e8f0; }
     #_confirm-ok:hover     { background:#6b0000; }
+
+  /* ── Dienstplan Druck ── */
+  @media print {
+    body * { visibility: hidden !important; }
+    #dp-print-area, #dp-print-area * { visibility: visible !important; }
+    #dp-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 16px; box-sizing: border-box; }
+    #dp-print-area table { border-collapse: collapse; width: 100%; }
+    #dp-print-area th, #dp-print-area td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; }
+  }
+
+  /* ── Preisalarm Pulse ── */
+  @keyframes pa-pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+  .pa-alarm-row { animation: pa-pulse 1.5s infinite; background: rgba(239,68,68,0.12) !important; }
+
   </style>
 </head>
 <body style="background-color:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(circle at 1px 1px, rgba(139,0,0,0.025) 1px, transparent 0);background-size:32px 32px;">
@@ -14284,96 +14298,353 @@ function clearApiKey() {
 function renderDienstplanTab() {
   const p = document.getElementById('panel-dienstplan');
   const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
-  const MA_LABELS = { kueche:'👨‍🍳 Küche', pizza:'🍕 Pizza', fahrer:'🚗 Fahrer', reinigung:'🧹 Reinigung', service:'🍽️ Service' };
-  const MITARBEITER = Object.keys(MA_LABELS);
-  const SCHICHTEN = ['Früh (08-16)','Spät (14-22)','Nacht (20-04)','Frei'];
-  const SCHICHT_BG  = { 'Früh (08-16)':'#e3f2fd', 'Spät (14-22)':'#fff3e0', 'Nacht (20-04)':'#1a1a2e', 'Frei':'#f5f5f5' };
-  const SCHICHT_CLR = { 'Früh (08-16)':'#0d47a1', 'Spät (14-22)':'#e65100', 'Nacht (20-04)':'#D4AF37',  'Frei':'#9e9e9e'  };
+  const SCHICHTEN = {
+    F: {name:'Frühschicht',   zeit:'08:00–14:00', farbe:'#fef3c7', textfarbe:'#92400e', std:6},
+    M: {name:'Mittagschicht', zeit:'11:00–17:00', farbe:'#dbeafe', textfarbe:'#1e40af', std:6},
+    S: {name:'Spätschicht',   zeit:'14:00–22:00', farbe:'#ede9fe', textfarbe:'#5b21b6', std:8},
+    D: {name:'Doppelschicht', zeit:'08:00–22:00', farbe:'#fce7f3', textfarbe:'#9d174d', std:14},
+    X: {name:'Frei',          zeit:'—',            farbe:'#f1f5f9', textfarbe:'#64748b', std:0}
+  };
 
-  let plan = {};
-  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan') || '{}'); } catch(e) {}
+  // Mitarbeiter aus localStorage, Fallback Dummy
+  var dpMA = [];
+  try { dpMA = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(e) {}
+  if (!dpMA.length) dpMA = [{name:'Ali'},{name:'Maria'},{name:'Thomas'},{name:'Sofia'}];
+  const maNames = dpMA.map(function(m){ return m.name; });
 
-  const offset = parseInt(p.dataset.weekOffset || '0');
-  const now = new Date();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
-  monday.setHours(0,0,0,0);
+  // Aktive Woche (ISO-Week Input)
+  const stored = p.dataset.dpWoche || '';
+  var wocheVal = stored;
+  if (!wocheVal) {
+    // Aktuelle ISO-Woche berechnen
+    var now2 = new Date();
+    var startOfYear = new Date(Date.UTC(now2.getUTCFullYear(),0,1));
+    var weekNo = Math.ceil((((now2 - startOfYear) / 86400000) + startOfYear.getUTCDay() + 1) / 7);
+    wocheVal = now2.getUTCFullYear() + '-W' + String(weekNo).padStart(2,'0');
+    p.dataset.dpWoche = wocheVal;
+  }
 
-  const weekKey = monday.toISOString().slice(0,10);
-  if (!plan[weekKey]) plan[weekKey] = {};
+  // Wochendaten aus ISO-Week-String berechnen
+  function parseDpWoche(wStr) {
+    var m = wStr.match(/^(\d{4})-W(\d{2})$/);
+    if (!m) return null;
+    var year = parseInt(m[1]), week = parseInt(m[2]);
+    var jan4 = new Date(Date.UTC(year, 0, 4));
+    var dow = jan4.getUTCDay() || 7;
+    var monday = new Date(jan4);
+    monday.setUTCDate(jan4.getUTCDate() - (dow - 1) + (week - 1) * 7);
+    return monday;
+  }
 
-  const weekDates = DAYS.map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
-  const fmt = d => d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'});
-  const kw = (() => {
-    const d = new Date(Date.UTC(monday.getFullYear(),monday.getMonth(),monday.getDate()));
-    const dn = d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dn);
-    return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7);
-  })();
+  var monday = parseDpWoche(wocheVal) || new Date();
+  var weekDates = DAYS.map(function(_,i){ var d = new Date(monday); d.setUTCDate(monday.getUTCDate()+i); return d; });
+  var fmtDE = function(d){ return d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'}); };
+  var fmtISO = function(d){ return d.toISOString().slice(0,10); };
+  var kwNum = parseInt((wocheVal.match(/W(\d+)/)||[,'?'])[1]);
 
-  const headerCells = DAYS.map((day,i) =>
-    `<th style="padding:8px 6px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:center;background:#fff8f6;min-width:110px">
-      <div>${day}</div><div style="font-weight:400;color:#5a403c;font-size:11px">${fmt(weekDates[i])}</div>
-    </th>`).join('');
+  // Plan laden
+  var dpPlan = {};
+  try { dpPlan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  var wkPlan = dpPlan[wocheVal] || {};
 
-  const rows = MITARBEITER.map(ma => {
-    const cells = DAYS.map(day => {
-      const schicht = (plan[weekKey][ma]||{})[day]||'';
-      const bg  = schicht ? (SCHICHT_BG[schicht]||'#fff8f6')  : '#fff8f6';
-      const clr = schicht ? (SCHICHT_CLR[schicht]||'#5a403c') : '#5a403c';
-      const opts = SCHICHTEN.map(s=>`<option value="${s}" ${schicht===s?'selected':''}>${s}</option>`).join('');
-      return `<td style="padding:6px;border:1px solid #e3beb8">
-        <select onchange="dienstplanSet('${weekKey}','${ma}','${day}',this.value)"
-          style="width:100%;padding:5px 6px;border-radius:8px;border:1px solid #e3beb8;background:${bg};color:${clr};font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">
-          <option value="">— —</option>${opts}
-        </select></td>`;
-    }).join('');
-    return `<tr><td style="padding:8px 12px;font-weight:600;font-size:13px;border:1px solid #e3beb8;white-space:nowrap;background:#fff0ee">${MA_LABELS[ma]}</td>${cells}</tr>`;
+  // Header
+  var headerCells = DAYS.map(function(day,i){
+    return '<th style="padding:8px 6px;font-size:11px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:center;background:#fff8f6;min-width:100px">' +
+      '<div>' + day + '</div>' +
+      '<div style="font-weight:400;color:#5a403c;font-size:10px">' + fmtDE(weekDates[i]) + '</div>' +
+    '</th>';
   }).join('');
 
-  p.innerHTML = `
-    ${_pageHdr('calendar_month', 'Dienstplan', 'KW ' + kw + ' — ' + fmt(weekDates[0]) + ' bis ' + fmt(weekDates[6]))}
-    <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <button onclick="dienstplanWoche(-1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">← Vorwoche</button>
-        <span style="font-weight:700;font-size:15px;color:#261816">KW ${kw} — ${fmt(weekDates[0])} bis ${fmt(weekDates[6])}</span>
-        <button onclick="dienstplanWoche(1)" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">Nächste Woche →</button>
-        <button onclick="dienstplanHeute()" style="padding:8px 14px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-left:auto">Heute</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table style="border-collapse:collapse;width:100%;min-width:700px">
-          <thead><tr>
-            <th style="padding:8px 12px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6">Mitarbeiter</th>
-            ${headerCells}
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#e3f2fd;color:#0d47a1;font-weight:600">🌅 Früh 08–16</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#fff3e0;color:#e65100;font-weight:600">🌆 Spät 14–22</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#1a1a2e;color:#D4AF37;font-weight:600">🌙 Nacht 20–04</span>
-        <span style="font-size:12px;padding:4px 10px;border-radius:8px;background:#f5f5f5;color:#6b6b6b;font-weight:600">🏖️ Frei</span>
-      </div>
-    </div>`;
+  // Zeilen
+  var totalStdAll = 0;
+  var tableRows = maNames.map(function(ma){
+    var wochenstd = 0;
+    var cells = DAYS.map(function(day,i){
+      var key = ma + '##' + fmtISO(weekDates[i]);
+      var sch = wkPlan[key] || '';
+      var s = sch ? SCHICHTEN[sch] : null;
+      var bg = s ? s.farbe : '#fff';
+      var clr = s ? s.textfarbe : '#aaa';
+      if (s) wochenstd += s.std;
+      var badge = s
+        ? '<span style="display:inline-block;padding:3px 7px;border-radius:6px;background:' + bg + ';color:' + clr + ';font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap" onclick="openSchichtModal(\'' + ma.replace(/'/g,"\\'") + '\',\'' + fmtISO(weekDates[i]) + '\',\'' + wocheVal + '\')">' + sch + ' ' + (s.zeit !== '—' ? s.zeit : '—') + '</span>'
+        : '<span style="display:inline-block;padding:3px 7px;border-radius:6px;background:#f8f8f8;color:#bbb;font-size:11px;cursor:pointer" onclick="openSchichtModal(\'' + ma.replace(/'/g,"\\'") + '\',\'' + fmtISO(weekDates[i]) + '\',\'' + wocheVal + '\')">+ Schicht</span>';
+      return '<td style="padding:6px;border:1px solid #e3beb8;text-align:center">' + badge + '</td>';
+    }).join('');
+    totalStdAll += wochenstd;
+    var stdStyle = wochenstd > 40 ? 'font-weight:800;color:#f97316' : 'color:#261816';
+    var stdLabel = wochenstd > 40 ? '⚠️ ' + wochenstd + 'h' : wochenstd + 'h';
+    return '<tr>' +
+      '<td style="padding:8px 12px;font-weight:600;font-size:13px;border:1px solid #e3beb8;white-space:nowrap;background:#fff0ee">' + ma + '</td>' +
+      cells +
+      '<td style="padding:6px 10px;border:1px solid #e3beb8;text-align:center;font-size:12px;' + stdStyle + '">' + stdLabel + '</td>' +
+    '</tr>';
+  }).join('');
+
+  // Legende
+  var legendHtml = Object.keys(SCHICHTEN).map(function(k){
+    var s = SCHICHTEN[k];
+    return '<span style="font-size:11px;padding:3px 10px;border-radius:8px;background:' + s.farbe + ';color:' + s.textfarbe + ';font-weight:700">' + k + ' — ' + s.name + ' ' + s.zeit + '</span>';
+  }).join('');
+
+  // Print-Bereich Kopf
+  var printHeader = '<div style="margin-bottom:10px">' +
+    '<div style="font-size:18px;font-weight:800;color:#8B0000">Pizzeria San Carino — Dienstplan KW ' + kwNum + '</div>' +
+    '<div style="font-size:13px;color:#555">' + fmtDE(weekDates[0]) + ' bis ' + fmtDE(weekDates[6]) + ' ' + monday.getUTCFullYear() + '</div>' +
+  '</div>';
+
+  // Unterschriften-Footer für Druck
+  var signFooter = '<div style="margin-top:30px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:20px">' +
+    maNames.map(function(ma){ return '<div style="border-top:1px solid #666;padding-top:6px;font-size:11px">' + ma + '</div>'; }).join('') +
+  '</div>';
+
+  p.innerHTML =
+    _pageHdr('calendar_month', 'Dienstplan', 'KW ' + kwNum + ' · ' + fmtDE(weekDates[0]) + ' – ' + fmtDE(weekDates[6]),
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button onclick="dpPrintTab()" style="padding:7px 13px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#261816;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">print</span>Drucken</button>' +
+      '<button onclick="dpPdfTab()" style="padding:7px 13px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:12px;font-weight:700;color:#610000;cursor:pointer;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">picture_as_pdf</span>Als PDF</button>' +
+      '</div>') +
+    '<div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;box-shadow:0 2px 8px rgba(0,0,0,.06)">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">' +
+        '<button onclick="dpWocheNav(-1)" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">← Vorwoche</button>' +
+        '<input type="week" id="dp-woche" value="' + wocheVal + '" onchange="document.getElementById(\'panel-dienstplan\').dataset.dpWoche=this.value;renderDienstplanTab()" style="padding:7px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit">' +
+        '<button onclick="dpWocheNav(1)" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer">Nächste Woche →</button>' +
+        '<button onclick="document.getElementById(\'panel-dienstplan\').dataset.dpWoche=\'\';renderDienstplanTab()" style="padding:7px 13px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer;margin-left:auto">Heute</button>' +
+      '</div>' +
+      '<div id="dp-modal-area"></div>' +
+      '<div id="dp-print-area">' +
+        printHeader +
+        '<div style="overflow-x:auto">' +
+          '<table style="border-collapse:collapse;width:100%;min-width:700px">' +
+            '<thead><tr>' +
+              '<th style="padding:8px 12px;font-size:12px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6">Mitarbeiter</th>' +
+              headerCells +
+              '<th style="padding:8px 6px;font-size:11px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:center;background:#fff8f6">Std/Wo</th>' +
+            '</tr></thead>' +
+            '<tbody>' + tableRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' + legendHtml + '</div>' +
+        signFooter +
+      '</div>' +
+    '</div>' +
+    '<!-- Schicht-Modal -->' +
+    '<div id="dp-schicht-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">' +
+      '<div style="background:#fff;border-radius:16px;padding:24px;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18)">' +
+        '<div id="dp-modal-title" style="font-size:14px;font-weight:700;color:#261816;margin-bottom:16px"></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="dp-modal-btns"></div>' +
+        '<button onclick="document.getElementById(\'dp-schicht-modal\').style.display=\'none\'" style="margin-top:14px;width:100%;padding:9px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;color:#5a403c;cursor:pointer;font-family:inherit">Abbrechen</button>' +
+      '</div>' +
+    '</div>';
 }
+
 function dienstplanSet(weekKey, ma, day, schicht) {
-  let plan = {};
+  var plan = {};
   try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
   if (!plan[weekKey]) plan[weekKey] = {};
   if (!plan[weekKey][ma]) plan[weekKey][ma] = {};
   if (schicht) plan[weekKey][ma][day] = schicht; else delete plan[weekKey][ma][day];
   localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
-  _showToast('Dienstplan gespeichert', 'success');
 }
 function dienstplanWoche(dir) {
-  const p = document.getElementById('panel-dienstplan');
+  var p = document.getElementById('panel-dienstplan');
   p.dataset.weekOffset = String(parseInt(p.dataset.weekOffset||'0') + dir);
   renderDienstplanTab();
 }
 function dienstplanHeute() {
-  const p = document.getElementById('panel-dienstplan');
+  var p = document.getElementById('panel-dienstplan');
   p.dataset.weekOffset = '0';
   renderDienstplanTab();
+}
+function dpWocheNav(dir) {
+  var p = document.getElementById('panel-dienstplan');
+  var wStr = p.dataset.dpWoche || '';
+  var m = wStr.match(/^(\d{4})-W(\d{2})$/);
+  if (!m) { p.dataset.dpWoche = ''; renderDienstplanTab(); return; }
+  var year = parseInt(m[1]), week = parseInt(m[2]);
+  week += dir;
+  if (week < 1) { year--; week = 52; }
+  if (week > 53) { year++; week = 1; }
+  p.dataset.dpWoche = year + '-W' + String(week).padStart(2,'0');
+  renderDienstplanTab();
+}
+function openSchichtModal(ma, datum, woche) {
+  var modal = document.getElementById('dp-schicht-modal');
+  var SCHICHTEN = {
+    F: {name:'Frühschicht',   zeit:'08:00–14:00', farbe:'#fef3c7', textfarbe:'#92400e'},
+    M: {name:'Mittagschicht', zeit:'11:00–17:00', farbe:'#dbeafe', textfarbe:'#1e40af'},
+    S: {name:'Spätschicht',   zeit:'14:00–22:00', farbe:'#ede9fe', textfarbe:'#5b21b6'},
+    D: {name:'Doppelschicht', zeit:'08:00–22:00', farbe:'#fce7f3', textfarbe:'#9d174d'},
+    X: {name:'Frei',          zeit:'—',            farbe:'#f1f5f9', textfarbe:'#64748b'}
+  };
+  var parts = datum.split('-');
+  var dateLabel = parts[2] + '.' + parts[1] + '.' + parts[0];
+  document.getElementById('dp-modal-title').textContent = ma + ' — ' + dateLabel;
+  var btns = document.getElementById('dp-modal-btns');
+  btns.innerHTML = Object.keys(SCHICHTEN).map(function(k){
+    var s = SCHICHTEN[k];
+    return '<button onclick="dpSaveSchicht(\'' + ma.replace(/'/g,"\\'") + '\',\'' + datum + '\',\'' + woche + '\',\'' + k + '\')" ' +
+      'style="padding:12px 8px;border-radius:10px;border:2px solid ' + s.textfarbe + ';background:' + s.farbe + ';color:' + s.textfarbe + ';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center">' +
+      '<div style="font-size:16px;font-weight:800">' + k + '</div>' +
+      '<div>' + s.name + '</div>' +
+      '<div style="font-size:10px;opacity:.8">' + s.zeit + '</div>' +
+    '</button>';
+  }).join('') +
+  '<button onclick="dpSaveSchicht(\'' + ma.replace(/'/g,"\\'") + '\',\'' + datum + '\',\'' + woche + '\',\'\')" ' +
+    'style="padding:12px 8px;border-radius:10px;border:1.5px dashed #e3beb8;background:#fff;color:#8d6562;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;grid-column:span 2">✕ Schicht entfernen</button>';
+  modal.style.display = 'flex';
+}
+function dpSaveSchicht(ma, datum, woche, schicht) {
+  var plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  if (!plan[woche]) plan[woche] = {};
+  var key = ma + '##' + datum;
+  if (schicht) plan[woche][key] = schicht; else delete plan[woche][key];
+  localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  document.getElementById('dp-schicht-modal').style.display = 'none';
+  _showToast('Schicht gespeichert', 'success');
+  renderDienstplanTab();
+}
+function dpPrintTab() {
+  window.print();
+}
+function dpPdfTab() {
+  if (!window.jspdf || !window.jspdf.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  var SCHICHTEN = {
+    F:{name:'Frühschicht',  zeit:'08–14', farbe:[254,243,199], textfarbe:[146,64,14],  std:6},
+    M:{name:'Mittagschicht',zeit:'11–17', farbe:[219,234,254], textfarbe:[30,64,175],  std:6},
+    S:{name:'Spätschicht',  zeit:'14–22', farbe:[237,233,254], textfarbe:[91,33,182],  std:8},
+    D:{name:'Doppelschicht',zeit:'08–22', farbe:[252,231,243], textfarbe:[157,23,77],  std:14},
+    X:{name:'Frei',         zeit:'—',    farbe:[241,245,249], textfarbe:[100,116,135], std:0}
+  };
+  var p = document.getElementById('panel-dienstplan');
+  var wocheVal = p.dataset.dpWoche || '';
+  var kwNum = parseInt((wocheVal.match(/W(\d+)/)||[,'?'])[1]);
+  var m2 = wocheVal.match(/^(\d{4})-W(\d{2})$/);
+  var monday = (function(){
+    if (!m2) return new Date();
+    var year=parseInt(m2[1]),week=parseInt(m2[2]);
+    var jan4=new Date(Date.UTC(year,0,4));
+    var dow=jan4.getUTCDay()||7;
+    var mo=new Date(jan4);
+    mo.setUTCDate(jan4.getUTCDate()-(dow-1)+(week-1)*7);
+    return mo;
+  })();
+  var DAYS=['Mo','Di','Mi','Do','Fr','Sa','So'];
+  var weekDates=DAYS.map(function(_,i){var d=new Date(monday);d.setUTCDate(monday.getUTCDate()+i);return d;});
+  var fmtDE=function(d){return d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'});};
+  var fmtISO=function(d){return d.toISOString().slice(0,10);};
+
+  var dpMA=[]; try{dpMA=JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]');}catch(e){}
+  if(!dpMA.length) dpMA=[{name:'Ali'},{name:'Maria'},{name:'Thomas'},{name:'Sofia'}];
+  var maNames=dpMA.map(function(x){return x.name;});
+
+  var dpPlan={}; try{dpPlan=JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}');}catch(e){}
+  var wkPlan=dpPlan[wocheVal]||{};
+
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  var PW=297, PH=210, mL=12, mT=14;
+
+  doc.setFillColor(139,0,0);
+  doc.rect(0,0,PW,14,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(13);
+  doc.text('Pizzeria San Carino — Dienstplan KW '+kwNum,mL,10);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text(fmtDE(weekDates[0])+' bis '+fmtDE(weekDates[6])+' '+monday.getUTCFullYear(),PW-mL,10,{align:'right'});
+
+  var colW=(PW-mL*2-35)/(DAYS.length+1);
+  var y=22;
+  var rowH=14;
+
+  // Header-Zeile
+  doc.setFillColor(255,240,238);
+  doc.rect(mL,y,35,10,'F');
+  doc.setTextColor(139,0,0);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.text('Mitarbeiter',mL+2,y+7);
+  DAYS.forEach(function(day,i){
+    doc.setFillColor(255,248,246);
+    doc.rect(mL+35+i*colW,y,colW,10,'F');
+    doc.setTextColor(139,0,0);
+    doc.text(day,mL+35+i*colW+colW/2,y+4,{align:'center'});
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.setTextColor(90,64,60);
+    doc.text(fmtDE(weekDates[i]),mL+35+i*colW+colW/2,y+9,{align:'center'});
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+  });
+  doc.rect(mL+35+7*colW,y,20,10,'F');
+  doc.setTextColor(139,0,0);
+  doc.text('Std',mL+35+7*colW+10,y+7,{align:'center'});
+  y+=10;
+
+  // Datenzeilen
+  maNames.forEach(function(ma){
+    var wochenstd=0;
+    doc.setFillColor(255,240,238);
+    doc.rect(mL,y,35,rowH,'F');
+    doc.setTextColor(38,24,22);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text(ma,mL+2,y+rowH/2+3);
+
+    DAYS.forEach(function(day,i){
+      var key=ma+'##'+fmtISO(weekDates[i]);
+      var sch=wkPlan[key]||'';
+      var s=sch?SCHICHTEN[sch]:null;
+      var fb=s?s.farbe:[255,255,255];
+      doc.setFillColor(fb[0],fb[1],fb[2]);
+      doc.rect(mL+35+i*colW,y,colW,rowH,'F');
+      if(s){
+        doc.setTextColor(s.textfarbe[0],s.textfarbe[1],s.textfarbe[2]);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(9);
+        doc.text(sch,mL+35+i*colW+colW/2,y+6,{align:'center'});
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(7);
+        doc.text(s.zeit,mL+35+i*colW+colW/2,y+11,{align:'center'});
+        wochenstd+=s.std;
+      }
+    });
+
+    // Stunden
+    var over=wochenstd>40;
+    doc.setFillColor(over?255:240,over?237:248,over?213:246);
+    doc.rect(mL+35+7*colW,y,20,rowH,'F');
+    doc.setTextColor(over?249:38,over?115:24,over?22:22);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text((over?'⚠ ':'')+wochenstd+'h',mL+35+7*colW+10,y+rowH/2+3,{align:'center'});
+
+    // Rahmen
+    doc.setDrawColor(200,190,184);
+    doc.setLineWidth(0.3);
+    doc.rect(mL,y,35+7*colW+20,rowH);
+    y+=rowH;
+  });
+
+  // Unterschriften
+  y+=10;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.setTextColor(80,80,80);
+  var sigX=mL;
+  maNames.forEach(function(ma){
+    doc.line(sigX,y+12,sigX+40,y+12);
+    doc.text(ma,sigX,y+17);
+    sigX+=50;
+    if(sigX+40>PW-mL){sigX=mL;y+=25;}
+  });
+
+  var heute=new Date().toISOString().slice(0,10);
+  doc.save('dienstplan_KW-'+String(kwNum).padStart(2,'0')+'_'+monday.getUTCFullYear()+'.pdf');
+  _showToast('Dienstplan als PDF gespeichert', 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
