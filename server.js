@@ -1140,6 +1140,41 @@ function getLocalIP() {
   return '127.0.0.1';
 }
 
+// ── Backup API ────────────────────────────────────────────────────────────────
+const BACKUP_DIR = path.join(__dirname, 'backups');
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+
+app.post('/api/backup', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || typeof data !== 'object') return res.status(400).json({ error: 'Keine Daten' });
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `backup-${stamp}.json`;
+    const filepath = path.join(BACKUP_DIR, filename);
+    fs.writeFileSync(filepath, JSON.stringify({ _created: now.toISOString(), ...data }, null, 2), 'utf8');
+    // Alte Backups löschen (nur letzte 10 behalten)
+    const files = fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('backup-') && f.endsWith('.json')).sort();
+    if (files.length > 10) files.slice(0, files.length - 10).forEach(f => { try { fs.unlinkSync(path.join(BACKUP_DIR, f)); } catch(_) {} });
+    console.log(`  Backup gespeichert: ${filename}`);
+    res.json({ ok: true, file: filename, created: now.toISOString() });
+  } catch (err) {
+    console.error('Backup Fehler:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/backup/list', (_req, res) => {
+  try {
+    const files = fs.existsSync(BACKUP_DIR)
+      ? fs.readdirSync(BACKUP_DIR).filter(f => f.startsWith('backup-') && f.endsWith('.json')).sort().reverse()
+      : [];
+    res.json({ files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Inbox-Watcher mit WebSocket-Broadcast verbinden
 setBroadcast((msg) => {
   const payload = JSON.stringify(msg);

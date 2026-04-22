@@ -14860,6 +14860,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch(_) {}
   // 3. Login-Screen anzeigen (default)
+  // Auto-Backup prüfen (nach 2s damit Login nicht blockiert wird)
+  setTimeout(appAutoBackupCheck, 2000);
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -15145,6 +15147,35 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:0">Mit Cloudflare Tunnel ist die App von überall via HTTPS erreichbar — kein Router nötig.</p>
       </div>
 
+      <!-- Auto-Backup Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        ${(() => {
+          const lastBak = localStorage.getItem('psc_last_backup');
+          const autoOn  = localStorage.getItem('psc_auto_backup') === '1';
+          const lastStr = lastBak ? new Date(lastBak).toLocaleString('de-AT') : '— noch nie —';
+          return `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px">☁️</span> Auto-Backup (täglich)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <span id="bak-toggle-label" style="font-size:12px;color:#5a403c">${autoOn?'Aktiv':'Inaktiv'}</span>
+              <div onclick="(function(){const on=localStorage.getItem('psc_auto_backup')==='1';localStorage.setItem('psc_auto_backup',on?'0':'1');document.getElementById('bak-toggle-label').textContent=on?'Inaktiv':'Aktiv';document.getElementById('bak-toggle-btn').style.background=on?'#ccc':'#2e7d32';document.getElementById('bak-toggle-thumb').style.transform=on?'translateX(0)':'translateX(20px)';})()"
+                id="bak-toggle-btn"
+                style="width:44px;height:24px;border-radius:12px;background:${autoOn?'#2e7d32':'#ccc'};position:relative;cursor:pointer;transition:background .2s">
+                <div id="bak-toggle-thumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;transform:${autoOn?'translateX(20px)':'translateX(0)'}"></div>
+              </div>
+            </label>
+          </div>
+          <div style="font-size:12px;color:#8d6562;margin-bottom:10px">Zuletzt gesichert: <strong>${lastStr}</strong></div>
+          <div id="bak-status" style="font-size:12px;margin-bottom:8px;display:none"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="appBackupNow()" style="padding:9px 18px;background:#2e7d32;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">💾 Jetzt sichern</button>
+            <button onclick="appBackupDownload()" style="padding:9px 18px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⬇️ Herunterladen</button>
+          </div>`;
+        })()}
+      </div>
+
       <!-- Passwort ändern Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15237,6 +15268,51 @@ function settingsFixkostenUpdate() {
   const dayEl = document.getElementById('fk-day');
   if (sumEl) sumEl.textContent = sum.toFixed(2).replace('.',',') + ' €';
   if (dayEl) dayEl.textContent = (sum/30).toFixed(2).replace('.',',') + ' €/Tag';
+}
+function appBackupCollect() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k) try { data[k] = JSON.parse(localStorage.getItem(k)); } catch(_) { data[k] = localStorage.getItem(k); }
+  }
+  return data;
+}
+async function appBackupNow(silent) {
+  const statusEl = document.getElementById('bak-status');
+  if (statusEl) { statusEl.textContent = '⏳ Sichern...'; statusEl.style.color='#5a403c'; statusEl.style.display='block'; }
+  try {
+    const data = appBackupCollect();
+    const r = await fetch('/api/backup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error||'Fehler');
+    localStorage.setItem('psc_last_backup', j.created);
+    if (!silent) {
+      if (statusEl) { statusEl.textContent = '✅ Gesichert: ' + new Date(j.created).toLocaleString('de-AT'); statusEl.style.color='#386a20'; }
+      _showToast('Backup gespeichert ✓', 'success');
+    }
+  } catch(err) {
+    if (!silent) {
+      if (statusEl) { statusEl.textContent = '❌ ' + err.message; statusEl.style.color='#ba1a1a'; }
+      _showToast('Backup fehlgeschlagen', 'error');
+    }
+  }
+}
+function appBackupDownload() {
+  const data = appBackupCollect();
+  const stamp = new Date().toISOString().slice(0,10);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pizzeria-backup-' + stamp + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  _showToast('Backup heruntergeladen ✓', 'success');
+}
+function appAutoBackupCheck() {
+  if (localStorage.getItem('psc_auto_backup') !== '1') return;
+  const last = localStorage.getItem('psc_last_backup');
+  if (last && (Date.now() - new Date(last).getTime()) < 86400000) return;
+  appBackupNow(true);
 }
 function settingsChangePw() {
   const cur = (document.getElementById('s-pw-current')?.value||'').trim();
