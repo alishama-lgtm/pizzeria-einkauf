@@ -15128,7 +15128,15 @@ function renderDienstplanTab() {
       </div>
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
         <button onclick="dienstplanHeute()" style="padding:9px 16px;border-radius:10px;border:none;background:#8B0000;font-size:13px;font-weight:600;color:#fff;cursor:pointer">📅 Heute</button>
-        <button onclick="dienstplanPdfExport()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">📄 PDF</button>
+        <div style="position:relative;display:inline-block">
+          <button onclick="dienstplanPdfMenuToggle()" id="dp-pdf-btn" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">📄 PDF ▾</button>
+          <div id="dp-pdf-menu" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1.5px solid #e3beb8;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:999;min-width:200px;padding:8px 0">
+            <div style="padding:6px 14px 4px;font-size:10px;font-weight:700;color:#9e6b62;text-transform:uppercase;letter-spacing:.5px">PDF erstellen</div>
+            <button onclick="dienstplanPdfExport();dienstplanPdfMenuClose()" style="display:block;width:100%;text-align:left;padding:9px 16px;border:none;background:none;font-size:13px;font-weight:700;color:#261816;cursor:pointer;font-family:inherit">📋 Alle Abteilungen</button>
+            <div style="height:1px;background:#f0e8e6;margin:4px 0"></div>
+            <div id="dp-pdf-rollen-list"></div>
+          </div>
+        </div>
         <button onclick="window.print()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">🖨️ Drucken</button>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:7px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit">
@@ -15242,6 +15250,82 @@ function dienstplanPdfExport() {
   }
   doc.save('dienstplan-kw'+kw+'-'+weekKey+'.pdf');
   _showToast('PDF gespeichert', 'success');
+}
+
+function dienstplanPdfMenuToggle() {
+  const menu = document.getElementById('dp-pdf-menu');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  if (isOpen) { menu.style.display = 'none'; return; }
+  // Rollen-Buttons dynamisch befüllen
+  let mitarbeiter = []; try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(_) {}
+  const rollenOrder = ['Küche','Pizza','Service','Lieferung','Fahrer','Reinigung'];
+  const rollen = [...new Set(mitarbeiter.map(m=>m.rolle||'Sonstige'))].sort((a,b)=>{
+    const ia=rollenOrder.indexOf(a),ib=rollenOrder.indexOf(b);
+    return (ia===-1?99:ia)-(ib===-1?99:ib);
+  });
+  const icons = {'Küche':'🍕','Pizza':'🍕','Service':'🍽️','Lieferung':'🚗','Fahrer':'🚗','Reinigung':'🧹'};
+  const list = document.getElementById('dp-pdf-rollen-list');
+  if (list) list.innerHTML = rollen.map(r =>
+    `<button onclick="dienstplanPdfExportRolle('${r}');dienstplanPdfMenuClose()" style="display:block;width:100%;text-align:left;padding:9px 16px;border:none;background:none;font-size:13px;color:#261816;cursor:pointer;font-family:inherit">${icons[r]||'👤'} ${r}</button>`
+  ).join('');
+  menu.style.display = 'block';
+  setTimeout(() => document.addEventListener('click', dienstplanPdfMenuOutside, {once:true}), 10);
+}
+function dienstplanPdfMenuOutside(e) {
+  const menu = document.getElementById('dp-pdf-menu');
+  const btn = document.getElementById('dp-pdf-btn');
+  if (menu && !menu.contains(e.target) && e.target !== btn) menu.style.display = 'none';
+}
+function dienstplanPdfMenuClose() {
+  const menu = document.getElementById('dp-pdf-menu');
+  if (menu) menu.style.display = 'none';
+}
+function dienstplanPdfExportRolle(rolle) {
+  if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
+  const p = document.getElementById('panel-dienstplan');
+  const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  let plan = {}; try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(_) {}
+  let mitarbeiter = []; try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(_) {}
+  const offset = parseInt(p.dataset.weekOffset||'0');
+  const now = new Date(); const monday = new Date(now);
+  monday.setDate(now.getDate()-((now.getDay()+6)%7)+offset*7); monday.setHours(0,0,0,0);
+  const weekKey = monday.toISOString().slice(0,10);
+  const weekDates = DAYS.map((_,i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d.toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'}); });
+  const kw = (()=>{ const d=new Date(Date.UTC(monday.getFullYear(),monday.getMonth(),monday.getDate())); const dn=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dn); return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7); })();
+  const gruppe = mitarbeiter.filter(m=>(m.rolle||'Sonstige')===rolle);
+  if (!gruppe.length) { _showToast('Keine Mitarbeiter in: '+rolle, 'error'); return; }
+  const doc = new window.jspdf.jsPDF({orientation:'landscape'});
+  const icons = {'Küche':'Küche','Pizza':'Pizza','Service':'Service','Lieferung':'Lieferung','Fahrer':'Fahrer','Reinigung':'Reinigung'};
+  doc.setFontSize(16); doc.setFont(undefined,'bold');
+  doc.text('Dienstplan — ' + rolle + ' — KW ' + kw, 14, 16);
+  doc.setFontSize(9); doc.setFont(undefined,'normal');
+  doc.text(weekDates[0] + ' bis ' + weekDates[6] + ' | Pizzeria San Carino | Export: ' + new Date().toLocaleDateString('de-AT'), 14, 22);
+  const head = [['Mitarbeiter', ...DAYS.map((d,i)=>d+' '+weekDates[i])]];
+  const body = gruppe.map(ma => {
+    const key = ma.id||ma.name;
+    const dayPlan = (plan[weekKey]||{})[key]||{};
+    return [ma.name, ...DAYS.map(day=>{ const v=dayPlan[day]||''; return v==='arbeitet'?'✓':v==='frei'?'✗':'—'; })];
+  });
+  if (doc.autoTable) {
+    doc.autoTable({
+      head, body, startY: 28,
+      styles: { fontSize: 10, cellPadding: 5, halign: 'center' },
+      columnStyles: { 0: { halign: 'left', fontStyle: 'bold', cellWidth: 45 } },
+      headStyles: { fillColor: [97, 0, 0], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [255, 248, 246] },
+      didParseCell: function(data) {
+        if (data.section==='body' && data.column.index>=1) {
+          const v=data.cell.raw;
+          if (v==='✓') { data.cell.styles.textColor=[30,120,30]; data.cell.styles.fontStyle='bold'; }
+          else if (v==='✗') { data.cell.styles.textColor=[180,30,30]; }
+          else { data.cell.styles.textColor=[180,180,180]; }
+        }
+      }
+    });
+  }
+  doc.save('dienstplan-'+rolle.toLowerCase()+'-kw'+kw+'-'+weekKey+'.pdf');
+  _showToast('PDF für '+rolle+' gespeichert', 'success');
 }
 
 function personalAbrechnungPdf() {
