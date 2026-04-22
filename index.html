@@ -1421,97 +1421,116 @@
       #app-main { padding-left: 24px !important; padding-right: 24px !important; }
       #app-footer { padding: 14px 24px; }
     }
-    @media (max-width: 640px) {
-      #app-header .header-inner { padding: 0 16px; height: 60px; }
-      .header-logo-text { font-size: 18px; }
-      .header-logo-icon { font-size: 26px; }
-      .header-logo-sub { display: none; }
-    }
-
-    /* ════ MOBILE APP STYLES (iPhone) ════ */
+    /* ════ MOBILE & IPHONE (≤767px) ════ */
     @media (max-width: 767px) {
       body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
 
-      /* Hauptinhalt: volle Breite */
+      /* ── Inhalt: volle Breite ── */
       #app-main {
-        padding: 10px 10px 110px !important;
+        padding: 10px 12px 110px !important;
         max-width: 100% !important;
-        margin: 0 !important;
-        box-sizing: border-box;
         width: 100% !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+      }
+      [id^="panel-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+      }
+      [id^="panel-"] > div,
+      [id^="panel-"] > section {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
       }
 
-      /* Panels füllen volle Breite */
-      [id^="panel-"] { width: 100%; box-sizing: border-box; overflow-x: hidden; }
-      [id^="panel-"] > div { max-width: 100% !important; box-sizing: border-box; }
-
-      /* Inputs: verhindert Zoom auf iPhone */
-      input, select, textarea { font-size: 16px !important; }
-
-      /* Buttons Touch-freundlich */
-      button { touch-action: manipulation; }
-
-      /* Tabellen horizontal scrollbar */
-      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-      /* Bottom Nav mit iPhone Notch */
-      #mobile-bottom-nav {
-        padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      /* ── Header: schlank & aufgeräumt ── */
+      #app-header { height: 52px !important; }
+      #app-header .header-inner {
+        height: 52px !important;
+        padding: 0 12px !important;
+        gap: 5px !important;
       }
 
-      /* Footer ausblenden */
-      #app-footer { display: none !important; }
+      /* Logo: nur Emoji + "San Carino" */
+      .header-logo { gap: 6px !important; }
+      .header-logo-icon { font-size: 20px !important; }
+      .header-logo-text { font-size: 13px !important; }
+      .header-logo-sub { display: none !important; }
 
-      /* Header Mobile — kompakt & sauber */
-      #app-header { height: 54px !important; }
-      #app-header .header-inner { padding: 0 10px !important; height: 54px !important; gap: 6px !important; }
+      /* Right-Side-Icons: enger */
+      .header-right { gap: 3px !important; flex-shrink: 0; }
 
-      /* Logo kleiner */
-      .header-logo-icon { font-size: 22px !important; }
-      .header-logo-text { font-size: 14px !important; }
-      .header-logo { gap: 7px !important; }
-
-      /* Right-Side: engere Abstände */
-      .header-right { gap: 4px !important; }
-
-      /* Role Badge: nur Text, kein Padding */
-      #role-badge { padding: 3px 8px !important; font-size: 11px !important; }
+      /* Role Badge: kompakt */
+      #role-badge { padding: 3px 7px !important; font-size: 11px !important; border-radius: 14px !important; }
 
       /* Abmelden: nur Icon, kein Text */
-      #logout-btn { padding: 6px !important; min-width: 0 !important; border: none !important; background: none !important; }
-      #logout-btn span.material-symbols-outlined { font-size: 20px !important; color: #5a403c; }
-      #logout-btn::after { content: none !important; }
+      #logout-btn {
+        padding: 5px !important;
+        border: none !important;
+        background: none !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        min-width: 0 !important;
+      }
+      #logout-btn .material-symbols-outlined { font-size: 20px !important; color: #5a403c !important; }
 
-      /* "Abmelden" Text verstecken, nur Icon */
-      #logout-btn { font-size: 0 !important; }
-      #logout-btn .material-symbols-outlined { font-size: 20px !important; }
+      /* Settings Icon */
+      #settings-btn { padding: 5px !important; }
+      #settings-btn .material-symbols-outlined { font-size: 20px !important; }
 
-      /* Lager-Warnung: nur Icon + Zahl */
-      #header-badge { padding: 4px 8px !important; font-size: 11px !important; }
+      /* Bell */
+      .header-bell-btn { padding: 5px !important; }
+      .header-bell-btn .material-symbols-outlined { font-size: 20px !important; }
+
+      /* Einkauf: nur Icon, kein Text */
+      #einkauf-log-btn {
+        padding: 6px 8px !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        gap: 0 !important;
+      }
+      #einkauf-log-btn .material-symbols-outlined { font-size: 20px !important; }
+
+      /* Lagerwarnung: nur Icon + Zahl */
+      #header-badge { padding: 3px 7px !important; font-size: 0 !important; gap: 3px !important; }
       #header-badge .material-symbols-outlined { font-size: 14px !important; }
       #header-badge-text { display: none !important; }
 
-      /* Server Status: nur Dot, kein Label */
+      /* Server-Status: nur Dot */
+      #server-status-badge { padding: 3px 5px !important; gap: 0 !important; border-radius: 50% !important; width: 22px !important; height: 22px !important; justify-content: center !important; }
       #srv-label { display: none !important; }
-      #server-status-badge { padding: 4px 6px !important; gap: 0 !important; }
 
-      /* Einkauf Button: nur Icon */
-      #einkauf-log-btn { padding: 7px 9px !important; font-size: 0 !important; }
-      #einkauf-log-btn .material-symbols-outlined { font-size: 20px !important; }
-
-      /* Business Button: auf Mobile ausblenden (über Nav erreichbar) */
+      /* Verstecken auf Mobile */
+      #sync-status { display: none !important; }
       #biz-header-btn { display: none !important; }
 
-      /* Sync Status: ausblenden */
-      #sync-status { display: none !important; }
+      /* ── Inputs: kein Auto-Zoom auf iPhone ── */
+      input, select, textarea { font-size: 16px !important; }
+      button { touch-action: manipulation; }
 
-      /* Mehr-Drawer runder */
+      /* ── Tabellen scrollbar ── */
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+      /* ── Bottom Nav: iPhone Notch ── */
+      #mobile-bottom-nav { padding-bottom: max(12px, env(safe-area-inset-bottom)) !important; }
+      .mob-nav-btn .material-symbols-outlined { font-size: 24px !important; }
+
+      /* ── Footer & Desktop-Nav: ausblenden ── */
+      #app-footer { display: none !important; }
+
+      /* ── Mehr-Drawer ── */
       #mehr-drawer { border-radius: 28px 28px 0 0 !important; }
       .drawer-item { padding: 16px 4px 14px !important; }
       .drawer-item .material-symbols-outlined { font-size: 26px !important; }
+    }
 
-      /* Mobile Nav etwas größer */
-      .mob-nav-btn .material-symbols-outlined { font-size: 24px !important; }
+    /* ════ KLEINE PHONES (≤390px / iPhone SE) ════ */
+    @media (max-width: 390px) {
+      .header-logo-text { display: none !important; }
+      #role-badge { display: none !important; }
+      #app-header .header-inner { gap: 4px !important; }
     }
 
     /* ════ STITCH DESIGN ════ */
