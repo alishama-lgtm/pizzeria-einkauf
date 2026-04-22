@@ -13195,6 +13195,16 @@ function renderDashboardTab() {
 
     // ── BEREICH 2: Alerts (nur wenn vorhanden) ──
     const alerts = [];
+    // Personalkosten-Alarm
+    if (isAdminOrManager && umsatzMonat > 0) {
+      try {
+        const personal = bizGetPersonal ? bizGetPersonal() : [];
+        const personalMonatVal = personal.reduce((s,p)=>s+(+p.stunden||0)*(+p.lohn||0)*4.33,0);
+        const alarmGrenze = parseFloat(localStorage.getItem('psc_personal_alarm_pct')||'35')||35;
+        const personalPct = Math.round((personalMonatVal / umsatzMonat) * 100);
+        if (personalPct > alarmGrenze) alerts.push({icon:'🔴', text:`Personalkosten <strong>${personalPct}%</strong> des Umsatzes — Grenze: ${alarmGrenze}%`, tab:'business'});
+      } catch(_) {}
+    }
     if (fmOpen > 0)            alerts.push({icon:'🔴', text:`Fehlmaterial offen: <strong>${fmOpen} Artikel</strong>`,                      tab:'fehlmaterial'});
     if (lagerKritisch > 0)     alerts.push({icon:'🔴', text:`${lagerKritisch} Artikel brauchen Nachbestellung`, tab:'lager', expandable:true, artikelListe:lagerKritischArtikel});
     if (preisAlarm > 0)        alerts.push({icon:'🔴', text:`Preisalarm: <strong>${preisAlarm} Produkte</strong> über Zielpreis`,             tab:'preisalarm'});
@@ -15176,6 +15186,24 @@ function openSettings() {
         })()}
       </div>
 
+      <!-- Personalkosten-Alarm Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">👥</span> Personalkosten-Alarm
+        </label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:180px">
+            <label style="font-size:12px;color:#5a403c;white-space:nowrap">Alarm wenn Lohn über</label>
+            <input type="number" id="s-personal-alarm-pct" min="1" max="100" step="1"
+              value="${parseFloat(localStorage.getItem('psc_personal_alarm_pct')||'35')||35}"
+              style="width:65px;padding:8px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:14px;font-weight:700;color:#261816;text-align:center;font-family:inherit;outline:none"
+              onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+            <label style="font-size:12px;color:#5a403c">% des Umsatzes</label>
+          </div>
+        </div>
+        <p style="font-size:11px;color:#8d6562;margin:6px 0 0">Wird im Dashboard als rote Warnung angezeigt wenn die Grenze überschritten wird.</p>
+      </div>
+
       <!-- Passwort ändern Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15243,6 +15271,9 @@ function saveApiKey() {
   const monatsziel = parseFloat(document.getElementById('settings-monatsziel')?.value || '0');
   if (tagesziel > 0) _safeLocalSet('psc_tagesziel', String(tagesziel));
   if (monatsziel > 0) { _safeLocalSet('psc_monatsziel', String(monatsziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
+  // Personalkosten-Alarm speichern
+  const palPct = parseFloat(document.getElementById('s-personal-alarm-pct')?.value || '35');
+  if (palPct > 0) _safeLocalSet('psc_personal_alarm_pct', String(palPct));
   // Schichtzeiten speichern
   const szDays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
   const szData = {};
