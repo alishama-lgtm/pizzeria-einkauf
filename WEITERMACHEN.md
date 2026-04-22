@@ -292,6 +292,26 @@ node server.js        # → http://localhost:8080
 - `pizzeria_rezepte` — Rezepte `[{id,name,kategorie,portionen,zutaten:[{produkt,menge,einheit}],notizen,erstellt}]`
 - `pizzeria_tagesberichte` — Tagesabschlüsse `[{id,datum,einnahmen,ausgaben,saldo,kassenschnitt_differenz,offene_aufgaben,fehlmaterial,erstellt}]`
 
+### 🔴 EINSTELLUNGEN-PLAN — systematisch abarbeiten (Feature für Feature)
+
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | **Schichtzeiten anpassen** — pro Wochentag, Feiertage separat | ⬜ |
+| 2 | **Monatsziel / Tages-Umsatzziel** — Fortschrittsbalken im Dashboard | ⬜ |
+| 3 | **Fixkosten erfassen** — Miete, Strom → Gewinnrechnung | ⬜ |
+| 4 | **Lieferanten Schnellwahl** — Tel + WhatsApp 1 Klick | ⬜ |
+| 5 | **Passwort ändern** — in Einstellungen | ⬜ |
+| 6 | **Auto-Backup Google Drive** — täglich automatisch | ⬜ |
+| 7 | **Personalkosten-Alarm** — wenn Lohn > X% vom Umsatz | ⬜ |
+| 8 | **Pizza-Größen & Preise** — S/M/L/XL → Rezept-Marge | ⬜ |
+| 9 | **Mindestbestand-Regeln** — Alarm-Grenze pro Produkt | ⬜ |
+| 10 | **Drucker-Einstellungen** — Bondrucker IP | ⬜ |
+| 11 | **Feiertage Österreich** — automatisch im Dienstplan | ⬜ |
+| 12 | **Trinkgeld-Regeln** — feste % pro Abteilung | ⬜ |
+| 13 | **Benachrichtigungs-Filter** — welche Alarme aktiv | ⬜ |
+| 14 | **App-PIN für Mitarbeiter** — 4-stellige PIN | ⬜ |
+| 15 | **Bewertungs-Ziel** — Ziel-Ø, Fortschritt anzeigen | ⬜ |
+
 ### 🔴 NÄCHSTE SESSION — Turso Cloud-Datenbank (Option B)
 
 **Ziel:** Gleicher Datenstand auf allen PCs (Laptop + Pizzeria-PC)
