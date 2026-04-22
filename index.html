@@ -14038,6 +14038,18 @@ function rezeptFehlmaterialPush(id) {
 
 function skNeuesGericht() { _skShowForm(null); }
 function skBearbeiten(id) { _skShowForm(id); }
+function skGroesseChange(sz) {
+  if (!sz) return;
+  let pz = {S:{vk:10.5,teig:1.2},M:{vk:12.9,teig:1.8},L:{vk:14.9,teig:2.3},XL:{vk:17.9,teig:3.0}};
+  try { const v = localStorage.getItem('psc_pizza_groessen'); if (v) pz = JSON.parse(v); } catch(_) {}
+  const entry = pz[sz];
+  if (!entry) return;
+  const preis = document.getElementById('sk-f-preis');
+  const we = document.getElementById('sk-f-we');
+  if (preis && !preis.value) preis.value = entry.vk || '';
+  if (we && !we.value) we.value = entry.teig || '';
+  _skKalkPreview();
+}
 function speisekartePdfExport() {
   if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
   const menu = skLoad().filter(i => i.aktiv);
@@ -14089,6 +14101,18 @@ function _skShowForm(id) {
           <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Kategorie</label>
           <select id="sk-f-kat" style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
             ${SK_KATEGORIEN.map(k=>`<option value="${k.id}"${item&&item.kat===k.id?' selected':''}>${k.label}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Größe (optional)</label>
+          <select id="sk-f-groesse" onchange="skGroesseChange(this.value)"
+            style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff">
+            <option value="">— keine Größe —</option>
+            ${['S','M','L','XL'].map(sz=>{
+              let pz={S:{vk:10.5},M:{vk:12.9},L:{vk:14.9},XL:{vk:17.9}};
+              try{const v=localStorage.getItem('psc_pizza_groessen');if(v)pz=JSON.parse(v);}catch(_){}
+              return `<option value="${sz}"${item&&item.groesse===sz?' selected':''}>${sz} — ${(pz[sz]?.vk||0).toFixed(2).replace('.',',')} €</option>`;
+            }).join('')}
           </select>
         </div>
         <div>
@@ -14203,13 +14227,14 @@ function _skSpeichern(id) {
   const vp      = parseFloat(document.getElementById('sk-f-vp')?.value) || 0;
   const zutaten = _skReadZutaten();
   const kalk    = { wareneinsatz: we, personal: personal, verpackung: vp, zutaten: zutaten };
+  const groesse = document.getElementById('sk-f-groesse')?.value || '';
   if (!name) { _markField('sk-f-name', true); _showToast('Bitte Namen eingeben', 'error'); return; }
   if (isNaN(preis) || preis < 0) { _markField('sk-f-preis', true); _showToast('Bitte gültigen Preis eingeben', 'error'); return; }
   let menu = skLoad();
   if (id) {
-    menu = menu.map(i => i.id === id ? { ...i, name, preis, kat, beschr, kalk } : i);
+    menu = menu.map(i => i.id === id ? { ...i, name, preis, kat, beschr, kalk, groesse } : i);
   } else {
-    menu.push({ id: skGenId(), kat, name, preis, beschr, kalk, aktiv: true });
+    menu.push({ id: skGenId(), kat, name, preis, beschr, kalk, groesse, aktiv: true });
   }
   skSave(menu);
   _showToast('Gericht gespeichert', 'success');
@@ -15186,6 +15211,36 @@ function openSettings() {
         })()}
       </div>
 
+      <!-- Pizza-Größen Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🍕</span> Pizza-Größen & Basis-Preise
+        </label>
+        ${(() => {
+          let pz = {S:{vk:10.5,teig:1.2},M:{vk:12.9,teig:1.8},L:{vk:14.9,teig:2.3},XL:{vk:17.9,teig:3.0}};
+          try { const v=localStorage.getItem('psc_pizza_groessen'); if(v) pz=JSON.parse(v); } catch(_) {}
+          return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:#fff8f6">
+              <th style="padding:8px 10px;text-align:left;color:#5a403c;font-weight:700;border-bottom:1.5px solid #e3beb8">Größe</th>
+              <th style="padding:8px 10px;text-align:right;color:#5a403c;font-weight:700;border-bottom:1.5px solid #e3beb8">VK-Preis (€)</th>
+              <th style="padding:8px 10px;text-align:right;color:#5a403c;font-weight:700;border-bottom:1.5px solid #e3beb8">Teig/Mat. (€)</th>
+              <th style="padding:8px 10px;text-align:right;color:#5a403c;font-weight:700;border-bottom:1.5px solid #e3beb8">Rohertrag</th>
+            </tr></thead>
+            <tbody>${['S','M','L','XL'].map(sz => {
+              const rohe = (pz[sz]?.vk||0) - (pz[sz]?.teig||0);
+              const marge = pz[sz]?.vk > 0 ? Math.round((rohe/(pz[sz]?.vk||1))*100) : 0;
+              return `<tr style="border-bottom:1px solid #f0e4e1">
+                <td style="padding:8px 10px;font-weight:800;color:#610000;font-size:15px">${sz}</td>
+                <td style="padding:8px 10px;text-align:right"><input type="number" id="pz-vk-${sz}" value="${pz[sz]?.vk||''}" min="0" step="0.10" style="width:75px;padding:5px 8px;border:1.5px solid #e3beb8;border-radius:7px;font-size:13px;font-weight:700;text-align:right;font-family:inherit;outline:none" oninput="settingsPizzaGroessenUpdate()" onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/></td>
+                <td style="padding:8px 10px;text-align:right"><input type="number" id="pz-teig-${sz}" value="${pz[sz]?.teig||''}" min="0" step="0.10" style="width:75px;padding:5px 8px;border:1.5px solid #e3beb8;border-radius:7px;font-size:13px;text-align:right;font-family:inherit;outline:none" oninput="settingsPizzaGroessenUpdate()" onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/></td>
+                <td id="pz-marge-${sz}" style="padding:8px 10px;text-align:right;font-weight:700;color:${marge>=65?'#2e7d32':marge>=45?'#e65100':'#b52619'}">${marge}%</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table></div>
+          <p style="font-size:11px;color:#8d6562;margin:6px 0 0">Im Speisekarte-Tab → Neues Gericht → Größe auswählen übernimmt VK automatisch.</p>`;
+        })()}
+      </div>
+
       <!-- Personalkosten-Alarm Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15271,6 +15326,16 @@ function saveApiKey() {
   const monatsziel = parseFloat(document.getElementById('settings-monatsziel')?.value || '0');
   if (tagesziel > 0) _safeLocalSet('psc_tagesziel', String(tagesziel));
   if (monatsziel > 0) { _safeLocalSet('psc_monatsziel', String(monatsziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
+  // Pizza-Größen speichern
+  const pzSizes = ['S','M','L','XL'];
+  const pzData = {}; let pzHasVal = false;
+  pzSizes.forEach(sz => {
+    const vk   = parseFloat(document.getElementById('pz-vk-'+sz)?.value||'0')||0;
+    const teig = parseFloat(document.getElementById('pz-teig-'+sz)?.value||'0')||0;
+    pzData[sz] = {vk, teig};
+    if (vk > 0) pzHasVal = true;
+  });
+  if (pzHasVal) { try { localStorage.setItem('psc_pizza_groessen', JSON.stringify(pzData)); } catch(_) {} }
   // Personalkosten-Alarm speichern
   const palPct = parseFloat(document.getElementById('s-personal-alarm-pct')?.value || '35');
   if (palPct > 0) _safeLocalSet('psc_personal_alarm_pct', String(palPct));
@@ -15291,6 +15356,15 @@ function saveApiKey() {
   _showToast('Einstellungen gespeichert ✓', 'success');
   // Schichtzeiten zu Notion syncen
   schichtzeitenNotionSync(szData);
+}
+function settingsPizzaGroessenUpdate() {
+  ['S','M','L','XL'].forEach(sz => {
+    const vk   = parseFloat(document.getElementById('pz-vk-'+sz)?.value||'0')||0;
+    const teig = parseFloat(document.getElementById('pz-teig-'+sz)?.value||'0')||0;
+    const marge = vk > 0 ? Math.round(((vk-teig)/vk)*100) : 0;
+    const el = document.getElementById('pz-marge-'+sz);
+    if (el) { el.textContent = marge + '%'; el.style.color = marge>=65?'#2e7d32':marge>=45?'#e65100':'#b52619'; }
+  });
 }
 function settingsFixkostenUpdate() {
   const keys = ['miete','strom','versicherung','buchhaltung','sonstige'];
