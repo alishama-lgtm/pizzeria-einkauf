@@ -15145,6 +15145,27 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:0">Mit Cloudflare Tunnel ist die App von überall via HTTPS erreichbar — kein Router nötig.</p>
       </div>
 
+      <!-- Passwort ändern Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🔑</span> Business-Passwort ändern
+        </label>
+        <input type="password" id="s-pw-current" placeholder="Aktuelles Passwort"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:8px"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+        <input type="password" id="s-pw-new" placeholder="Neues Passwort (mind. 4 Zeichen)"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:8px"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+        <input type="password" id="s-pw-confirm" placeholder="Neues Passwort bestätigen"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:8px"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+        <div id="s-pw-msg" style="font-size:12px;margin-bottom:6px;display:none"></div>
+        <button onclick="settingsChangePw()"
+          style="padding:9px 20px;background:#610000;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+          Passwort ändern
+        </button>
+      </div>
+
       <div style="display:flex;gap:10px">
         <button onclick="saveApiKey()" style="flex:1;background:#610000;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>
         ${hasKey?`<button onclick="clearApiKey()" style="padding:13px 16px;background:#ffdad6;color:#93000a;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Löschen</button>`:''}
@@ -15216,6 +15237,20 @@ function settingsFixkostenUpdate() {
   const dayEl = document.getElementById('fk-day');
   if (sumEl) sumEl.textContent = sum.toFixed(2).replace('.',',') + ' €';
   if (dayEl) dayEl.textContent = (sum/30).toFixed(2).replace('.',',') + ' €/Tag';
+}
+function settingsChangePw() {
+  const cur = (document.getElementById('s-pw-current')?.value||'').trim();
+  const nw  = (document.getElementById('s-pw-new')?.value||'').trim();
+  const cnf = (document.getElementById('s-pw-confirm')?.value||'').trim();
+  const msg = document.getElementById('s-pw-msg');
+  const show = (t, ok) => { if (msg) { msg.textContent = t; msg.style.color = ok ? '#386a20' : '#ba1a1a'; msg.style.display = 'block'; } };
+  if (!cur || !nw || !cnf) { show('Alle Felder ausfüllen', false); return; }
+  if (bizHash(cur) !== bizGetPwHash()) { show('Aktuelles Passwort falsch', false); return; }
+  if (nw.length < 4) { show('Neues Passwort mind. 4 Zeichen', false); return; }
+  if (nw !== cnf) { show('Passwörter stimmen nicht überein', false); return; }
+  _safeLocalSet(BIZ_PW_KEY, bizHash(nw));
+  show('✅ Passwort geändert!', true);
+  ['s-pw-current','s-pw-new','s-pw-confirm'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 }
 async function schichtzeitenNotionSync(szData) {
   try {
