@@ -1462,8 +1462,48 @@
       /* Footer ausblenden */
       #app-footer { display: none !important; }
 
-      /* Header kompakter */
-      #app-header .header-inner { padding: 0 10px !important; }
+      /* Header Mobile — kompakt & sauber */
+      #app-header { height: 54px !important; }
+      #app-header .header-inner { padding: 0 10px !important; height: 54px !important; gap: 6px !important; }
+
+      /* Logo kleiner */
+      .header-logo-icon { font-size: 22px !important; }
+      .header-logo-text { font-size: 14px !important; }
+      .header-logo { gap: 7px !important; }
+
+      /* Right-Side: engere Abstände */
+      .header-right { gap: 4px !important; }
+
+      /* Role Badge: nur Text, kein Padding */
+      #role-badge { padding: 3px 8px !important; font-size: 11px !important; }
+
+      /* Abmelden: nur Icon, kein Text */
+      #logout-btn { padding: 6px !important; min-width: 0 !important; border: none !important; background: none !important; }
+      #logout-btn span.material-symbols-outlined { font-size: 20px !important; color: #5a403c; }
+      #logout-btn::after { content: none !important; }
+
+      /* "Abmelden" Text verstecken, nur Icon */
+      #logout-btn { font-size: 0 !important; }
+      #logout-btn .material-symbols-outlined { font-size: 20px !important; }
+
+      /* Lager-Warnung: nur Icon + Zahl */
+      #header-badge { padding: 4px 8px !important; font-size: 11px !important; }
+      #header-badge .material-symbols-outlined { font-size: 14px !important; }
+      #header-badge-text { display: none !important; }
+
+      /* Server Status: nur Dot, kein Label */
+      #srv-label { display: none !important; }
+      #server-status-badge { padding: 4px 6px !important; gap: 0 !important; }
+
+      /* Einkauf Button: nur Icon */
+      #einkauf-log-btn { padding: 7px 9px !important; font-size: 0 !important; }
+      #einkauf-log-btn .material-symbols-outlined { font-size: 20px !important; }
+
+      /* Business Button: auf Mobile ausblenden (über Nav erreichbar) */
+      #biz-header-btn { display: none !important; }
+
+      /* Sync Status: ausblenden */
+      #sync-status { display: none !important; }
 
       /* Mehr-Drawer runder */
       #mehr-drawer { border-radius: 28px 28px 0 0 !important; }
