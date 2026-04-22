@@ -14988,6 +14988,37 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:0">Google API Key (<code>GOOGLE_PLACES_API_KEY</code>) muss in der <strong>.env</strong> Datei gesetzt sein.</p>
       </div>
 
+      <!-- Schichtzeiten Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🕐</span> Öffnungszeiten pro Wochentag
+        </label>
+        ${(() => {
+          const SZ_DEFAULT = {Mo:{von:'11:00',bis:'23:00',ruhetag:false},Di:{von:'11:00',bis:'23:00',ruhetag:false},Mi:{von:'11:00',bis:'23:00',ruhetag:false},Do:{von:'11:00',bis:'23:00',ruhetag:false},Fr:{von:'11:00',bis:'23:00',ruhetag:false},Sa:{von:'11:00',bis:'23:00',ruhetag:false},So:{von:'11:00',bis:'23:00',ruhetag:false}};
+          let sz = SZ_DEFAULT;
+          try { sz = JSON.parse(localStorage.getItem('psc_schichtzeiten')||'null') || SZ_DEFAULT; } catch(_) {}
+          const days = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+          const dayNames = {Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
+          return days.map(d => {
+            const cfg = sz[d] || {von:'11:00',bis:'23:00',ruhetag:false};
+            return `<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f5ede8">
+              <span style="font-size:12px;font-weight:700;color:#5a403c;width:28px;flex-shrink:0">${d}</span>
+              <label style="display:flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0">
+                <input type="checkbox" id="sz-rh-${d}" ${cfg.ruhetag?'checked':''} onchange="(function(el){var row=document.getElementById('sz-row-${d}');if(row)row.style.opacity=el.checked?'0.3':'1';row.querySelectorAll('input[type=time]').forEach(function(i){i.disabled=el.checked;});})(this)" style="accent-color:#610000;width:14px;height:14px">
+                <span style="font-size:11px;color:#8d6562">Ruhetag</span>
+              </label>
+              <div id="sz-row-${d}" style="display:flex;align-items:center;gap:6px;flex:1;opacity:${cfg.ruhetag?'0.3':'1'}">
+                <input type="time" id="sz-von-${d}" value="${cfg.von||'11:00'}" ${cfg.ruhetag?'disabled':''} style="padding:5px 8px;border:1.5px solid #e3beb8;border-radius:8px;font-size:12px;color:#261816;background:#fff;font-family:inherit;width:90px" onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'">
+                <span style="font-size:11px;color:#8d6562">–</span>
+                <input type="time" id="sz-bis-${d}" value="${cfg.bis||'23:00'}" ${cfg.ruhetag?'disabled':''} style="padding:5px 8px;border:1.5px solid #e3beb8;border-radius:8px;font-size:12px;color:#261816;background:#fff;font-family:inherit;width:90px" onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'">
+                <span style="font-size:11px;color:#9e6b62">Uhr</span>
+              </div>
+            </div>`;
+          }).join('');
+        })()}
+        <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Wird im Dienstplan und HACCP angezeigt. AT-Feiertage werden automatisch markiert.</p>
+      </div>
+
       <!-- Externer Zugriff (Cloudflare Tunnel) -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -15026,10 +15057,38 @@ function saveApiKey() {
   if (notionPageVal) _safeLocalSet('pizzeria_notion_parent_id', notionPageVal);
   const googlePlaceId = document.getElementById('settings-google-place-id')?.value.trim();
   if (googlePlaceId) _safeLocalSet('psc_google_place_id', googlePlaceId);
+  // Schichtzeiten speichern
+  const szDays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const szData = {};
+  szDays.forEach(function(d) {
+    szData[d] = {
+      ruhetag: document.getElementById('sz-rh-'+d)?.checked || false,
+      von:     document.getElementById('sz-von-'+d)?.value || '11:00',
+      bis:     document.getElementById('sz-bis-'+d)?.value || '23:00'
+    };
+  });
+  _safeLocalSet('psc_schichtzeiten', JSON.stringify(szData));
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
-  _showToast('API Key gespeichert', 'success');
+  _showToast('Einstellungen gespeichert ✓', 'success');
+  // Schichtzeiten zu Notion syncen
+  schichtzeitenNotionSync(szData);
+}
+async function schichtzeitenNotionSync(szData) {
+  try {
+    const notionKey = localStorage.getItem('pizzeria_notion_key');
+    if (!notionKey) return;
+    const dayNames = {Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
+    const lines = Object.entries(szData).map(([d, cfg]) =>
+      `${dayNames[d]}: ${cfg.ruhetag ? '🔴 Ruhetag' : '🟢 ' + (cfg.von||'11:00') + ' – ' + (cfg.bis||'23:00') + ' Uhr'}`
+    ).join('\n');
+    await fetch('/api/notion/schichtzeiten', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ schichtzeiten: szData, text: lines })
+    });
+  } catch(_) {}
 }
 
 function clearApiKey() {
@@ -15072,10 +15131,39 @@ function showCloudflareTunnelInfo() {
 // ═══════════════════════════════════════════════════════════════
 // PHASE 2 — DIENSTPLAN
 // ═══════════════════════════════════════════════════════════════
+// Österreichische Feiertage (fixes Datum + beweglich bis 2030)
+const AT_FEIERTAGE = {
+  '2026-01-01':'Neujahr','2026-01-06':'Heilige Drei Könige',
+  '2026-04-06':'Ostermontag','2026-05-01':'Staatsfeiertag',
+  '2026-05-14':'Christi Himmelfahrt','2026-05-25':'Pfingstmontag',
+  '2026-06-04':'Fronleichnam','2026-08-15':'Mariä Himmelfahrt',
+  '2026-10-26':'Nationalfeiertag','2026-11-01':'Allerheiligen',
+  '2026-12-08':'Mariä Empfängnis','2026-12-25':'Weihnachten','2026-12-26':'Stefanitag',
+  '2027-01-01':'Neujahr','2027-01-06':'Heilige Drei Könige',
+  '2027-03-29':'Ostermontag','2027-05-01':'Staatsfeiertag',
+  '2027-05-06':'Christi Himmelfahrt','2027-05-17':'Pfingstmontag',
+  '2027-05-27':'Fronleichnam','2027-08-15':'Mariä Himmelfahrt',
+  '2027-10-26':'Nationalfeiertag','2027-11-01':'Allerheiligen',
+  '2027-12-08':'Mariä Empfängnis','2027-12-25':'Weihnachten','2027-12-26':'Stefanitag'
+};
+function getSchichtForDay(dateObj) {
+  let sz = null;
+  try { sz = JSON.parse(localStorage.getItem('psc_schichtzeiten')||'null'); } catch(_) {}
+  const dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const dayKey = dayNames[dateObj.getDay()];
+  const cfg = sz && sz[dayKey];
+  if (!cfg) return { label: '11:00 – 23:00', ruhetag: false };
+  if (cfg.ruhetag) return { label: 'Ruhetag', ruhetag: true };
+  return { label: (cfg.von||'11:00') + ' – ' + (cfg.bis||'23:00'), ruhetag: false };
+}
 function renderDienstplanTab() {
   const p = document.getElementById('panel-dienstplan');
   const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
-  const SCHICHT = '11:00 – 23:00';
+  // Schichtzeit für heute / aktuelle Woche
+  const SCHICHT = (() => {
+    const todaySchicht = getSchichtForDay(monday);
+    return todaySchicht.ruhetag ? 'Ruhetag' : todaySchicht.label + ' Uhr';
+  })();
 
   // Mitarbeiter aus localStorage laden
   let mitarbeiter = [];
@@ -15117,10 +15205,18 @@ function renderDienstplanTab() {
 
   const dayHeaders = `<th style="padding:8px;font-size:13px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6;min-width:120px">Mitarbeiter</th>`
     + DAYS.map((day,i) => {
-      const isToday = weekDates[i].toDateString() === new Date().toDateString();
-      return `<th style="padding:8px 4px;font-size:12px;font-weight:700;border:1px solid #e3beb8;text-align:center;background:${isToday?'#fff0ee':'#fff8f6'};min-width:90px">
-        <div style="color:${isToday?'#8B0000':'#261816'}">${day}</div>
-        <div style="font-weight:400;color:#9e6b62;font-size:11px">${fmt(weekDates[i])}</div>
+      const dateObj   = weekDates[i];
+      const isToday   = dateObj.toDateString() === new Date().toDateString();
+      const isoDate   = dateObj.toISOString().slice(0,10);
+      const feiertag  = AT_FEIERTAGE[isoDate] || null;
+      const schicht   = getSchichtForDay(dateObj);
+      const bgColor   = feiertag ? '#fff8e1' : schicht.ruhetag ? '#f5f5f5' : isToday ? '#fff0ee' : '#fff8f6';
+      const textColor = feiertag ? '#b45309' : schicht.ruhetag ? '#9e9e9e' : isToday ? '#8B0000' : '#261816';
+      return `<th style="padding:8px 4px;font-size:12px;font-weight:700;border:1px solid #e3beb8;text-align:center;background:${bgColor};min-width:90px">
+        <div style="color:${textColor}">${day}</div>
+        <div style="font-weight:400;color:#9e6b62;font-size:11px">${fmt(dateObj)}</div>
+        ${feiertag ? `<div style="font-size:9px;color:#b45309;font-weight:700;margin-top:2px">🎉 ${feiertag}</div>` : ''}
+        ${schicht.ruhetag ? `<div style="font-size:9px;color:#9e9e9e;font-weight:600;margin-top:2px">Ruhetag</div>` : `<div style="font-size:9px;color:#9e6b62;margin-top:2px">🕐 ${schicht.label}</div>`}
       </th>`;
     }).join('');
 
@@ -15163,7 +15259,7 @@ function renderDienstplanTab() {
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 14px;background:${color};border-radius:12px">
             <span style="font-size:20px">${icon}</span>
             <span style="font-size:16px;font-weight:800;color:#fff">${rolle}</span>
-            <span style="font-size:12px;color:rgba(255,255,255,0.85);margin-left:auto">🕐 ${SCHICHT} Uhr</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.85);margin-left:auto">🕐 ${SCHICHT}</span>
           </div>
           <div style="overflow-x:auto;border-radius:10px;border:1px solid #e3beb8">
             <table style="border-collapse:collapse;width:100%;min-width:600px">

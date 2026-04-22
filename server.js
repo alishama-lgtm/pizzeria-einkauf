@@ -707,6 +707,43 @@ app.post('/api/notion/aufgaben', express.json(), async (req, res) => {
   }
 });
 
+// POST /api/notion/schichtzeiten — Öffnungszeiten in Notion speichern/updaten
+app.post('/api/notion/schichtzeiten', express.json(), async (req, res) => {
+  try {
+    const { schichtzeiten, text } = req.body;
+    const apiKey = process.env.NOTION_API_KEY;
+    const parentId = process.env.NOTION_PARENT_PAGE_ID;
+    if (!apiKey) return res.status(400).json({ error: 'NOTION_API_KEY fehlt in .env' });
+    const title = 'Öffnungszeiten — Pizzeria San Carino';
+    const headers = { 'Authorization': `Bearer ${apiKey}`, 'Notion-Version': '2022-06-28', 'Content-Type': 'application/json' };
+    const dayNames = {Mo:'Montag',Di:'Dienstag',Mi:'Mittwoch',Do:'Donnerstag',Fr:'Freitag',Sa:'Samstag',So:'Sonntag'};
+    const blocks = [
+      { object:'block', type:'heading_2', heading_2:{ rich_text:[{ type:'text', text:{ content:'Wöchentliche Öffnungszeiten' } }] } },
+      ...Object.entries(schichtzeiten||{}).map(([d, cfg]) => ({
+        object:'block', type:'paragraph',
+        paragraph:{ rich_text:[{ type:'text', text:{ content: (dayNames[d]||d) + ': ' + (cfg.ruhetag ? '🔴 Ruhetag' : '🟢 ' + (cfg.von||'11:00') + ' – ' + (cfg.bis||'23:00') + ' Uhr') } }] }
+      })),
+      { object:'block', type:'paragraph', paragraph:{ rich_text:[{ type:'text', text:{ content:'Zuletzt aktualisiert: ' + new Date().toLocaleDateString('de-AT') } }] } }
+    ];
+    const searchResp = await axios.post('https://api.notion.com/v1/search', { query: title, filter: { value:'page', property:'object' } }, { headers });
+    const existing = searchResp.data.results?.[0];
+    if (existing) {
+      const childResp = await axios.get(`https://api.notion.com/v1/blocks/${existing.id}/children`, { headers });
+      for (const block of (childResp.data.results||[])) {
+        await axios.delete(`https://api.notion.com/v1/blocks/${block.id}`, { headers }).catch(() => {});
+      }
+      await axios.patch(`https://api.notion.com/v1/blocks/${existing.id}/children`, { children: blocks }, { headers });
+      res.json({ success: true, page_id: existing.id, action: 'updated' });
+    } else {
+      const parent = parentId ? { page_id: parentId } : { workspace: true };
+      const createResp = await axios.post('https://api.notion.com/v1/pages', { parent, properties: { title: [{ type:'text', text:{ content: title } }] }, children: blocks }, { headers });
+      res.json({ success: true, page_id: createResp.data.id, action: 'created' });
+    }
+  } catch(e) {
+    res.status(500).json({ error: e.response?.data?.message || e.message });
+  }
+});
+
 // POST /api/gmail/draft — Gmail Entwurf (benötigt Gmail OAuth — fällt auf mailto zurück)
 app.post('/api/gmail/draft', express.json(), async (_req, res) => {
   res.status(503).json({ error: 'Gmail API nicht konfiguriert — bitte mailto-Fallback nutzen' });
