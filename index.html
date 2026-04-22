@@ -15211,6 +15211,30 @@ function openSettings() {
         })()}
       </div>
 
+      <!-- Mindestbestand Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">📦</span> Mindestbestand — Standardwerte pro Kategorie
+        </label>
+        ${(() => {
+          const KATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Reinigung','Verpackung','Sonstiges'];
+          let mb = {}; try { const v=localStorage.getItem('psc_mindest_defaults'); if(v) mb=JSON.parse(v); } catch(_) {}
+          return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+            ${KATS.map(k => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid #e3beb8;border-radius:8px;background:#fff8f6">
+              <span style="font-size:12px;color:#5a403c">${k}</span>
+              <input type="number" id="mb-${k.replace(/[^a-z0-9]/gi,'_')}" min="0" step="1"
+                value="${mb[k]!==undefined?mb[k]:5}"
+                style="width:55px;padding:4px 8px;border:1.5px solid #e3beb8;border-radius:6px;font-size:13px;font-weight:700;text-align:center;font-family:inherit;outline:none"
+                onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+            </div>`).join('')}
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button onclick="lagerMindestDefaults()" style="padding:7px 16px;background:#610000;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Auf alle Lagerartikel anwenden</button>
+          </div>
+          <p style="font-size:11px;color:#8d6562;margin:6px 0 0">Standard-Alarm-Grenze bei neuen Artikeln. "Anwenden" setzt Grenzen bei bestehenden Artikeln ohne individuelle Werte.</p>`;
+        })()}
+      </div>
+
       <!-- Pizza-Größen Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15326,6 +15350,15 @@ function saveApiKey() {
   const monatsziel = parseFloat(document.getElementById('settings-monatsziel')?.value || '0');
   if (tagesziel > 0) _safeLocalSet('psc_tagesziel', String(tagesziel));
   if (monatsziel > 0) { _safeLocalSet('psc_monatsziel', String(monatsziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
+  // Mindestbestand-Defaults speichern
+  const MBKATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Reinigung','Verpackung','Sonstiges'];
+  const mbData = {}; let mbHasVal = false;
+  MBKATS.forEach(k => {
+    const id = 'mb-' + k.replace(/[^a-z0-9]/gi,'_');
+    const v = parseFloat(document.getElementById(id)?.value||'0');
+    if (!isNaN(v) && v >= 0) { mbData[k] = v; mbHasVal = true; }
+  });
+  if (mbHasVal) { try { localStorage.setItem('psc_mindest_defaults', JSON.stringify(mbData)); } catch(_) {} }
   // Pizza-Größen speichern
   const pzSizes = ['S','M','L','XL'];
   const pzData = {}; let pzHasVal = false;
@@ -15356,6 +15389,31 @@ function saveApiKey() {
   _showToast('Einstellungen gespeichert ✓', 'success');
   // Schichtzeiten zu Notion syncen
   schichtzeitenNotionSync(szData);
+}
+function lagerMindestDefaults() {
+  const KATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Reinigung','Verpackung','Sonstiges'];
+  let mb = {}; try { const v=localStorage.getItem('psc_mindest_defaults'); if(v) mb=JSON.parse(v); } catch(_) {}
+  // Erst speichern (aus Form lesen falls gerade offen)
+  KATS.forEach(k => {
+    const id = 'mb-' + k.replace(/[^a-z0-9]/gi,'_');
+    const el = document.getElementById(id);
+    if (el) { const v=parseFloat(el.value); if(!isNaN(v)&&v>=0) mb[k]=v; }
+  });
+  if (Object.keys(mb).length) { try { localStorage.setItem('psc_mindest_defaults', JSON.stringify(mb)); } catch(_) {} }
+  // Auf Lagerartikel anwenden (nur wenn kein individueller Wert gesetzt, d.h. == 5 (default) oder 0)
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  let updated = 0;
+  lager = lager.map(a => {
+    const def = mb[a.kategorie];
+    if (def !== undefined && (a.mindest === 5 || a.mindest === 0 || a.mindest === undefined)) {
+      updated++;
+      return { ...a, mindest: def };
+    }
+    return a;
+  });
+  try { localStorage.setItem('pizzeria_lager', JSON.stringify(lager)); } catch(_) {}
+  _showToast(updated + ' Lagerartikel aktualisiert', 'success');
+  if (typeof renderLagerTab === 'function') renderLagerTab();
 }
 function settingsPizzaGroessenUpdate() {
   ['S','M','L','XL'].forEach(sz => {
