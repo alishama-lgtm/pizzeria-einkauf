@@ -712,6 +712,41 @@ app.post('/api/gmail/draft', express.json(), async (_req, res) => {
   res.status(503).json({ error: 'Gmail API nicht konfiguriert — bitte mailto-Fallback nutzen' });
 });
 
+// GET /api/google-bewertungen?place_id=... — Google Reviews via Places API
+app.get('/api/google-bewertungen', async (req, res) => {
+  const placeId = req.query.place_id;
+  if (!placeId) return res.status(400).json({ error: 'place_id Parameter fehlt' });
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GOOGLE_PLACES_API_KEY fehlt in .env' });
+  try {
+    const resp = await axios.get('https://maps.googleapis.com/maps/api/place/details/json', {
+      params: {
+        place_id: placeId,
+        fields: 'reviews,rating,user_ratings_total,name',
+        key: apiKey,
+        language: 'de'
+      }
+    });
+    if (resp.data.status !== 'OK') {
+      return res.status(400).json({ error: resp.data.status + ': ' + (resp.data.error_message || 'Ungültige Place ID oder API Key') });
+    }
+    const result = resp.data.result || {};
+    const reviews = (result.reviews || []).map(r => ({
+      autor: r.author_name || '',
+      datum: new Date(r.time * 1000).toISOString().slice(0, 10),
+      sterne: r.rating || 0,
+      text: r.text || '',
+      titel: '',
+      plattform: 'google',
+      geantwortet: !!(r.owner_response?.text),
+      antwortText: r.owner_response?.text || ''
+    }));
+    res.json({ reviews, rating: result.rating || 0, total: result.user_ratings_total || 0, name: result.name || '' });
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data?.error_message || e.message });
+  }
+});
+
 // POST /api/claude-vision — OCR Rechnung via Anthropic API
 app.post('/api/claude-vision', express.json({ limit: '15mb' }), async (req, res) => {
   const { image, mimeType } = req.body;

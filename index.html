@@ -14916,6 +14916,19 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Design-Stil wird sofort angewendet und gespeichert.</p>
       </div>
 
+      <!-- Google Bewertungen Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:18px">⭐</span> Google Bewertungen
+        </label>
+        <input id="settings-google-place-id" type="text" placeholder="Google Place ID (z.B. ChIJ...)"
+          value="${localStorage.getItem('psc_google_place_id')||''}"
+          style="width:100%;padding:10px 14px;border:1.5px solid ${localStorage.getItem('psc_google_place_id')?'#a5d6a7':'#e3beb8'};border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none;margin-bottom:6px"
+          onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='${localStorage.getItem('psc_google_place_id')?'#a5d6a7':'#e3beb8'}'"/>
+        <p style="font-size:11px;color:#8d6562;margin:0 0 6px">Google Place ID deiner Pizzeria — findest du auf <strong>developers.google.com/maps/documentation/javascript/examples/places-placeid-finder</strong></p>
+        <p style="font-size:11px;color:#8d6562;margin:0">Google API Key (<code>GOOGLE_PLACES_API_KEY</code>) muss in der <strong>.env</strong> Datei gesetzt sein.</p>
+      </div>
+
       <!-- Externer Zugriff (Cloudflare Tunnel) -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -14952,6 +14965,8 @@ function saveApiKey() {
   if (notionVal && !notionVal.startsWith('•')) { _safeLocalSet('pizzeria_notion_key', notionVal); }
   const notionPageVal = document.getElementById('notion-page-input')?.value.trim();
   if (notionPageVal) _safeLocalSet('pizzeria_notion_parent_id', notionPageVal);
+  const googlePlaceId = document.getElementById('settings-google-place-id')?.value.trim();
+  if (googlePlaceId) _safeLocalSet('psc_google_place_id', googlePlaceId);
   document.getElementById('settings-modal')?.remove();
   const btn = document.getElementById('settings-btn');
   if (btn) btn.title = 'Einstellungen (API Key gesetzt ✓)';
@@ -16473,8 +16488,13 @@ function renderBewertungenTab() {
     var last30 = list.filter(function(b){ return (b.datum||'') >= cutoffStr; });
     var avg30 = last30.length ? (last30.reduce(function(s,b){ return s + (b.sterne||0); },0)/last30.length).toFixed(1) : '–';
 
-    var html = _pageHdr('reviews', 'Bewertungs-Manager', total + ' Bewertungen · Ø ' + avg + ' ⭐',
-      '<button onclick="bwNeu()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>');
+    var googlePlaceId = localStorage.getItem('psc_google_place_id') || '';
+    var headerBtns = '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    headerBtns += '<button onclick="bwGoogleSync()" class="ws-btn ws-btn-sm" style="display:flex;align-items:center;gap:5px" title="' + (googlePlaceId ? 'Google Bewertungen laden' : 'Zuerst Place ID in Einstellungen setzen') + '">';
+    headerBtns += '<span style="font-size:15px">⭐</span>Google laden</button>';
+    headerBtns += '<button onclick="bwNeu()" class="ws-btn ws-btn-primary ws-btn-sm"><span class="material-symbols-outlined">add</span>Neu</button>';
+    headerBtns += '</div>';
+    var html = _pageHdr('reviews', 'Bewertungs-Manager', total + ' Bewertungen · Ø ' + avg + ' ⭐', headerBtns);
 
     html += '<div id="bw-form-area"></div>';
 
@@ -16493,6 +16513,28 @@ function renderBewertungenTab() {
     html += '<div style="font-size:28px;font-weight:900;color:' + (unbeantwortet>0?'#c62828':'#2e7d32') + '">' + unbeantwortet + '</div>';
     html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Unbeantwortet</div></div>';
     html += '</div>';
+
+    // ── Google Reviews Aktions-Banner ──
+    if (googlePlaceId) {
+      var reviewUrl = 'https://search.google.com/local/reviews?placeid=' + encodeURIComponent(googlePlaceId);
+      var writeUrl  = 'https://search.google.com/local/writereview?placeid=' + encodeURIComponent(googlePlaceId);
+      html += '<div id="bw-google-banner" style="background:linear-gradient(135deg,#e8f0fe,#fff);border:1.5px solid #9fc3f8;border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+      html += '<div style="display:flex;align-items:center;gap:10px">';
+      html += '<span style="font-size:22px">🔵</span>';
+      html += '<div><div style="font-size:13px;font-weight:700;color:#1a237e">Google Bewertungen verbunden</div>';
+      html += '<div style="font-size:11px;color:#5c6bc0">Place ID: ' + escHtml(googlePlaceId.slice(0,20)) + (googlePlaceId.length>20?'…':'') + '</div></div>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+      html += '<button onclick="bwGoogleSync()" id="bw-google-sync-btn" class="ws-btn ws-btn-sm" style="background:#1a73e8;color:#fff;border-color:#1a73e8"><span class="material-symbols-outlined" style="font-size:15px">sync</span>Jetzt laden</button>';
+      html += '<a href="' + escHtml(reviewUrl) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;border:1.5px solid #9fc3f8;background:#fff;color:#1a73e8;font-size:12px;font-weight:700;text-decoration:none">📋 Alle anzeigen</a>';
+      html += '<a href="' + escHtml(writeUrl) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;border:1.5px solid #9fc3f8;background:#fff;color:#1a73e8;font-size:12px;font-weight:700;text-decoration:none">✏️ Bewertung schreiben</a>';
+      html += '</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="background:#fff8f0;border:1.5px dashed #ffe082;border-radius:14px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#7a6460">';
+      html += '⭐ <strong>Google-Sync verfügbar:</strong> Google Place ID in ⚙️ Einstellungen eintragen um Bewertungen automatisch zu laden.';
+      html += '</div>';
+    }
 
     // ── Sterne-Verteilung ──
     if (total > 0) {
@@ -16688,6 +16730,47 @@ function bwLoeschen(id) {
     _showToast('Bewertung gelöscht', 'success');
     renderBewertungenTab();
   });
+}
+
+// Google Bewertungen laden und importieren
+async function bwGoogleSync() {
+  var placeId = localStorage.getItem('psc_google_place_id') || '';
+  if (!placeId) {
+    _showToast('Google Place ID fehlt → ⚙️ Einstellungen öffnen', 'error');
+    openSettings();
+    return;
+  }
+  var btn = document.getElementById('bw-google-sync-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;animation:spin 1s linear infinite">sync</span>Lädt…'; }
+  try {
+    var resp = await fetch('/api/google-bewertungen?place_id=' + encodeURIComponent(placeId));
+    var data = await resp.json();
+    if (!resp.ok) {
+      _showToast('Google Fehler: ' + (data.error || resp.status), 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px">sync</span>Jetzt laden'; }
+      return;
+    }
+    var list = bwLoad();
+    // Duplikat-Erkennung: gleicher Autor + Datum + Sterne (Google hat keine stabilen IDs)
+    var neu = 0, doppelt = 0;
+    (data.reviews || []).forEach(function(r) {
+      var exists = list.some(function(b) {
+        return b.plattform === 'google' && b.autor === r.autor && b.datum === r.datum && b.sterne === r.sterne;
+      });
+      if (exists) { doppelt++; return; }
+      r.id = bwGenId();
+      list.push(r);
+      neu++;
+    });
+    bwSave(list);
+    var msg = neu + ' neue Bewertung' + (neu !== 1 ? 'en' : '') + ' importiert';
+    if (doppelt > 0) msg += ' (' + doppelt + ' bereits vorhanden)';
+    _showToast(msg, neu > 0 ? 'success' : 'info');
+    renderBewertungenTab();
+  } catch(e) {
+    _showToast('Verbindungsfehler: ' + (e.message || 'Unbekannt'), 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px">sync</span>Jetzt laden'; }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -261,6 +261,19 @@ node server.js        # → http://localhost:8080
 | S14-7 | **Rezept-Manager** | ✅ In Speisekarte-Tab, Zutaten-Ampel, Fehlmaterial-Button |
 | S14-9 | **Cloudflare Tunnel** | ✅ ANLEITUNG/cloudflare-tunnel.md + Modal in Einstellungen |
 
+## Session 15 (2026-04-22) — Was gebaut wurde ✅
+
+- **Google-Bewertungen automatisch** ✅ — Bewertungen-Tab mit Google Places API
+  - Server-Endpoint `GET /api/google-bewertungen?place_id=...` (server.js)
+  - Google Place ID Eingabe im Einstellungen-Modal (⚙️)
+  - Gespeichert in `psc_google_place_id` (localStorage)
+  - "Von Google laden" Button im Tab-Header
+  - `bwGoogleSync()`: async fetch → Duplikat-Erkennung (Autor + Datum + Sterne) → Import
+  - Google-Banner wenn Place ID konfiguriert: "Jetzt laden", "Alle anzeigen", "Bewertung schreiben" Links
+  - Hinweis-Banner wenn Place ID fehlt
+  - `GOOGLE_PLACES_API_KEY` muss in `.env` gesetzt werden
+  - Letzter Syntax-Check: OK
+
 ## Session 14 — KOMPLETT ABGESCHLOSSEN (2026-04-21)
 
 ### Alle Features:
@@ -282,7 +295,7 @@ node server.js        # → http://localhost:8080
 ### 🟢 Niedrig (zukünftige Sessions)
 - **n8n Workflows** installieren und aktivieren
 - **Gmail OAuth** für echte Gmail-Drafts (statt mailto: Fallback)
-- **Google-Bewertungen** automatisch im Bewertungen-Tab
+- **Google-Bewertungen** ✅ automatisch im Bewertungen-Tab (Session 15)
 
 ---
 
