@@ -84,6 +84,23 @@ db.exec(`
     created_at   TEXT DEFAULT (date('now'))
   )
 `);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS kassenbuch (
+    id           TEXT PRIMARY KEY,
+    datum        TEXT NOT NULL,
+    typ          TEXT NOT NULL,
+    beschreibung TEXT NOT NULL,
+    netto        REAL NOT NULL DEFAULT 0,
+    mwst_satz    REAL NOT NULL DEFAULT 0,
+    mwst_betrag  REAL NOT NULL DEFAULT 0,
+    brutto       REAL NOT NULL DEFAULT 0,
+    created_at   TEXT DEFAULT (datetime('now'))
+  )
+`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_kb_datum ON kassenbuch(datum)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_kb_typ   ON kassenbuch(typ)');
+console.log('  SQLite Kassenbuch bereit');
+
 const phInsert = db.prepare(`
   INSERT INTO preishistorie (produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle)
   VALUES ($produkt_id, $produkt, $preis, $normalpreis, $shop, $shop_id, $datum, $quelle)
@@ -1209,6 +1226,72 @@ app.post('/api/printer/bon', express.json(), async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// ── Kassenbuch API ────────────────────────────────────────────────────────────
+app.get('/api/kassenbuch', (req, res) => {
+  try {
+    const { von, bis } = req.query;
+    let sql = 'SELECT * FROM kassenbuch';
+    const params = [];
+    if (von && bis) { sql += ' WHERE datum >= ? AND datum <= ?'; params.push(von, bis + 'T23:59:59'); }
+    else if (von)   { sql += ' WHERE datum >= ?'; params.push(von); }
+    sql += ' ORDER BY datum DESC';
+    const rows = db.prepare(sql).all(...params);
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/kassenbuch', express.json(), (req, res) => {
+  try {
+    const e = req.body;
+    if (!e || !e.typ || !e.beschreibung) return res.status(400).json({ error: 'Fehlende Felder' });
+    const id = e.id || Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+    db.prepare(`INSERT OR REPLACE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto)
+      VALUES (?,?,?,?,?,?,?,?)`).run(
+      id,
+      e.datum || new Date().toISOString(),
+      e.typ,
+      e.beschreibung,
+      parseFloat(e.netto) || 0,
+      parseFloat(e.mwst_satz) || 0,
+      parseFloat(e.mwst_betrag) || 0,
+      parseFloat(e.brutto) || 0
+    );
+    res.json({ ok: true, id });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/kassenbuch/:id', (req, res) => {
+  try {
+    db.prepare('DELETE FROM kassenbuch WHERE id = ?').run(req.params.id);
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/kassenbuch/migrate', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const list = req.body;
+    if (!Array.isArray(list)) return res.status(400).json({ error: 'Array erwartet' });
+    const ins = db.prepare(`INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto)
+      VALUES (?,?,?,?,?,?,?,?)`);
+    let count = 0;
+    for (const e of list) {
+      if (!e.typ || !e.beschreibung) continue;
+      ins.run(
+        e.id || Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+        e.datum || new Date().toISOString(),
+        e.typ, e.beschreibung,
+        parseFloat(e.netto) || 0,
+        parseFloat(e.mwst_satz) || 0,
+        parseFloat(e.mwst_betrag) || 0,
+        parseFloat(e.brutto) || 0
+      );
+      count++;
+    }
+    console.log(`  Kassenbuch Migration: ${count} Einträge importiert`);
+    res.json({ ok: true, count });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── Backup API ────────────────────────────────────────────────────────────────

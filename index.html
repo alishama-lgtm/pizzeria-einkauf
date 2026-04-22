@@ -3752,7 +3752,7 @@ async function syncTagesberichtNotion() {
   const datum = new Date().toLocaleDateString('de-AT');
   let einnahmen = 0, ausgaben = 0;
   try {
-    const kb = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]');
+    const kb = kbGet();
     kb.forEach(e => {
       const d = (e.datum||'').slice(0,10);
       if (d === today) {
@@ -8930,7 +8930,7 @@ function renderHeuteTab() {
   // ── Kassenbuch Schnell-Karte ──
   let kbEin=0, kbAus=0;
   try {
-    const kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]');
+    const kbAll = kbGet();
     const todayStr = new Date().toISOString().slice(0,10);
     kbAll.forEach(e => {
       if ((e.datum||'').slice(0,10)===todayStr) {
@@ -9007,22 +9007,22 @@ function renderHeuteTab() {
   panel.innerHTML = html;
 }
 
-function heuteKbQuickAdd() {
+async function heuteKbQuickAdd() {
   const typ    = document.getElementById('heute-kb-typ')?.value || 'einnahme';
   const desc   = document.getElementById('heute-kb-desc')?.value.trim();
   const betrag = parseFloat(document.getElementById('heute-kb-betrag')?.value || 0);
   if (!desc) { _showToast('Bitte Beschreibung eingeben', 'error'); return; }
   if (betrag <= 0) { _showToast('Bitte Betrag eingeben', 'error'); return; }
-  let list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
-  list.push({ id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: (betrag/1.1).toFixed(2), mwst_satz: 10, mwst_betrag: (betrag-betrag/1.1).toFixed(2), brutto: betrag.toFixed(2) });
-  _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list));
+  const entry = { id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: (betrag/1.1).toFixed(2), mwst_satz: 10, mwst_betrag: (betrag-betrag/1.1).toFixed(2), brutto: betrag.toFixed(2) };
+  try { await fetch('/api/kassenbuch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(entry) }); } catch(_) {}
+  await kbSync();
   _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' '+betrag.toFixed(2)+' € gespeichert ✓', 'success');
   renderHeuteTab();
 }
 
 function tagesabschlussErstellen() {
   var datum = new Date().toISOString().slice(0,10);
-  var kbAll = []; try { kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var kbAll = []; try { kbAll = kbGet(); } catch(_) {}
   var einnahmen = kbAll.filter(function(e){ return (e.datum||'').slice(0,10)===datum && e.typ==='einnahme'; }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); },0);
   var ausgaben  = kbAll.filter(function(e){ return (e.datum||'').slice(0,10)===datum && e.typ==='ausgabe';  }).reduce(function(s,e){ return s+parseFloat(e.brutto||0); },0);
   var saldo = einnahmen - ausgaben;
@@ -13166,7 +13166,7 @@ function renderDashboardTab() {
     // Kassenbuch KPIs
     let kbEinH=0, kbAusH=0, kbEinM=0, kbAusM=0;
     try {
-      const kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]');
+      const kbAll = kbGet();
       const thisMonth = today.slice(0,7);
       kbAll.forEach(e => {
         const d=(e.datum||'').slice(0,10), m=(e.datum||'').slice(0,7);
@@ -14897,6 +14897,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Login-Screen anzeigen (default)
   // Auto-Backup prüfen (nach 2s damit Login nicht blockiert wird)
   setTimeout(appAutoBackupCheck, 2000);
+  // Kassenbuch: Migration + initialer Sync
+  setTimeout(async () => { await kbMigrateIfNeeded(); await kbSync(); }, 1500);
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -19435,7 +19437,7 @@ function buchDropHandler(e) {
 function monatsabschlussPdf() {
   if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
   var monat = document.getElementById('kb-abschluss-monat')?.value || new Date().toISOString().slice(0,7);
-  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var list = []; try { list = kbGet(); } catch(_) {}
   var filtered = list.filter(function(e){ return (e.datum||'').slice(0,7) === monat; });
   if (!filtered.length) { _showToast('Keine Buchungen für ' + monat, 'warning'); return; }
 
@@ -19565,7 +19567,42 @@ function kbMwstUpdate() {
   var el = document.getElementById('kb-brutto');
   if (el) el.value = brutto.toFixed(2).replace('.',',') + ' €';
 }
-function kassenbuchAdd() {
+// ── Kassenbuch Server-Cache ──────────────────────────────────────────────────
+window._KB = [];
+async function kbSync() {
+  try {
+    const r = await fetch('/api/kassenbuch');
+    if (r.ok) {
+      window._KB = await r.json();
+      // localStorage aktuell halten als Fallback
+      try { localStorage.setItem('pizzeria_kassenbuch', JSON.stringify(window._KB)); } catch(_) {}
+    }
+  } catch(_) {
+    // Offline-Fallback: aus localStorage laden
+    try { window._KB = kbGet(); } catch(_) {}
+  }
+}
+function kbGet() {
+  // Immer aus Cache — kbSync() muss vorher aufgerufen worden sein
+  if (window._KB && window._KB.length > 0) return window._KB;
+  try { return kbGet(); } catch(_) { return []; }
+}
+async function kbMigrateIfNeeded() {
+  if (localStorage.getItem('psc_kb_migrated')) return;
+  const local = [];
+  try { const v = localStorage.getItem('pizzeria_kassenbuch'); if (v) local.push(...JSON.parse(v)); } catch(_) {}
+  if (!local.length) { localStorage.setItem('psc_kb_migrated','1'); return; }
+  try {
+    const r = await fetch('/api/kassenbuch/migrate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(local) });
+    const j = await r.json();
+    if (j.ok) {
+      localStorage.setItem('psc_kb_migrated','1');
+      console.log('Kassenbuch migriert:', j.count, 'Einträge');
+      await kbSync();
+    }
+  } catch(_) {}
+}
+async function kassenbuchAdd() {
   var typ   = document.getElementById('kb-typ')?.value;
   var desc  = document.getElementById('kb-desc')?.value.trim();
   var netto = parseFloat(document.getElementById('kb-netto')?.value||0)||0;
@@ -19573,21 +19610,23 @@ function kassenbuchAdd() {
   if (!desc) { _showToast('Bitte Beschreibung eingeben', 'error'); return; }
   if (netto <= 0) { _showToast('Bitte Netto-Betrag eingeben', 'error'); return; }
   var brutto = netto * (1 + satz/100);
-  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
-  list.push({ id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: netto.toFixed(2), mwst_satz: satz, mwst_betrag: (brutto-netto).toFixed(2), brutto: brutto.toFixed(2) });
-  _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list));
+  var entry = { id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: netto.toFixed(2), mwst_satz: satz, mwst_betrag: (brutto-netto).toFixed(2), brutto: brutto.toFixed(2) };
+  try {
+    await fetch('/api/kassenbuch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(entry) });
+  } catch(_) {}
+  await kbSync();
   _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' gespeichert ✓', 'success');
   renderBuchhaltungTab();
 }
 function kassenbuchLoeschen(id) {
-  _showConfirm('Eintrag wirklich löschen?', function() {
-    var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
-    _safeLocalSet('pizzeria_kassenbuch', JSON.stringify(list.filter(function(e){return e.id!==id;})));
+  _showConfirm('Eintrag wirklich löschen?', async function() {
+    try { await fetch('/api/kassenbuch/' + id, { method:'DELETE' }); } catch(_) {}
+    await kbSync();
     renderBuchhaltungTab();
   });
 }
 function kassenbuchCsvExport() {
-  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var list = []; try { list = kbGet(); } catch(_) {}
   if (!list.length) { _showToast('Keine Einträge', 'info'); return; }
   var rows = ['Datum;Typ;Beschreibung;Netto;MwSt%;MwSt-Betrag;Brutto'];
   list.forEach(function(e) {
@@ -19597,7 +19636,7 @@ function kassenbuchCsvExport() {
   var a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='kassenbuch_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
 }
 function kassenbuchPdfExport() {
-  var list = []; try { list = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var list = []; try { list = kbGet(); } catch(_) {}
   if (!list.length) { _showToast('Keine Einträge', 'info'); return; }
   if (!window.jspdf?.jsPDF) { _showToast('jsPDF nicht geladen', 'error'); return; }
   var doc = new window.jspdf.jsPDF();
@@ -19611,12 +19650,13 @@ function kassenbuchPdfExport() {
 }
 
 // ── Render ──
-function renderBuchhaltungTab() {
+async function renderBuchhaltungTab() {
   var panel = document.getElementById('panel-buchhaltung');
   if (!panel) return;
+  await kbSync();
 
   // ── Kassenbuch-Daten ──
-  var kbAll = []; try { kbAll = JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) {}
+  var kbAll = kbGet();
   var today = new Date().toISOString().slice(0,10);
   var thisMonth = today.slice(0,7);
   var kbToday = kbAll.filter(function(e){return (e.datum||'').slice(0,10)===today;});
