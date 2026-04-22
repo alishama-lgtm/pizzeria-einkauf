@@ -15211,6 +15211,33 @@ function openSettings() {
         })()}
       </div>
 
+      <!-- Drucker Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🖨️</span> Bondrucker-Einstellungen
+        </label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px;align-items:end">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#5a403c;margin-bottom:4px">IP-Adresse</div>
+            <input id="s-drucker-ip" type="text" placeholder="192.168.1.100"
+              value="${localStorage.getItem('psc_drucker_ip')||''}"
+              style="width:100%;padding:9px 12px;border:1.5px solid #e3beb8;border-radius:9px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none"
+              onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#5a403c;margin-bottom:4px">Port</div>
+            <input id="s-drucker-port" type="number" placeholder="9100" value="${localStorage.getItem('psc_drucker_port')||'9100'}"
+              style="width:75px;padding:9px 10px;border:1.5px solid #e3beb8;border-radius:9px;font-size:13px;font-family:monospace;color:#261816;background:#fff;text-align:center;outline:none"
+              onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
+          </div>
+        </div>
+        <div id="drucker-test-status" style="font-size:12px;margin-bottom:8px;display:none"></div>
+        <div style="display:flex;gap:8px">
+          <button onclick="druckerTest()" style="padding:8px 16px;background:#f3ebe9;color:#610000;border:1.5px solid #e3beb8;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🖨️ Test drucken</button>
+        </div>
+        <p style="font-size:11px;color:#8d6562;margin:6px 0 0">ESC/POS Drucker im lokalen Netzwerk (z.B. Epson TM-T20, Star TSP). Standard-Port: 9100.</p>
+      </div>
+
       <!-- Mindestbestand Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15350,6 +15377,10 @@ function saveApiKey() {
   const monatsziel = parseFloat(document.getElementById('settings-monatsziel')?.value || '0');
   if (tagesziel > 0) _safeLocalSet('psc_tagesziel', String(tagesziel));
   if (monatsziel > 0) { _safeLocalSet('psc_monatsziel', String(monatsziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
+  // Drucker-Einstellungen speichern
+  const druckerIp = (document.getElementById('s-drucker-ip')?.value||'').trim();
+  const druckerPort = (document.getElementById('s-drucker-port')?.value||'9100').trim();
+  if (druckerIp) { _safeLocalSet('psc_drucker_ip', druckerIp); _safeLocalSet('psc_drucker_port', druckerPort || '9100'); }
   // Mindestbestand-Defaults speichern
   const MBKATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Reinigung','Verpackung','Sonstiges'];
   const mbData = {}; let mbHasVal = false;
@@ -15389,6 +15420,40 @@ function saveApiKey() {
   _showToast('Einstellungen gespeichert ✓', 'success');
   // Schichtzeiten zu Notion syncen
   schichtzeitenNotionSync(szData);
+}
+async function druckerTest() {
+  const statusEl = document.getElementById('drucker-test-status');
+  const ip   = (document.getElementById('s-drucker-ip')?.value || localStorage.getItem('psc_drucker_ip') || '').trim();
+  const port = parseInt(document.getElementById('s-drucker-port')?.value || localStorage.getItem('psc_drucker_port') || '9100');
+  if (!ip) { if (statusEl) { statusEl.textContent = '❌ Bitte IP-Adresse eingeben'; statusEl.style.color='#ba1a1a'; statusEl.style.display='block'; } return; }
+  if (statusEl) { statusEl.textContent = '⏳ Verbinde mit ' + ip + ':' + port + '…'; statusEl.style.color='#5a403c'; statusEl.style.display='block'; }
+  try {
+    const r = await fetch('/api/printer/test', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip,port}) });
+    const j = await r.json();
+    if (j.ok) {
+      if (statusEl) { statusEl.textContent = '✅ Testdruck gesendet an ' + ip + ':' + port; statusEl.style.color='#386a20'; }
+      _showToast('Testdruck gesendet ✓', 'success');
+    } else {
+      if (statusEl) { statusEl.textContent = '❌ ' + (j.error||'Druckfehler'); statusEl.style.color='#ba1a1a'; }
+      _showToast('Druckfehler: ' + (j.error||'unbekannt'), 'error');
+    }
+  } catch(err) {
+    if (statusEl) { statusEl.textContent = '❌ Server-Fehler: ' + err.message; statusEl.style.color='#ba1a1a'; }
+  }
+}
+async function druckerSendBon(lines) {
+  const ip   = localStorage.getItem('psc_drucker_ip') || '';
+  const port = parseInt(localStorage.getItem('psc_drucker_port') || '9100');
+  if (!ip) { _showToast('Drucker-IP nicht konfiguriert — Einstellungen ⚙️', 'error'); return false; }
+  try {
+    const r = await fetch('/api/printer/bon', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ip,port,lines}) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error||'Druckfehler');
+    return true;
+  } catch(err) {
+    _showToast('Druckfehler: ' + err.message, 'error');
+    return false;
+  }
 }
 function lagerMindestDefaults() {
   const KATS = ['Grundzutaten','Käse','Belag','Fleisch & Fisch','Getränke','Reinigung','Verpackung','Sonstiges'];

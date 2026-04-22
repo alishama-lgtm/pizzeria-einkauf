@@ -1140,6 +1140,77 @@ function getLocalIP() {
   return '127.0.0.1';
 }
 
+// ── Drucker API (ESC/POS über TCP) ────────────────────────────────────────────
+import net from 'net';
+
+function escposSend(ip, port, data) {
+  return new Promise((resolve, reject) => {
+    const client = new net.Socket();
+    const timeout = setTimeout(() => { client.destroy(); reject(new Error('Timeout (5s)')); }, 5000);
+    client.connect(port, ip, () => {
+      client.write(data, () => {
+        clearTimeout(timeout);
+        client.end();
+        resolve();
+      });
+    });
+    client.on('error', err => { clearTimeout(timeout); reject(err); });
+  });
+}
+
+function escposTestPage(storeName) {
+  const ESC = 0x1B, GS = 0x1D;
+  const INIT    = Buffer.from([ESC, 0x40]);
+  const BOLD_ON = Buffer.from([ESC, 0x45, 0x01]);
+  const BOLD_OFF= Buffer.from([ESC, 0x45, 0x00]);
+  const CENTER  = Buffer.from([ESC, 0x61, 0x01]);
+  const LEFT    = Buffer.from([ESC, 0x61, 0x00]);
+  const CUT     = Buffer.from([GS, 0x56, 0x00]);
+  const now = new Date().toLocaleString('de-AT');
+  const line = '--------------------------------\n';
+  return Buffer.concat([
+    INIT, CENTER, BOLD_ON,
+    Buffer.from(storeName + '\n', 'utf8'),
+    BOLD_OFF,
+    Buffer.from('Testdruck\n', 'utf8'),
+    Buffer.from(line, 'utf8'),
+    LEFT,
+    Buffer.from(now + '\n', 'utf8'),
+    Buffer.from('Drucker OK\n\n\n', 'utf8'),
+    CUT
+  ]);
+}
+
+app.post('/api/printer/test', express.json(), async (req, res) => {
+  const { ip, port = 9100 } = req.body || {};
+  if (!ip) return res.status(400).json({ error: 'IP fehlt' });
+  try {
+    await escposSend(ip, parseInt(port), escposTestPage('Pizzeria San Carino'));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/printer/bon', express.json(), async (req, res) => {
+  const { ip, port = 9100, lines = [] } = req.body || {};
+  if (!ip) return res.status(400).json({ error: 'IP fehlt' });
+  try {
+    const ESC = 0x1B, GS = 0x1D;
+    const INIT  = Buffer.from([ESC, 0x40]);
+    const CUT   = Buffer.from([GS, 0x56, 0x00]);
+    const parts = [INIT];
+    for (const ln of lines) {
+      parts.push(Buffer.from(String(ln) + '\n', 'utf8'));
+    }
+    parts.push(Buffer.from('\n\n'), CUT);
+    await escposSend(ip, parseInt(port), Buffer.concat(parts));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ── Backup API ────────────────────────────────────────────────────────────────
 const BACKUP_DIR = path.join(__dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
