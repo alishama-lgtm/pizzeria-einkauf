@@ -13309,34 +13309,51 @@ function renderDashboardTab() {
 
     html += `</div>`; // Ende 2-Spalten-Grid
 
-    // ── BEREICH 5: Umsatz heute (nur Admin/Manager) ──
+    // ── BEREICH 5: Umsatz-Ziele (nur Admin/Manager) ──
     if (isAdminOrManager) {
-      const pctM = umsatzZiel > 0 ? Math.round(umsatzMonat / umsatzZiel * 100) : 0;
+      const tagesziel  = parseFloat(localStorage.getItem('psc_tagesziel')||'0') || 0;
+      const monatsziel = parseFloat(localStorage.getItem('psc_monatsziel') || localStorage.getItem('pizzeria_umsatz_ziel')||'0') || 0;
+      // Kassenbuch als primäre Quelle, Umsatz-Einnahmen als Fallback
+      const einnahmenH = kbEinH > 0 ? kbEinH : umsatzHeute;
+      const einnahmenM = kbEinM > 0 ? kbEinM : umsatzMonat;
+      const pctT = tagesziel  > 0 ? Math.min(100, Math.round(einnahmenH / tagesziel  * 100)) : 0;
+      const pctM = monatsziel > 0 ? Math.min(100, Math.round(einnahmenM / monatsziel * 100)) : 0;
+      const tColor = barColor(pctT);
       const mColor = barColor(pctM);
+      const progressBar = (pct, color, label, ist, ziel) => `
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <span style="font-size:12px;font-weight:700;color:#5a403c">${label}</span>
+            <span style="font-size:12px;font-weight:800;color:${color}">${pct}%</span>
+          </div>
+          <div style="height:12px;border-radius:6px;background:#f0e4e1;overflow:hidden;margin-bottom:4px">
+            <div style="height:100%;border-radius:6px;background:${color};width:${pct}%;transition:width .5s ease"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#8d6562">
+            <span><strong style="color:#261816">${fmt2(ist)} €</strong> erreicht</span>
+            <span>Ziel: <strong>${fmt2(ziel)} €</strong></span>
+          </div>
+        </div>`;
       html += `<div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:20px;margin-bottom:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <h3 style="font-size:14px;font-weight:800;color:#261816;margin:0;display:flex;align-items:center;gap:6px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#610000">euro</span>Umsatz heute
+            <span style="font-size:18px">🎯</span> Umsatz-Ziele
           </h3>
-          <button onclick="switchTab('umsatz')" style="padding:6px 12px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:12px;font-weight:700;color:#610000;cursor:pointer">Eintragen</button>
+          <button onclick="switchTab('umsatz')" style="padding:6px 12px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:12px;font-weight:700;color:#610000;cursor:pointer">+ Eintragen</button>
         </div>
-        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-          <div style="flex:1;min-width:110px;background:#fff8f6;border-radius:12px;padding:12px;border:1px solid #e3beb8;text-align:center">
-            <div style="font-size:10px;font-weight:700;color:#8d6562;margin-bottom:4px;text-transform:uppercase">Heute gesamt</div>
-            <div style="font-size:22px;font-weight:900;color:#261816">${fmt2(umsatzHeute)} €</div>
-          </div>
-          <div style="flex:1;min-width:110px;background:#fff8f6;border-radius:12px;padding:12px;border:1px solid #e3beb8;text-align:center">
-            <div style="font-size:10px;font-weight:700;color:#8d6562;margin-bottom:4px;text-transform:uppercase">Monat</div>
-            <div style="font-size:22px;font-weight:900;color:#261816">${fmt2(umsatzMonat)} €</div>
-          </div>
-        </div>
-        ${umsatzZiel > 0 ? `<div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#8d6562;margin-bottom:6px">
-            <span>Monatsziel: ${fmt2(umsatzZiel)} €</span>
-            <span style="color:${mColor}">${pctM}%</span>
-          </div>
-          ${bar(pctM, mColor)}
-        </div>` : '<div style="font-size:12px;color:#6b6b6b;text-align:center;padding:4px 0">Kein Monatsziel gesetzt</div>'}
+        ${tagesziel > 0
+          ? progressBar(pctT, tColor, '📅 Tagesziel', einnahmenH, tagesziel)
+          : `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff8f6;border-radius:10px;margin-bottom:12px">
+              <span style="font-size:13px;color:#5a403c">Heute</span>
+              <span style="font-size:20px;font-weight:900;color:#261816">${fmt2(einnahmenH)} €</span>
+             </div>`}
+        ${monatsziel > 0
+          ? progressBar(pctM, mColor, '📆 Monatsziel', einnahmenM, monatsziel)
+          : `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff8f6;border-radius:10px">
+              <span style="font-size:13px;color:#5a403c">Dieser Monat</span>
+              <span style="font-size:20px;font-weight:900;color:#261816">${fmt2(einnahmenM)} €</span>
+             </div>`}
+        ${(tagesziel === 0 || monatsziel === 0) ? `<div style="font-size:11px;color:#8d6562;text-align:center;margin-top:8px;cursor:pointer" onclick="openSettings()">⚙️ Ziele in Einstellungen setzen</div>` : ''}
       </div>`;
     }
 
@@ -14988,6 +15005,32 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:0">Google API Key (<code>GOOGLE_PLACES_API_KEY</code>) muss in der <strong>.env</strong> Datei gesetzt sein.</p>
       </div>
 
+      <!-- Umsatz-Ziele Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🎯</span> Umsatz-Ziele
+        </label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Tagesziel (€)</label>
+            <input type="number" id="settings-tagesziel" min="0" step="50"
+              value="${localStorage.getItem('psc_tagesziel')||''}"
+              placeholder="z.B. 800"
+              style="width:100%;padding:10px 12px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;color:#261816;background:#fff;box-sizing:border-box;outline:none"
+              onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#5a403c;display:block;margin-bottom:4px">Monatsziel (€)</label>
+            <input type="number" id="settings-monatsziel" min="0" step="500"
+              value="${localStorage.getItem('psc_monatsziel') || localStorage.getItem('pizzeria_umsatz_ziel') || ''}"
+              placeholder="z.B. 20000"
+              style="width:100%;padding:10px 12px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;color:#261816;background:#fff;box-sizing:border-box;outline:none"
+              onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'">
+          </div>
+        </div>
+        <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Wird als Fortschrittsbalken im Dashboard angezeigt.</p>
+      </div>
+
       <!-- Schichtzeiten Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15057,6 +15100,11 @@ function saveApiKey() {
   if (notionPageVal) _safeLocalSet('pizzeria_notion_parent_id', notionPageVal);
   const googlePlaceId = document.getElementById('settings-google-place-id')?.value.trim();
   if (googlePlaceId) _safeLocalSet('psc_google_place_id', googlePlaceId);
+  // Umsatz-Ziele speichern
+  const tagesziel = parseFloat(document.getElementById('settings-tagesziel')?.value || '0');
+  const monatsziel = parseFloat(document.getElementById('settings-monatsziel')?.value || '0');
+  if (tagesziel > 0) { _safeLocalSet('psc_tagesziel', String(tagesziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
+  if (monatsziel > 0) { _safeLocalSet('psc_monatsziel', String(monatsziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
   // Schichtzeiten speichern
   const szDays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
   const szData = {};
