@@ -292,10 +292,29 @@ node server.js        # → http://localhost:8080
 - `pizzeria_rezepte` — Rezepte `[{id,name,kategorie,portionen,zutaten:[{produkt,menge,einheit}],notizen,erstellt}]`
 - `pizzeria_tagesberichte` — Tagesabschlüsse `[{id,datum,einnahmen,ausgaben,saldo,kassenschnitt_differenz,offene_aufgaben,fehlmaterial,erstellt}]`
 
+### 🔴 NÄCHSTE SESSION — Turso Cloud-Datenbank (Option B)
+
+**Ziel:** Gleicher Datenstand auf allen PCs (Laptop + Pizzeria-PC)
+
+**Was Ali zuhause macht (5 Min):**
+1. `winget install tur.so` — Turso CLI installieren
+2. `turso auth signup` — Account erstellen (Browser öffnet sich)
+3. `turso db create pizzeria-san-carino` — DB erstellen
+4. `turso db show pizzeria-san-carino --url` → URL kopieren
+5. `turso db tokens create pizzeria-san-carino` → Token kopieren
+6. URL + Token an Claude Code geben
+
+**Was Claude dann macht:**
+- server.js: `node:sqlite` → `@libsql/client` (Turso)
+- Alle localStorage-Daten (Mitarbeiter, Kassenbuch, Dienstplan, Lager, Aufgaben) → Server-API → Turso Cloud
+- Frontend: localStorage-Calls → API-Calls
+- `.env`: `TURSO_URL` + `TURSO_TOKEN` hinzufügen
+
+**Ergebnis:** Egal auf welchem PC — immer dieselben Daten.
+
 ### 🟢 Niedrig (zukünftige Sessions)
 - **n8n Workflows** installieren und aktivieren
 - **Gmail OAuth** für echte Gmail-Drafts (statt mailto: Fallback)
-- **Google-Bewertungen** ✅ automatisch im Bewertungen-Tab (Session 15)
 
 ---
 
