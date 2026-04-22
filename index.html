@@ -14477,9 +14477,14 @@ function renderLieferantenTab() {
               <span style="font-size:11px;background:#e8f5e9;color:#2e7d32;border-radius:6px;padding:2px 8px;font-weight:700">${escHtml(lf.kat||'')}</span>
             </div>
             <div style="color:#c9a227;font-size:13px;margin-bottom:6px">${stars}</div>
-            ${lf.tel?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">phone</span><a href="tel:${escHtml(lf.tel||'')}" style="color:#610000;text-decoration:none;font-weight:600">${escHtml(lf.tel)}</a></div>`:''}
-            ${lf.email?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">mail</span><a href="mailto:${escHtml(lf.email||'')}" style="color:#610000;text-decoration:none;font-weight:600">${escHtml(lf.email)}</a></div>`:''}
+            ${lf.tel?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">phone</span><span style="color:#5a403c;font-weight:600">${escHtml(lf.tel)}</span></div>`:''}
+            ${lf.mobil?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">smartphone</span><span style="color:#5a403c;font-weight:600">${escHtml(lf.mobil)}</span></div>`:''}
+            ${lf.email?`<div style="font-size:12px;color:#5a403c;margin-bottom:3px;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">mail</span><span style="color:#5a403c;font-weight:600">${escHtml(lf.email)}</span></div>`:''}
             ${lf.notiz?`<div style="font-size:12px;color:#8d6562;margin-top:6px;font-style:italic">${escHtml(lf.notiz)}</div>`:''}
+            ${(lf.tel||lf.mobil)?`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+              ${lf.tel?`<a href="tel:${escHtml(lf.tel)}" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:#2e7d32;color:#fff;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;font-family:inherit"><span class="material-symbols-outlined" style="font-size:16px">call</span>Anrufen</a>`:''}
+              ${(lf.mobil||lf.tel)?`<a href="${lfWaUrl(lf.mobil||lf.tel)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:#25D366;color:#fff;border-radius:10px;text-decoration:none;font-size:13px;font-weight:700;font-family:inherit">💬 WhatsApp</a>`:''}
+            </div>`:''}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
             <button onclick="lfBearbeiten('${lf.id}')" style="background:#fff0ee;border:none;border-radius:8px;padding:7px;cursor:pointer;line-height:0">
@@ -14538,6 +14543,13 @@ function renderLieferantenTab() {
 
 function lfNeu() { _lfShowForm(null); }
 function lfBearbeiten(id) { _lfShowForm(id); }
+function lfWaUrl(tel) {
+  let n = (tel||'').replace(/[\s\-\(\)\.]/g,'');
+  if (n.startsWith('+')) n = n.slice(1);
+  else if (n.startsWith('00')) n = n.slice(2);
+  else if (n.startsWith('0')) n = '43' + n.slice(1);
+  return 'https://wa.me/' + n + '?text=' + encodeURIComponent('Hallo, Pizzeria San Carino Wien — ');
+}
 
 // ── BESTELLUNGS-FUNKTIONEN ───────────────────────────────────────────────────
 function bestellRenderPos() {
@@ -14670,8 +14682,13 @@ function _lfShowForm(id) {
           </select>
         </div>
         <div>
-          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Telefon</label>
-          <input id="lf-f-tel" type="tel" value="${lf?escHtml(lf.tel||''):''}" placeholder="0800 ..."
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">Telefon (Büro/Zentrale)</label>
+          <input id="lf-f-tel" type="tel" value="${lf?escHtml(lf.tel||''):''}" placeholder="+43 1 ..."
+            style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#5a403c;display:block;margin-bottom:5px">📱 Mobil / WhatsApp</label>
+          <input id="lf-f-mobil" type="tel" value="${lf?escHtml(lf.mobil||''):''}" placeholder="+43 660 ..."
             style="width:100%;padding:11px 14px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;box-sizing:border-box"/>
         </div>
         <div>
@@ -14705,6 +14722,7 @@ function _lfSpeichern(id) {
     tel:       document.getElementById('lf-f-tel')?.value.trim(),
     email:     document.getElementById('lf-f-email')?.value.trim(),
     notiz:     document.getElementById('lf-f-notiz')?.value.trim(),
+    mobil:     document.getElementById('lf-f-mobil')?.value.trim(),
     farbe:     '#610000',
   };
   let list = lfLoad();
