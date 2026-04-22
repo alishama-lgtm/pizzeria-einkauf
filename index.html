@@ -13353,6 +13353,21 @@ function renderDashboardTab() {
               <span style="font-size:13px;color:#5a403c">Dieser Monat</span>
               <span style="font-size:20px;font-weight:900;color:#261816">${fmt2(einnahmenM)} €</span>
              </div>`}
+        ${(() => {
+          let fk = {miete:0,strom:0,versicherung:0,buchhaltung:0,sonstige:0};
+          try { const v=localStorage.getItem('biz_fixkosten'); if(v) fk=JSON.parse(v); } catch(_) {}
+          const fkSum = Object.values(fk).reduce((s,v)=>s+(parseFloat(v)||0),0);
+          const fkTag = fkSum/30;
+          if (fkSum > 0) {
+            const gewinnH = einnahmenH - fkTag;
+            const gewinnColor = gewinnH >= 0 ? '#2e7d32' : '#c62828';
+            return `<div style="border-top:1px solid #f0e4e1;margin-top:4px;padding-top:12px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12px;color:#8d6562">🏠 Fixkosten heute (${fmt2(fkTag)} €) abgezogen</span>
+              <span style="font-size:14px;font-weight:800;color:${gewinnColor}">${gewinnH >= 0 ? '+' : ''}${fmt2(gewinnH)} €</span>
+            </div>`;
+          }
+          return '';
+        })()}
         ${(tagesziel === 0 || monatsziel === 0) ? `<div style="font-size:11px;color:#8d6562;text-align:center;margin-top:8px;cursor:pointer" onclick="openSettings()">⚙️ Ziele in Einstellungen setzen</div>` : ''}
       </div>`;
     }
@@ -15031,6 +15046,45 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Wird als Fortschrittsbalken im Dashboard angezeigt.</p>
       </div>
 
+      <!-- Fixkosten Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🏠</span> Fixkosten (monatlich)
+        </label>
+        ${(() => {
+          let fix = {miete:0,strom:0,versicherung:0,buchhaltung:0,sonstige:0};
+          try { const v=localStorage.getItem('biz_fixkosten'); if(v) fix=JSON.parse(v); } catch(_) {}
+          return [
+            ['miete','Miete / Pacht','home'],
+            ['strom','Strom & Gas','bolt'],
+            ['versicherung','Versicherung','shield'],
+            ['buchhaltung','Buchhaltung','description'],
+            ['sonstige','Sonstiges','more_horiz']
+          ].map(([key,label,icon]) => `
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f5ede8">
+              <span class="material-symbols-outlined" style="font-size:16px;color:#8B0000;flex-shrink:0">${icon}</span>
+              <span style="font-size:12px;font-weight:600;color:#5a403c;flex:1">${label}</span>
+              <input type="number" id="fk-${key}" value="${fix[key]||''}" min="0" step="10" placeholder="0"
+                onchange="settingsFixkostenUpdate()"
+                style="width:90px;padding:6px 10px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-weight:700;color:#261816;text-align:right;font-family:inherit;outline:none"
+                onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'">
+              <span style="font-size:12px;color:#8d6562;flex-shrink:0">€/Monat</span>
+            </div>`).join('')
+          + `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 0">
+              <span style="font-size:12px;font-weight:700;color:#5a403c">Gesamt / Monat</span>
+              <span id="fk-sum" style="font-size:16px;font-weight:900;color:#610000">${
+                ['miete','strom','versicherung','buchhaltung','sonstige'].reduce((s,k)=>s+(parseFloat(fix[k])||0),0).toFixed(2).replace('.',',')
+              } €</span>
+            </div>
+            <div style="display:flex;justify-content:flex-end">
+              <span style="font-size:11px;color:#8d6562">= <span id="fk-day">${
+                (['miete','strom','versicherung','buchhaltung','sonstige'].reduce((s,k)=>s+(parseFloat(fix[k])||0),0)/30).toFixed(2).replace('.',',')
+              } €/Tag</span></span>
+            </div>`;
+        })()}
+        <p style="font-size:11px;color:#8d6562;margin:8px 0 0">Wird auch im Business-Tab und Dashboard verwendet.</p>
+      </div>
+
       <!-- Schichtzeiten Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15085,11 +15139,13 @@ function openSettings() {
 }
 
 function saveApiKey() {
+  // API Key — optional, nur speichern wenn neu eingegeben
   const val = document.getElementById('settings-api-key')?.value.trim();
-  if (!val || val.startsWith('•')) { _showToast('Bitte API Key eingeben.', 'error'); return; }
-  if (!val.startsWith('sk-ant-')) { _showToast('Ungültiges Format. Key muss mit "sk-ant-" beginnen.', 'error'); return; }
-  _safeLocalSet('pizzeria_api_key', val);
-  ANTHROPIC_API_KEY = val;
+  if (val && !val.startsWith('•')) {
+    if (!val.startsWith('sk-ant-')) { _showToast('Ungültiges API-Key Format. Muss mit "sk-ant-" beginnen.', 'error'); return; }
+    _safeLocalSet('pizzeria_api_key', val);
+    ANTHROPIC_API_KEY = val;
+  }
   const n8nUrl = document.getElementById('settings-n8n-url')?.value.trim();
   if (n8nUrl) _safeLocalSet('pizzeria_n8n_url', n8nUrl);
   const geminiVal = document.getElementById('settings-gemini-key')?.value.trim();
@@ -15100,10 +15156,22 @@ function saveApiKey() {
   if (notionPageVal) _safeLocalSet('pizzeria_notion_parent_id', notionPageVal);
   const googlePlaceId = document.getElementById('settings-google-place-id')?.value.trim();
   if (googlePlaceId) _safeLocalSet('psc_google_place_id', googlePlaceId);
+  // Fixkosten speichern
+  const fkKeys = ['miete','strom','versicherung','buchhaltung','sonstige'];
+  const fkData = {};
+  let fkHasVal = false;
+  fkKeys.forEach(function(k) {
+    const v = parseFloat(document.getElementById('fk-'+k)?.value || '0') || 0;
+    fkData[k] = v;
+    if (v > 0) fkHasVal = true;
+  });
+  if (fkHasVal) {
+    try { localStorage.setItem('biz_fixkosten', JSON.stringify(fkData)); } catch(_) {}
+  }
   // Umsatz-Ziele speichern
   const tagesziel = parseFloat(document.getElementById('settings-tagesziel')?.value || '0');
   const monatsziel = parseFloat(document.getElementById('settings-monatsziel')?.value || '0');
-  if (tagesziel > 0) { _safeLocalSet('psc_tagesziel', String(tagesziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
+  if (tagesziel > 0) _safeLocalSet('psc_tagesziel', String(tagesziel));
   if (monatsziel > 0) { _safeLocalSet('psc_monatsziel', String(monatsziel)); _safeLocalSet('pizzeria_umsatz_ziel', String(monatsziel)); }
   // Schichtzeiten speichern
   const szDays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
@@ -15122,6 +15190,14 @@ function saveApiKey() {
   _showToast('Einstellungen gespeichert ✓', 'success');
   // Schichtzeiten zu Notion syncen
   schichtzeitenNotionSync(szData);
+}
+function settingsFixkostenUpdate() {
+  const keys = ['miete','strom','versicherung','buchhaltung','sonstige'];
+  const sum = keys.reduce((s,k) => s + (parseFloat(document.getElementById('fk-'+k)?.value||'0')||0), 0);
+  const sumEl = document.getElementById('fk-sum');
+  const dayEl = document.getElementById('fk-day');
+  if (sumEl) sumEl.textContent = sum.toFixed(2).replace('.',',') + ' €';
+  if (dayEl) dayEl.textContent = (sum/30).toFixed(2).replace('.',',') + ' €/Tag';
 }
 async function schichtzeitenNotionSync(szData) {
   try {
