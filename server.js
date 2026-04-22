@@ -864,12 +864,14 @@ const RECHNUNGEN_DIR = path.join(DATENBANK_DIR, 'rechnungen');
 if (!fs.existsSync(RECHNUNGEN_DIR)) fs.mkdirSync(RECHNUNGEN_DIR, { recursive: true });
 if (!fs.existsSync(path.join(DATENBANK_DIR,'mitarbeiter'))) fs.mkdirSync(path.join(DATENBANK_DIR,'mitarbeiter'), { recursive: true });
 
+const GENERISCHE_WORTE = new Set([
+  'rechnung', 'rechnungnr', 'invoice', 'whatsapp', 'image', 'img',
+  'foto', 'photo', 'scan', 'dokument', 'document', 'file', 'datei', 'neu', 'new'
+]);
+
 function rechnungFromFile(dateiname) {
   const ext = path.extname(dateiname).toLowerCase().replace('.','');
-  // Lieferant aus Dateiname raten (z.B. "Metro_2026-04-19.pdf" → "Metro")
   const ohneExt = path.basename(dateiname, path.extname(dateiname));
-  const parts = ohneExt.split(/[_\-\s]+/);
-  const lieferant = parts[0] || '';
   // Datum aus Dateiname raten
   const datumMatch = ohneExt.match(/(\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4}|\d{8})/);
   let datum = new Date().toISOString().slice(0,10);
@@ -877,6 +879,9 @@ function rechnungFromFile(dateiname) {
     const d = datumMatch[1].replace(/\./g,'-');
     datum = d.length === 8 ? d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8) : d;
   }
+  // Lieferant: erstes Wort das kein generisches Wort und keine Zahl ist
+  const teile = ohneExt.split(/[_\-\s]+/);
+  const lieferant = teile.find(t => t.length > 1 && !GENERISCHE_WORTE.has(t.toLowerCase()) && !/^\d+$/.test(t)) || '';
   return { dateiname, lieferant, datum, typ: ext };
 }
 
@@ -1112,13 +1117,13 @@ app.post('/api/webhook/n8n', express.json(), (req, res) => {
 
     if (typ === 'preisupdate' && Array.isArray(daten)) {
       const stmt = db.prepare(`
-        INSERT INTO preisverlauf (produkt, shop, preis, einheit, datum, quelle)
-        VALUES (?, ?, ?, ?, ?, 'n8n')
+        INSERT INTO preishistorie (produkt, shop, preis, datum, quelle)
+        VALUES (?, ?, ?, ?, 'n8n')
       `);
       let count = 0;
       for (const p of daten) {
         if (p.produkt && p.shop && p.preis) {
-          stmt.run(p.produkt, p.shop, parseFloat(p.preis), p.einheit || 'Stk', p.datum || new Date().toISOString().slice(0,10));
+          stmt.run(p.produkt, p.shop, parseFloat(p.preis), p.datum || new Date().toISOString().slice(0,10));
           count++;
         }
       }
@@ -1126,20 +1131,29 @@ app.post('/api/webhook/n8n', express.json(), (req, res) => {
     }
 
     if (typ === 'kassenbuch' && Array.isArray(daten)) {
-      const kbKey = 'pizzeria_kassenbuch';
-      let existing = [];
-      try { existing = JSON.parse(db.prepare('SELECT value FROM app_data WHERE key=?').get(kbKey)?.value || '[]'); } catch(_) {}
+      const ins = db.prepare(`INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto)
+        VALUES (?,?,?,?,?,?,?,?)`);
+      let count = 0;
       for (const e of daten) {
-        if (!e.id) e.id = 'n8n-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
-        existing.push(e);
+        if (!e.typ || !e.beschreibung) continue;
+        ins.run(
+          e.id || Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+          e.datum || new Date().toISOString(),
+          e.typ, e.beschreibung,
+          parseFloat(e.netto) || 0,
+          parseFloat(e.mwst_satz) || 0,
+          parseFloat(e.mwst_betrag) || 0,
+          parseFloat(e.brutto) || 0
+        );
+        count++;
       }
-      db.prepare('INSERT OR REPLACE INTO app_data(key,value,updated_at) VALUES(?,?,?)').run(kbKey, JSON.stringify(existing), new Date().toISOString());
-      return res.json({ ok: true, typ, importiert: daten.length });
+      return res.json({ ok: true, typ, importiert: count });
     }
 
     // Generischer Fallback: Daten in app_data speichern
     const key = 'n8n_' + typ;
-    db.prepare('INSERT OR REPLACE INTO app_data(key,value,updated_at) VALUES(?,?,?)').run(key, JSON.stringify(daten), new Date().toISOString());
+    db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
+      .run(key, JSON.stringify(daten));
     res.json({ ok: true, typ, gespeichert: key });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1328,6 +1342,23 @@ app.get('/api/backup/list', (_req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Beim Start: app_data in syncStore laden (verhindert Datenverlust bei Neustart)
+try {
+  const rows = db.prepare('SELECT key, data FROM app_data').all();
+  for (const row of rows) {
+    if (SYNC_KEYS.includes(row.key)) {
+      try {
+        syncStore.set(row.key, {
+          data: JSON.parse(row.data),
+          timestamp: Date.now(),
+          updatedBy: 'server-start'
+        });
+      } catch(_) {}
+    }
+  }
+  if (rows.length > 0) console.log(`  syncStore: ${rows.length} Keys aus DB geladen`);
+} catch(e) { console.error('  syncStore Startup-Laden Fehler:', e.message); }
 
 // Inbox-Watcher mit WebSocket-Broadcast verbinden
 setBroadcast((msg) => {
