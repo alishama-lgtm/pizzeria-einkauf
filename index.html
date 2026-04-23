@@ -19906,46 +19906,93 @@ async function buchLieferantAnalyse(key, label) {
   const d = await r.json();
   if (!d.ok) { el.innerHTML = '<div style="color:#c62828;padding:12px">Fehler: ' + (d.error||'?') + '</div>'; return; }
 
-  const monatNamen = ['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  function monatLabel(m) {
-    if (!m || m==='—') return '—';
-    var p = m.split('-');
-    return p.length===2 ? monatNamen[parseInt(p[1])]||p[1]+' '+p[0] : m;
+  var MONAT_NAMEN = ['','Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  function formatDatum(monat) {
+    if (!monat || monat === '—') return '—';
+    var p = monat.split('-');
+    if (p.length === 2) {
+      var mn = parseInt(p[1]);
+      return (MONAT_NAMEN[mn] || p[1]) + ' ' + p[0];
+    }
+    return monat;
   }
+
+  var KATEGORIE_STYLE = {
+    rechnung:      { label: 'Rechnung',      bg: '#e3f2fd', color: '#1565c0' },
+    lohnzettel:    { label: 'Lohnzettel',    bg: '#f3e5f5', color: '#6a1b9a' },
+    ogk:           { label: 'ÖGK',           bg: '#e8f5e9', color: '#2e7d32' },
+    finanzamt:     { label: 'Finanzamt',     bg: '#fff3e0', color: '#e65100' },
+    zahlungsjournal:{ label: 'Zahlungsjournal', bg: '#fce4ec', color: '#880e4f' },
+    sonstige:      { label: 'Sonstige',      bg: '#f5f5f5', color: '#616161' },
+  };
+  function kategorieBadge(typ) {
+    var k = KATEGORIE_STYLE[typ] || KATEGORIE_STYLE.sonstige;
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:' + k.bg + ';color:' + k.color + '">' + k.label + '</span>';
+  }
+
+  // Gruppiere nach Kategorie
+  var gruppen = {};
+  d.dokumente.forEach(function(doc) {
+    var typ = doc.typ || 'sonstige';
+    if (!gruppen[typ]) gruppen[typ] = [];
+    gruppen[typ].push(doc);
+  });
 
   var gesamt = d.gesamt || 0;
   var html2 = '<div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:8px">';
-  html2 += '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
-  html2 += '<div><div style="font-size:14px;font-weight:800;color:var(--text)">🏪 ' + label + '</div>';
-  html2 += '<div style="font-size:11px;color:var(--text-3);margin-top:2px">' + d.dokumente.length + ' Rechnungen gefunden</div></div>';
-  html2 += '<div style="font-size:18px;font-weight:800;color:#c62828">Gesamt: € ' + gesamt.toFixed(2).replace('.',',') + '</div>';
+
+  // Header
+  html2 += '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html2 += '<div>';
+  html2 += '<div style="font-size:15px;font-weight:800;color:var(--text)">🏪 ' + label + '</div>';
+  html2 += '<div style="font-size:11px;color:var(--text-3);margin-top:3px">' + d.dokumente.length + ' Dokumente · neueste zuerst</div>';
+  html2 += '</div>';
+  html2 += '<div style="text-align:right">';
+  html2 += '<div style="font-size:20px;font-weight:800;color:#c62828">€ ' + gesamt.toFixed(2).replace('.',',') + '</div>';
+  html2 += '<div style="font-size:10px;color:var(--text-3)">Gesamtbetrag</div>';
+  html2 += '</div>';
   html2 += '</div>';
 
   if (d.dokumente.length === 0) {
     html2 += '<div style="padding:28px;text-align:center;color:var(--text-3);font-size:13px">Keine Dokumente gefunden</div>';
   } else {
-    html2 += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
-    html2 += '<thead><tr style="background:var(--bg)">';
-    ['Monat','Datei','Betrag',''].forEach(function(h){ html2+='<th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);white-space:nowrap">'+h+'</th>'; });
-    html2 += '</tr></thead><tbody>';
+    // Tabelle nach Kategorie gruppiert
+    var reihenfolge = ['rechnung','lohnzettel','ogk','finanzamt','zahlungsjournal','sonstige'];
+    reihenfolge.forEach(function(typ) {
+      if (!gruppen[typ] || gruppen[typ].length === 0) return;
+      var k = KATEGORIE_STYLE[typ] || KATEGORIE_STYLE.sonstige;
+      var gruppenSumme = gruppen[typ].reduce(function(s,e){ return s + (e.betrag||0); }, 0);
 
-    var sumCheck = 0;
-    d.dokumente.forEach(function(doc, i) {
-      var betrag = doc.betrag ? '€ '+doc.betrag.toFixed(2).replace('.',',') : '<span style="color:var(--text-3)">—</span>';
-      if (doc.betrag) sumCheck += doc.betrag;
-      html2 += '<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--surface)':'var(--bg)')+'">';
-      html2 += '<td style="padding:9px 14px;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">' + monatLabel(doc.monat) + ' ' + (doc.monat||'').split('-')[0] + '</td>';
-      html2 += '<td style="padding:9px 14px;font-size:12px;color:var(--text-2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_esc(doc.name)+'">' + _esc(doc.name) + '</td>';
-      html2 += '<td style="padding:9px 14px;font-size:13px;font-weight:700;color:'+(doc.betrag?'#2e7d32':'var(--text-3)')+'">'+betrag+'</td>';
-      html2 += '<td style="padding:9px 14px"><a href="/api/pdf/'+doc.id+'/view" target="_blank" style="font-size:11px;color:#1565c0;text-decoration:none;font-weight:700">Öffnen</a></td>';
-      html2 += '</tr>';
+      // Gruppen-Header
+      html2 += '<div style="padding:8px 20px;background:' + k.bg + ';border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">';
+      html2 += '<span style="font-size:12px;font-weight:800;color:' + k.color + '">' + k.label + ' (' + gruppen[typ].length + ')</span>';
+      if (gruppenSumme > 0) html2 += '<span style="font-size:12px;font-weight:700;color:' + k.color + '">€ ' + gruppenSumme.toFixed(2).replace('.',',') + '</span>';
+      html2 += '</div>';
+
+      // Tabellenzeilen
+      html2 += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
+      html2 += '<thead><tr style="background:var(--bg)">';
+      ['Datum','Dateiname','Betrag',''].forEach(function(h){ html2+='<th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text-3);white-space:nowrap">'+h+'</th>'; });
+      html2 += '</tr></thead><tbody>';
+
+      gruppen[typ].forEach(function(doc, i) {
+        var datum = doc.datum || formatDatum(doc.monat);
+        var betrag = doc.betrag ? '<span style="color:#2e7d32;font-weight:700">€ '+doc.betrag.toFixed(2).replace('.',',')+'</span>' : '<span style="color:var(--text-3)">—</span>';
+        html2 += '<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--surface)':'var(--bg)')+'">';
+        html2 += '<td style="padding:8px 14px;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">' + datum + '</td>';
+        html2 += '<td style="padding:8px 14px;font-size:12px;color:var(--text-2);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_esc(doc.name)+'">' + _esc(doc.name) + '</td>';
+        html2 += '<td style="padding:8px 14px;font-size:13px;white-space:nowrap">'+betrag+'</td>';
+        html2 += '<td style="padding:8px 14px"><a href="/api/pdf/'+doc.id+'/view" target="_blank" style="font-size:11px;color:#1565c0;text-decoration:none;font-weight:700;white-space:nowrap">📄 Öffnen</a></td>';
+        html2 += '</tr>';
+      });
+      html2 += '</tbody></table></div>';
     });
 
-    html2 += '<tr style="background:var(--bg);border-top:2px solid var(--border)">';
-    html2 += '<td colspan="2" style="padding:10px 14px;font-size:13px;font-weight:800;color:var(--text)">GESAMT</td>';
-    html2 += '<td style="padding:10px 14px;font-size:15px;font-weight:800;color:#c62828">€ '+(gesamt||sumCheck).toFixed(2).replace('.',',')+'</td>';
-    html2 += '<td></td></tr>';
-    html2 += '</tbody></table></div>';
+    // Gesamt-Footer
+    html2 += '<div style="padding:12px 20px;background:var(--bg);border-top:2px solid var(--border);display:flex;align-items:center;justify-content:space-between">';
+    html2 += '<span style="font-size:13px;font-weight:800;color:var(--text)">GESAMT (' + d.dokumente.length + ' Dokumente)</span>';
+    html2 += '<span style="font-size:16px;font-weight:800;color:#c62828">€ ' + gesamt.toFixed(2).replace('.',',') + '</span>';
+    html2 += '</div>';
   }
   html2 += '</div>';
   el.innerHTML = html2;

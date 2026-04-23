@@ -18,6 +18,27 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 18 (2026-04-24) — Was gebaut wurde ✅
+
+### Lieferanten-Einkaufsübersicht verbessert
+
+- **Einkaufsübersicht** (UM Trade / Edenred / A1 / SVS): Tabelle komplett neu
+- **Datum**: Echtes Rechnungsdatum aus PDF-Text extrahiert (`extrahiereDatum()`) statt Importdatum
+- **Fallback**: Wenn kein Datum im PDF → schöner Monatsname ("Oktober 2025")
+- **Kategorien**: Farbige Gruppen-Header pro Typ (Rechnung / Lohnzettel / ÖGK / Finanzamt / Sonstige)
+- **Betrag pro Kategorie** + Gesamt-Footer
+- **Sortierung**: Neueste Rechnung zuerst (nach Monat)
+- Server: `extrahiereDatum(text)` — liest Rechnungsdatum aus PDF-Text (Regex für AT-Format)
+- Server: `lieferant-analyse` gibt jetzt auch `datum`, `erstellt`, `status` zurück
+
+### Offen für morgen
+- Features 11–15 (Feiertage AT, Trinkgeld-Regeln, Benachrichtigungs-Filter, App-PIN, Bewertungs-Ziel)
+- UM Trade Jänner 2026 noch fehlend → E-Mail Backfill mit "RechnungNr" + Datum 01.01.–01.02.2026
+- Claude API Key testen → bessere Produktextraktion aus UM Trade PDFs
+- Weitere Buchhaltung-Verbesserungen
+
+---
+
 ## Session 17 (2026-04-23) — Was gebaut wurde ✅
 
 ### PDFs → nur Turso Cloud (kein lokaler Speicher)

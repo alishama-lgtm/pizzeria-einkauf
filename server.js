@@ -1151,6 +1151,28 @@ function extrahiereUmTradeProdukte(text) {
   return produkte;
 }
 
+// Rechnungsdatum aus PDF-Text extrahieren (DD.MM.YYYY)
+function extrahiereDatum(text) {
+  const muster = [
+    /(?:rechnungsdatum|datum|ausgestellt am|lieferdatum|belegdatum)[:\s]*(\d{1,2}[.\/-]\d{1,2}[.\/-]\d{4})/i,
+    /(\d{1,2}\.\d{1,2}\.\d{4})/,
+    /(\d{4}-\d{2}-\d{2})/,
+  ];
+  for (const re of muster) {
+    const m = text.match(re);
+    if (m) {
+      let d = m[1].trim();
+      // ISO → DD.MM.YYYY
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+        const p = d.split('-');
+        d = p[2] + '.' + p[1] + '.' + p[0];
+      }
+      return d;
+    }
+  }
+  return null;
+}
+
 // Gesamtbetrag aus PDF-Text extrahieren
 function extrahiereBetrag(text) {
   const muster = [
@@ -1228,26 +1250,28 @@ app.post('/api/pdf/lieferant-analyse', express.json(), async (req, res) => {
 
   let allDocs = [];
   if (turso) {
-    const r = await turso.execute('SELECT id,name,monat,typ,groesse FROM dokumente');
+    const r = await turso.execute('SELECT id,name,monat,typ,groesse,erstellt,status FROM dokumente');
     allDocs = r.rows;
   } else {
-    allDocs = db.prepare('SELECT id,name,monat,typ,groesse FROM dokumente').all();
+    allDocs = db.prepare('SELECT id,name,monat,typ,groesse,erstellt,status FROM dokumente').all();
   }
   const docs = allDocs.filter(d => def.fn((d.name||'').toLowerCase()));
 
   const ergebnis = [];
   for (const doc of docs) {
-    const eintrag = { id: doc.id, name: doc.name, monat: doc.monat||'—', typ: doc.typ, betrag: null };
+    const eintrag = { id: doc.id, name: doc.name, monat: doc.monat||'—', typ: doc.typ||'sonstige', erstellt: doc.erstellt||null, status: doc.status||'offen', betrag: null, datum: null };
     try {
       const buf = await ladePdfBuffer(doc.id);
       if (buf) {
         const parsed = await pdfParse(buf);
         eintrag.betrag = extrahiereBetrag(parsed.text);
+        eintrag.datum = extrahiereDatum(parsed.text);
       }
     } catch(_) {}
     ergebnis.push(eintrag);
   }
-  ergebnis.sort((a,b) => (a.monat||'').localeCompare(b.monat||''));
+  // Sortierung: neueste zuerst (nach monat)
+  ergebnis.sort((a,b) => (b.monat||'').localeCompare(a.monat||''));
   const gesamt = ergebnis.reduce((s,e) => s + (e.betrag||0), 0);
   res.json({ ok: true, label: def.label, dokumente: ergebnis, gesamt });
 });
