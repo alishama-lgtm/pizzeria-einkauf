@@ -199,6 +199,108 @@ app.use((req, _res, next) => {
   next();
 });
 
+// ── DB-Viewer (Admin) ─────────────────────────────────────────────
+app.get('/db-viewer', (_req, res) => {
+  const tables = {
+    kassenbuch: db.prepare('SELECT * FROM kassenbuch ORDER BY datum DESC LIMIT 200').all(),
+    mitarbeiter: db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all(),
+    app_data: db.prepare('SELECT key, length(data) as bytes, updated_at FROM app_data ORDER BY updated_at DESC').all(),
+  };
+  const tursoStatus = turso ? `✅ Verbunden: ${process.env.TURSO_URL}` : '❌ Nicht konfiguriert';
+  const totalKb = tables.kassenbuch.reduce((s,r) => s + parseFloat(r.brutto||0), 0);
+
+  const rows = (arr, cols, rowFn) => `
+    <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${arr.map(rowFn).join('')}</tbody></table>`;
+
+  const kbRows = rows(tables.kassenbuch,
+    ['Datum','Typ','Beschreibung','Netto €','MwSt %','Brutto €'],
+    r => `<tr class="${r.typ}">
+      <td>${r.datum||''}</td>
+      <td><span class="badge ${r.typ}">${r.typ}</span></td>
+      <td>${r.beschreibung||''}</td>
+      <td class="num">${parseFloat(r.netto||0).toFixed(2).replace('.',',')}</td>
+      <td class="num">${r.mwst_satz||0}%</td>
+      <td class="num"><strong>${parseFloat(r.brutto||0).toFixed(2).replace('.',',')}</strong></td>
+    </tr>`);
+
+  const maRows = rows(tables.mitarbeiter,
+    ['Name','Rolle','Stunden/Wo','Lohn €/h','Farbe'],
+    r => `<tr>
+      <td><strong>${r.name}</strong></td>
+      <td>${r.rolle||'—'}</td>
+      <td class="num">${r.stunden||0}</td>
+      <td class="num">${parseFloat(r.lohn||0).toFixed(2).replace('.',',')}</td>
+      <td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${r.farbe||'#ccc'};vertical-align:middle"></span> ${r.farbe||'—'}</td>
+    </tr>`);
+
+  const adRows = rows(tables.app_data,
+    ['Key','Größe','Zuletzt geändert'],
+    r => `<tr>
+      <td><code>${r.key}</code></td>
+      <td class="num">${r.bytes} Bytes</td>
+      <td>${r.updated_at||'—'}</td>
+    </tr>`);
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DB Viewer — Pizzeria San Carino</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f0ef;color:#261816;padding:20px}
+h1{color:#8B0000;margin-bottom:4px;font-size:22px}
+.meta{font-size:12px;color:#8d6562;margin-bottom:24px}
+.section{background:#fff;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.section h2{font-size:14px;font-weight:800;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.count{font-size:11px;background:#f3ebe9;color:#8B0000;padding:2px 8px;border-radius:10px;font-weight:700}
+.turso{font-size:12px;padding:8px 14px;border-radius:8px;background:#e8f5e9;color:#1b5e20;margin-bottom:20px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:#f9f4f3}
+th{padding:8px 10px;text-align:left;font-size:11px;color:#8d6562;font-weight:700;border-bottom:2px solid #e3beb8;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid #f0e8e6;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fdf8f7}
+.num{text-align:right;font-family:monospace}
+.badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.badge.einnahme{background:#e8f5e9;color:#2e7d32}
+.badge.ausgabe{background:#ffebee;color:#c62828}
+code{font-size:11px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#610000}
+.total{font-size:13px;font-weight:800;color:#8B0000;text-align:right;margin-top:10px;padding-top:10px;border-top:2px solid #e3beb8}
+.nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.nav a{padding:7px 16px;background:#8B0000;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:700}
+.nav a.sec{background:#fff;color:#8B0000;border:1.5px solid #e3beb8}
+@media(max-width:600px){table{font-size:11px}td,th{padding:6px 6px}}
+</style></head><body>
+<h1>🗄️ Datenbank — Pizzeria San Carino</h1>
+<p class="meta">Ali Shama KG · Stand: ${new Date().toLocaleString('de-AT')}</p>
+<div class="turso">${tursoStatus}</div>
+<div class="nav">
+  <a href="#kassenbuch">💰 Kassenbuch</a>
+  <a href="#mitarbeiter">👤 Mitarbeiter</a>
+  <a href="#app_data">📦 App-Daten</a>
+  <a href="/" class="sec">← Zurück zur App</a>
+  <a href="/db-viewer" class="sec">🔄 Aktualisieren</a>
+</div>
+
+<div class="section" id="kassenbuch">
+  <h2>💰 Kassenbuch <span class="count">${tables.kassenbuch.length} Einträge</span></h2>
+  ${kbRows}
+  <div class="total">Summe aller Einträge: € ${totalKb.toFixed(2).replace('.',',')} (Einnahmen − Ausgaben)</div>
+</div>
+
+<div class="section" id="mitarbeiter">
+  <h2>👤 Mitarbeiter <span class="count">${tables.mitarbeiter.length} Personen</span></h2>
+  ${maRows}
+</div>
+
+<div class="section" id="app_data">
+  <h2>📦 App-Daten (Sync-Keys) <span class="count">${tables.app_data.length} Keys</span></h2>
+  ${adRows}
+</div>
+</body></html>`);
+});
+
 // Statische Dateien ausliefern (index.html, js/, css/, sw.js etc.)
 app.use(express.static(__dirname, { index: 'index.html' }));
 
