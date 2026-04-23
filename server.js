@@ -1119,13 +1119,37 @@ app.put('/api/pdf/:id/metadaten', express.json(), async (req, res) => {
 
 // Lieferanten-Definitionen
 const LIEFERANTEN_MUSTER = {
-  umtrade:    { label: 'UM Trade (Mustafa)', fn: n => n.includes('rg_10045') },
+  umtrade:    { label: 'UM Trade (Mustafa)', fn: n => n.toLowerCase().startsWith('rechnungnr') },
+  edenred:    { label: 'Edenred',            fn: n => n.includes('rg_10045') || /^re-\d/i.test(n) },
   a1:         { label: 'A1 Mobilfunk',       fn: n => n.includes('rechnung_383201310') },
-  edenred:    { label: 'Edenred',            fn: n => /^re-\d/i.test(n) },
-  rechnungnr: { label: 'Lieferant RechNr',  fn: n => n.toLowerCase().startsWith('rechnungnr') },
-  lamboeck:   { label: 'Lamböck',           fn: n => n.includes('lamboeck') || n.includes('lamböck') },
   svs:        { label: 'SVS',               fn: n => /^sg7/i.test(n) },
 };
+
+// Produkte aus UM Trade PDF-Text extrahieren
+function extrahiereUmTradeProdukte(text) {
+  const zeilen = text.split('\n').map(z => z.trim()).filter(z => z.length > 3);
+  const produkte = [];
+  // UM Trade Format: Zeilen die Preismuster enthalten (z.B. "1,99", "12,50" etc.)
+  const preisRe = /(\d{1,3}[,.]\d{2})\s*(?:€|EUR)?$/;
+  const mengeRe = /^(\d{1,4}[,.]\d{0,3})\s*(kg|g|stk|st|stück|l|liter|krt|karton|pak|paket|fla|dose|bund)?/i;
+  for (let i = 0; i < zeilen.length; i++) {
+    const z = zeilen[i];
+    const pmatch = z.match(preisRe);
+    if (!pmatch) continue;
+    const preis = parseFloat(pmatch[1].replace(',','.'));
+    if (preis < 0.5 || preis > 9999) continue;
+    // Beschreibung = aktuelle Zeile ohne Preis, oder vorherige Zeile
+    let bezeichnung = z.replace(preisRe,'').trim();
+    if (bezeichnung.length < 3 && i > 0) bezeichnung = zeilen[i-1];
+    // Menge suchen
+    let menge = null, einheit = null;
+    const mmatch = bezeichnung.match(mengeRe);
+    if (mmatch) { menge = parseFloat(mmatch[1].replace(',','.')); einheit = mmatch[2] || 'Stk'; bezeichnung = bezeichnung.replace(mengeRe,'').trim(); }
+    if (bezeichnung.length < 2) continue;
+    produkte.push({ bezeichnung: bezeichnung.slice(0, 60), preis, menge, einheit });
+  }
+  return produkte;
+}
 
 // Gesamtbetrag aus PDF-Text extrahieren
 function extrahiereBetrag(text) {
@@ -1143,6 +1167,58 @@ function extrahiereBetrag(text) {
   }
   return null;
 }
+
+// Auto-Analyse: neue Rechnung von umgroup.at → Produkte extrahieren + in Preisliste
+app.post('/api/pdf/:id/auto-analyse', express.json(), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const buf = await ladePdfBuffer(id);
+    if (!buf) return res.status(404).json({ error: 'PDF nicht gefunden' });
+    const parsed = await pdfParse(buf);
+    const text = parsed.text;
+    const produkte = extrahiereUmTradeProdukte(text);
+    const betrag = extrahiereBetrag(text);
+
+    // Bestehende Preise laden
+    let preislisteRaw = db.prepare("SELECT data FROM app_data WHERE key='pizzeria_preise'").get();
+    let preisliste = preislisteRaw ? JSON.parse(preislisteRaw.data) : [];
+
+    // Neue Artikel finden (die noch nicht in der Preisliste sind)
+    const neueArtikel = [];
+    for (const p of produkte) {
+      const bez = p.bezeichnung.toLowerCase();
+      const existiert = preisliste.some(e => {
+        const name = (e.name || e.bezeichnung || '').toLowerCase();
+        return name.includes(bez.slice(0,8)) || bez.includes(name.slice(0,8));
+      });
+      if (!existiert && p.bezeichnung.length > 3) {
+        neueArtikel.push(p);
+        // Zur Preisliste hinzufügen
+        preisliste.push({
+          id: 'ut_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+          name: p.bezeichnung,
+          preis: p.preis,
+          einheit: p.einheit || 'Stk',
+          geschaeft: 'UM Trade',
+          datum: new Date().toISOString().slice(0,10)
+        });
+      }
+    }
+
+    // Preisliste speichern
+    if (neueArtikel.length > 0) {
+      const dataStr = JSON.stringify(preisliste);
+      db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run('pizzeria_preise', dataStr);
+      tursoWriteAppData('pizzeria_preise', dataStr);
+      console.log(`  🆕 Auto-Analyse: ${neueArtikel.length} neue UM Trade Artikel gefunden`);
+      // WebSocket Broadcast
+      const msg = JSON.stringify({ type: 'neue_artikel', lieferant: 'UM Trade', anzahl: neueArtikel.length, artikel: neueArtikel.slice(0,5) });
+      if (typeof setBroadcast === 'function') setBroadcast({ type: 'neue_artikel', lieferant: 'UM Trade', anzahl: neueArtikel.length });
+    }
+
+    res.json({ ok: true, produkte: produkte.length, neueArtikel: neueArtikel.length, betrag, artikel: neueArtikel });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // Lieferanten-Einkaufsübersicht
 app.post('/api/pdf/lieferant-analyse', express.json(), async (req, res) => {

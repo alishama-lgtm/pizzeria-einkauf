@@ -31,6 +31,7 @@ const VERTRAUENSWUERDIGE_ABSENDER = [
   'bmf.gv.at',        // Finanzamt
   'oegk.at',          // Österreichische Gesundheitskasse
   'svs.at',           // Sozialversicherung
+  'umgroup.at',       // UM Trade (Mustafa) — Großhändler
 ];
 
 // Keywords die eine E-Mail als relevant markieren (für unbekannte Absender)
@@ -93,9 +94,9 @@ function log(msg) {
 }
 
 // PDF an den lokalen Server-API schicken
-async function sendePdfAnServer(dateiname, pdfBuffer, typ, monat) {
+async function sendePdfAnServer(dateiname, pdfBuffer, typ, monat, id) {
   const base64 = 'data:application/pdf;base64,' + pdfBuffer.toString('base64');
-  const id = 'email_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  if (!id) id = 'email_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
   const payload = JSON.stringify({ id, name: dateiname, data: base64, typ, monat });
 
   return new Promise((resolve, reject) => {
@@ -197,11 +198,21 @@ async function pruefeEmails() {
           if (anhang.contentType !== 'application/pdf' && !(anhang.filename || '').endsWith('.pdf')) continue;
           const dateiname = anhang.filename || 'email_anhang_' + Date.now() + '.pdf';
           const monat = monatAusEmail(mail, dateiname);
+          const pdfId = 'email_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
           try {
-            const ergebnis = await sendePdfAnServer(dateiname, anhang.content, typ, monat);
+            const ergebnis = await sendePdfAnServer(dateiname, anhang.content, typ, monat, pdfId);
             if (ergebnis.ok) {
               log(`  ✅ Gespeichert: ${dateiname} (${typ})`);
               verarbeitet++;
+              // Auto-Analyse für UM Trade Rechnungen (umgroup.at)
+              if (absender.includes('umgroup.at')) {
+                try {
+                  const aRes = await fetch(SERVER_URL + '/api/pdf/' + pdfId + '/auto-analyse', { method: 'POST' });
+                  const aData = await aRes.json();
+                  if (aData.neueArtikel > 0) log(`  🆕 ${aData.neueArtikel} neue Artikel aus ${dateiname} erkannt`);
+                  else log(`  ℹ️  Auto-Analyse: ${aData.produkte} Produkte, keine neuen`);
+                } catch(_) {}
+              }
             } else {
               log(`  ❌ Fehler beim Speichern: ${ergebnis.error}`);
             }
