@@ -19877,6 +19877,28 @@ function buchSetStatus(id, status) {
   renderBuchhaltungTab();
 }
 
+async function buchSetMetadaten(id, monat, typ) {
+  const body = {};
+  if (monat) body.monat = monat;
+  if (typ) body.typ = typ;
+  const r = await fetch('/api/pdf/' + id + '/metadaten', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  if (r.ok) { _showToast('Gespeichert', 'success'); renderBuchhaltungTab(); }
+  else _showToast('Fehler beim Speichern', 'error');
+}
+
+async function buchKorrigiereMonate() {
+  _showToast('Monate werden korrigiert…', 'info');
+  const r = await fetch('/api/pdf/korrigiere-monate', { method: 'POST' });
+  const d = await r.json();
+  if (d.ok) { _showToast('✓ ' + d.korrigiert + ' von ' + d.gesamt + ' Dokumente korrigiert', 'success'); renderBuchhaltungTab(); }
+  else _showToast('Fehler', 'error');
+}
+
+function buchToggleEdit(id) {
+  var row = document.getElementById('buch-edit-' + id);
+  if (row) row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+}
+
 function buchDownload(id, name) {
   var a = document.createElement('a');
   a.href = _pdfDownloadUrl(id);
@@ -20411,7 +20433,7 @@ async function renderBuchhaltungTab() {
   html += '<div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px">';
   html += '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
   html += '<span style="font-size:13px;font-weight:800;color:var(--text)">📄 Dokumente in der Datenbank</span>';
-  html += '<span style="font-size:11px;color:var(--text-3)">' + serverDocs.length + ' Dateien gespeichert</span>';
+  html += '<div style="display:flex;gap:8px;align-items:center"><button onclick="buchKorrigiereMonate()" style="padding:5px 10px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;font-size:11px;font-weight:700;color:#610000;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">auto_fix_high</span>Monate korrigieren</button><span style="font-size:11px;color:var(--text-3)">' + serverDocs.length + ' Dateien</span></div>';
   html += '</div>';
 
   if (serverDocs.length === 0) {
@@ -20440,7 +20462,17 @@ async function renderBuchhaltungTab() {
       html += '<a href="/api/pdf/' + d.id + '/view" target="_blank" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;text-decoration:none;font-size:11px;font-weight:700;color:#1565c0;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:14px">visibility</span>Anzeigen</a>';
       html += '<a href="/api/pdf/' + d.id + '" download="' + _esc(d.name) + '" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;text-decoration:none;font-size:11px;font-weight:700;color:#2e7d32;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:14px">download</span>Herunterladen</a>';
       html += '<button onclick="buchPdfZuJson(\'' + d.id + '\',\'' + _esc(d.name) + '\')" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;font-size:11px;font-weight:700;color:#7b1fa2;display:flex;align-items:center;gap:4px;font-family:inherit" title="Als JSON speichern"><span class="material-symbols-outlined" style="font-size:14px">data_object</span>→ JSON</button>';
+      html += '<button onclick="buchToggleEdit(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer" title="Bearbeiten"><span class="material-symbols-outlined" style="font-size:14px;color:#5a6472">edit</span></button>';
       html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:14px;color:#5a6472">delete</span></button>';
+      html += '</div>';
+      html += '<div id="buch-edit-' + d.id + '" style="display:none;padding:10px 20px 14px;border-bottom:1px solid var(--border);background:var(--bg);gap:10px;flex-wrap:wrap;align-items:flex-end">';
+      html += '<div style="font-size:11px;font-weight:700;color:var(--text-3);align-self:center">✏️ Bearbeiten:</div>';
+      html += '<div><div style="font-size:10px;font-weight:600;color:var(--text-3);margin-bottom:3px">Monat</div><input type="month" id="buch-edit-monat-' + d.id + '" value="' + (d.monat||'') + '" style="padding:6px 8px;border-radius:7px;border:1px solid var(--border);font-size:12px;font-family:inherit;background:var(--surface);color:var(--text)"></div>';
+      html += '<div><div style="font-size:10px;font-weight:600;color:var(--text-3);margin-bottom:3px">Kategorie</div><select id="buch-edit-typ-' + d.id + '" style="padding:6px 8px;border-radius:7px;border:1px solid var(--border);font-size:12px;font-family:inherit;background:var(--surface);color:var(--text)">';
+      BUCH_TYPEN.forEach(function(t) { html += '<option value="' + t.id + '"' + (d.typ === t.id ? ' selected' : '') + '>' + t.label + '</option>'; });
+      html += '</select></div>';
+      html += '<button onclick="buchSetMetadaten(\'' + d.id + '\',document.getElementById(\'buch-edit-monat-' + d.id + '\').value,document.getElementById(\'buch-edit-typ-' + d.id + '\').value)" style="padding:7px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Speichern</button>';
+      html += '<button onclick="buchToggleEdit(\'' + d.id + '\')" style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--text-3);cursor:pointer;font-family:inherit">Abbrechen</button>';
       html += '</div>';
     });
   }
