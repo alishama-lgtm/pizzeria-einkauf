@@ -6625,17 +6625,7 @@ function bizGetFixkosten() {
 }
 
 function bizGetPersonal() {
-  const saved = bizLoad('personal', []);
-  if (saved.length > 0) return saved;
-  // Fallback: echte Mitarbeiterdaten aus der Datenbank
-  try {
-    const ma = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter') || '[]');
-    return ma.filter(m => parseFloat(m.lohn) > 0 || parseFloat(m.stunden) > 0).map(m => ({
-      name: m.name || 'Mitarbeiter',
-      lohn: parseFloat(m.lohn) || 0,
-      stunden: parseFloat(m.stunden) || 40
-    }));
-  } catch(_) { return []; }
+  return bizLoad('personal', []);
 }
 function bizSavePersonal(d) { bizSave('personal', d); }
 
@@ -7247,7 +7237,6 @@ function renderBizKosten() {
       </button>
     </div>
   </div>
-  ${bizLoad('personal',[]).length===0 && personal.length > 0 ? `<div style="background:#e8f5e9;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#1b5e20;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:14px">info</span>Daten automatisch aus Mitarbeiter-Datenbank (${personal.length} Mitarbeiter) — „Aus DB laden" zum Übernehmen</div>` : ''}
   <div id="personal-list">
     ${personal.length === 0 ? '<p style="color:#8d6562;font-size:13px;text-align:center;padding:20px 0">Keine Mitarbeiter — „Aus DB laden" klicken</p>' :
       personal.map((p,i) => renderPersonalRow(p,i)).join('')}
@@ -7554,12 +7543,16 @@ function renderBizReport() {
   const einkaufMonth = bizGetEinkaufThisMonth();
 
   // Kassenbuch-Daten für diesen Monat einbeziehen
-  const kbAll = kbGet ? kbGet() : [];
+  const kbAll = (typeof kbGet === 'function') ? kbGet() : [];
   const kbMonth = kbAll.filter(e=>(e.datum||'').startsWith(monthStr));
   const kbEin = kbMonth.filter(e=>e.typ==='einnahme');
   const kbAus = kbMonth.filter(e=>e.typ==='ausgabe');
   const kbEinTotal = kbEin.reduce((s,e)=>s+parseFloat(e.brutto||0),0);
   const kbAusTotal = kbAus.reduce((s,e)=>s+parseFloat(e.brutto||0),0);
+
+  // Personalkosten: nur gespeicherte Biz-Personal-Daten ODER Hinweis
+  const maDb = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]').filter(m=>parseFloat(m.lohn)>0);
+  const personalQuelle = personal.length > 0 ? 'biz' : (maDb.length > 0 ? 'db-verfuegbar' : 'leer');
 
   let totalBrutto=0, totalMwst10=0, totalMwst20=0, totalNetto=0;
   const rows = monthKassa.map(e => {
@@ -7731,7 +7724,10 @@ function renderBizReport() {
         <td style="padding:8px 16px;text-align:right;font-weight:600;font-size:12px">${bizEur(parseFloat(e.brutto||0))}</td>
       </tr>`).join('') : ''}
       <tr style="border-bottom:1px solid #e3beb8">
-        <td style="padding:10px 16px;color:#5a403c">👥 Personalkosten (${personal.length} Mitarbeiter)</td>
+        <td style="padding:10px 16px;color:#5a403c">
+          👥 Personalkosten
+          ${personalQuelle==='db-verfuegbar' ? `<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 7px;border-radius:4px;margin-left:6px;cursor:pointer" onclick="showBizSection('biz-kosten')">⚠️ ${maDb.length} MA in DB — „Aus DB laden" klicken</span>` : `<span style="font-size:10px;color:#8d6562">(${personal.length} MA)</span>`}
+        </td>
         <td style="padding:10px 16px;text-align:right;font-weight:600">${bizEur(personalMonat)}</td>
       </tr>
       <tr style="border-bottom:1px solid #e3beb8">
