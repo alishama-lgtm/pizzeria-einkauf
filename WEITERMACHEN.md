@@ -18,6 +18,17 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 17 (2026-04-23) — Was gebaut wurde ✅
+
+### Feature 11: AT-Feiertage im Dienstplan (vollständig)
+
+- `AT_FEIERTAGE` auf 2028–2030 erweitert (Ostermontag, Christi Himmelfahrt, Pfingstmontag, Fronleichnam korrekt berechnet)
+- Dienstplan-Zellen: gelber Hintergrund (#fffde7) + oranges Label "🎉 Feiertag" wenn Feiertag
+- Spalten-Header Feiertage: "Alle Frei" Button → markiert alle Mitarbeiter auf einmal als Frei
+- Neue Funktion: `dienstplanAlleFreiSetzen(weekKey, day)`
+
+---
+
 ## Session 16 (2026-04-22) — Was gebaut wurde ✅
 
 ### Einstellungen — Features 3–10 alle fertig
@@ -39,7 +50,7 @@ node server.js   # → http://localhost:3000
 
 | # | Feature | Status |
 |---|---------|--------|
-| 11 | **Feiertage Österreich** — AT-Feiertage im Dienstplan automatisch | ⬜ (AT_FEIERTAGE Konstante schon vorhanden) |
+| 11 | **Feiertage Österreich** — AT-Feiertage im Dienstplan automatisch | ✅ 2026–2030, Zellen gelb, "Alle Frei" Button |
 | 12 | **Trinkgeld-Regeln** — feste Aufteilung % pro Abteilung | ⬜ |
 | 13 | **Benachrichtigungs-Filter** — welche Alarme aktiv/stumm | ⬜ |
 | 14 | **App-PIN für Mitarbeiter** — 4-stellige PIN statt Passwort | ⬜ (users.js hat schon PIN-Feld) |
