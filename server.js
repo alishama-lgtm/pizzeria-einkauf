@@ -206,41 +206,51 @@ app.get('/db-viewer', (_req, res) => {
     mitarbeiter: db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all(),
     app_data: db.prepare('SELECT key, length(data) as bytes, updated_at FROM app_data ORDER BY updated_at DESC').all(),
   };
-  const tursoStatus = turso ? `✅ Verbunden: ${process.env.TURSO_URL}` : '❌ Nicht konfiguriert';
-  const totalKb = tables.kassenbuch.reduce((s,r) => s + parseFloat(r.brutto||0), 0);
 
-  const rows = (arr, cols, rowFn) => `
-    <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-    <tbody>${arr.map(rowFn).join('')}</tbody></table>`;
+  // PDF-Ordner scannen
+  const pdfFolders = [
+    { key: 'lohnabrechnungen', label: '👔 Lohnabrechnungen', tab: 'Buchhaltung-Tab', path: path.join(__dirname, 'datenbank', 'lohnabrechnungen') },
+    { key: 'rechnungen',       label: '🧾 Rechnungen',        tab: 'Rechnungen-Tab', path: path.join(__dirname, 'inbox', 'rechnungen') },
+    { key: 'db_rechnungen',    label: '📁 Rechnungen (DB)',    tab: 'Rechnungen-Tab', path: path.join(__dirname, 'datenbank', 'rechnungen') },
+  ];
+  const folderScans = pdfFolders.map(f => {
+    let files = [];
+    try { files = fs.readdirSync(f.path).filter(n => /\.(pdf|jpg|jpeg|png|xlsx|csv)$/i.test(n)); } catch(_) {}
+    return { ...f, files };
+  });
 
-  const kbRows = rows(tables.kassenbuch,
-    ['Datum','Typ','Beschreibung','Netto €','MwSt %','Brutto €'],
-    r => `<tr class="${r.typ}">
-      <td>${r.datum||''}</td>
-      <td><span class="badge ${r.typ}">${r.typ}</span></td>
-      <td>${r.beschreibung||''}</td>
-      <td class="num">${parseFloat(r.netto||0).toFixed(2).replace('.',',')}</td>
-      <td class="num">${r.mwst_satz||0}%</td>
-      <td class="num"><strong>${parseFloat(r.brutto||0).toFixed(2).replace('.',',')}</strong></td>
-    </tr>`);
+  const tursoStatus = turso ? `✅ Turso verbunden: ${process.env.TURSO_URL}` : '❌ Turso nicht konfiguriert';
+  const kbEin = tables.kassenbuch.filter(r=>r.typ==='einnahme').reduce((s,r)=>s+parseFloat(r.brutto||0),0);
+  const kbAus = tables.kassenbuch.filter(r=>r.typ==='ausgabe').reduce((s,r)=>s+parseFloat(r.brutto||0),0);
 
-  const maRows = rows(tables.mitarbeiter,
-    ['Name','Rolle','Stunden/Wo','Lohn €/h','Farbe'],
-    r => `<tr>
-      <td><strong>${r.name}</strong></td>
-      <td>${r.rolle||'—'}</td>
-      <td class="num">${r.stunden||0}</td>
-      <td class="num">${parseFloat(r.lohn||0).toFixed(2).replace('.',',')}</td>
-      <td><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${r.farbe||'#ccc'};vertical-align:middle"></span> ${r.farbe||'—'}</td>
-    </tr>`);
+  const tbl = (arr, cols, rowFn) => arr.length === 0
+    ? '<p style="color:#8d6562;font-size:12px;padding:8px">— Keine Einträge —</p>'
+    : `<div style="overflow-x:auto"><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${arr.map(rowFn).join('')}</tbody></table></div>`;
 
-  const adRows = rows(tables.app_data,
-    ['Key','Größe','Zuletzt geändert'],
-    r => `<tr>
-      <td><code>${r.key}</code></td>
-      <td class="num">${r.bytes} Bytes</td>
-      <td>${r.updated_at||'—'}</td>
-    </tr>`);
+  const kbRows = tbl(tables.kassenbuch,
+    ['Datum','Typ','Beschreibung','Netto €','MwSt','Brutto €'],
+    r => `<tr><td>${r.datum||''}</td><td><span class="badge ${r.typ}">${r.typ==='einnahme'?'+ Einnahme':'− Ausgabe'}</span></td><td>${r.beschreibung||''}</td><td class="num">${parseFloat(r.netto||0).toFixed(2).replace('.',',')}</td><td class="num">${r.mwst_satz||0}%</td><td class="num"><strong>${parseFloat(r.brutto||0).toFixed(2).replace('.',',')}</strong></td></tr>`);
+
+  const maRows = tbl(tables.mitarbeiter,
+    ['Name','Rolle','Std/Wo','Lohn €/h'],
+    r => `<tr><td><strong>${r.name}</strong></td><td>${r.rolle||'—'}</td><td class="num">${r.stunden||0}</td><td class="num">${parseFloat(r.lohn||0).toFixed(2).replace('.',',')}</td></tr>`);
+
+  const adRows = tbl(tables.app_data,
+    ['Key','Größe','Geändert'],
+    r => `<tr><td><code>${r.key}</code></td><td class="num">${r.bytes} B</td><td>${r.updated_at||'—'}</td></tr>`);
+
+  const folderHtml = folderScans.map(f => `
+    <div class="folder-card">
+      <div class="folder-head">
+        <span class="folder-title">${f.label}</span>
+        <span class="folder-tab">→ ${f.tab}</span>
+        <span class="count">${f.files.length} Dateien</span>
+      </div>
+      <div class="folder-path"><code>${f.path}</code></div>
+      ${f.files.length > 0
+        ? `<ul class="file-list">${f.files.map(fn=>`<li>📄 ${fn}</li>`).join('')}</ul>`
+        : '<p class="empty">Noch keine Dateien</p>'}
+    </div>`).join('');
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
@@ -248,54 +258,95 @@ app.get('/db-viewer', (_req, res) => {
 <title>DB Viewer — Pizzeria San Carino</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f5f0ef;color:#261816;padding:20px}
-h1{color:#8B0000;margin-bottom:4px;font-size:22px}
-.meta{font-size:12px;color:#8d6562;margin-bottom:24px}
-.section{background:#fff;border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
-.section h2{font-size:14px;font-weight:800;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+body{font-family:system-ui,sans-serif;background:#f5f0ef;color:#261816;padding:16px;max-width:1200px;margin:0 auto}
+h1{color:#8B0000;margin-bottom:4px;font-size:20px}
+.meta{font-size:12px;color:#8d6562;margin-bottom:16px}
+.turso{font-size:12px;padding:8px 14px;border-radius:8px;background:#e8f5e9;color:#1b5e20;margin-bottom:16px;font-weight:600}
+.section{background:#fff;border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866}
+.section h2{font-size:13px;font-weight:800;color:#261816;margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .count{font-size:11px;background:#f3ebe9;color:#8B0000;padding:2px 8px;border-radius:10px;font-weight:700}
-.turso{font-size:12px;padding:8px 14px;border-radius:8px;background:#e8f5e9;color:#1b5e20;margin-bottom:20px;font-weight:600}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead tr{background:#f9f4f3}
-th{padding:8px 10px;text-align:left;font-size:11px;color:#8d6562;font-weight:700;border-bottom:2px solid #e3beb8;white-space:nowrap}
-td{padding:8px 10px;border-bottom:1px solid #f0e8e6;vertical-align:middle}
-tr:last-child td{border-bottom:none}
+th{padding:7px 10px;text-align:left;font-size:11px;color:#8d6562;font-weight:700;border-bottom:2px solid #e3beb8;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid #f0e8e6;vertical-align:middle}
 tr:hover td{background:#fdf8f7}
-.num{text-align:right;font-family:monospace}
+.num{text-align:right;font-family:monospace;font-size:11px}
 .badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
 .badge.einnahme{background:#e8f5e9;color:#2e7d32}
 .badge.ausgabe{background:#ffebee;color:#c62828}
-code{font-size:11px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#610000}
-.total{font-size:13px;font-weight:800;color:#8B0000;text-align:right;margin-top:10px;padding-top:10px;border-top:2px solid #e3beb8}
-.nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-.nav a{padding:7px 16px;background:#8B0000;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:700}
+code{font-size:10px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#610000;word-break:break-all}
+.totals{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:2px solid #e3beb8}
+.total-item{font-size:13px;font-weight:800}
+.nav{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.nav a{padding:6px 14px;background:#8B0000;color:#fff;text-decoration:none;border-radius:8px;font-size:12px;font-weight:700}
 .nav a.sec{background:#fff;color:#8B0000;border:1.5px solid #e3beb8}
-@media(max-width:600px){table{font-size:11px}td,th{padding:6px 6px}}
+/* Ordner */
+.how-to{background:#fffde7;border:1.5px solid #f9a825;border-radius:12px;padding:14px;margin-bottom:16px;font-size:12px}
+.how-to h3{color:#e65100;font-size:13px;margin-bottom:8px}
+.how-to ol{padding-left:18px;line-height:1.9}
+.how-to strong{color:#261816}
+.folder-card{background:#f9f4f3;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #e3beb8}
+.folder-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.folder-title{font-weight:700;font-size:13px}
+.folder-tab{font-size:11px;color:#1565c0;background:#e3f2fd;padding:2px 8px;border-radius:10px}
+.folder-path{font-size:10px;color:#8d6562;margin-bottom:6px}
+.file-list{list-style:none;font-size:12px;display:flex;flex-wrap:wrap;gap:6px}
+.file-list li{background:#fff;border:1px solid #e3beb8;border-radius:6px;padding:3px 8px}
+.empty{font-size:11px;color:#8d6562;font-style:italic}
+@media(max-width:600px){table{font-size:11px}td,th{padding:5px 6px}}
 </style></head><body>
 <h1>🗄️ Datenbank — Pizzeria San Carino</h1>
 <p class="meta">Ali Shama KG · Stand: ${new Date().toLocaleString('de-AT')}</p>
 <div class="turso">${tursoStatus}</div>
+
 <div class="nav">
+  <a href="#pdfs">📂 PDF-Ordner</a>
   <a href="#kassenbuch">💰 Kassenbuch</a>
   <a href="#mitarbeiter">👤 Mitarbeiter</a>
   <a href="#app_data">📦 App-Daten</a>
-  <a href="/" class="sec">← Zurück zur App</a>
-  <a href="/db-viewer" class="sec">🔄 Aktualisieren</a>
+  <a href="/" class="sec">← App</a>
+  <a href="/db-viewer" class="sec">🔄 Neu laden</a>
 </div>
 
+<!-- WIE PDFS EINLEGEN -->
+<div class="how-to" id="pdfs">
+  <h3>📂 PDFs manuell einlegen — so geht's:</h3>
+  <ol>
+    <li><strong>Steuerberater-Dokumente</strong> (Lohnzettel, ÖGK, UVA, Finanzamt...):<br>
+    → App öffnen → <strong>Buchhaltung-Tab</strong> → PDF rein ziehen → Kategorie wählen → Hochladen</li>
+    <li><strong>Lieferanten-Rechnungen</strong> (Metro, Billa, Etsan...):<br>
+    → PDF in Ordner kopieren: <code>inbox\\rechnungen\\</code> → App erkennt es automatisch</li>
+    <li><strong>Lohnabrechnungen vom Steuerberater</strong>:<br>
+    → PDF in Ordner kopieren: <code>datenbank\\lohnabrechnungen\\</code></li>
+  </ol>
+</div>
+
+<!-- ORDNER-ÜBERSICHT -->
+<div class="section">
+  <h2>📂 PDF-Ordner <span class="count">${folderScans.reduce((s,f)=>s+f.files.length,0)} Dateien gesamt</span></h2>
+  ${folderHtml}
+</div>
+
+<!-- KASSENBUCH -->
 <div class="section" id="kassenbuch">
   <h2>💰 Kassenbuch <span class="count">${tables.kassenbuch.length} Einträge</span></h2>
   ${kbRows}
-  <div class="total">Summe aller Einträge: € ${totalKb.toFixed(2).replace('.',',')} (Einnahmen − Ausgaben)</div>
+  <div class="totals">
+    <span class="total-item" style="color:#2e7d32">+ Einnahmen: € ${kbEin.toFixed(2).replace('.',',')}</span>
+    <span class="total-item" style="color:#c62828">− Ausgaben: € ${kbAus.toFixed(2).replace('.',',')}</span>
+    <span class="total-item" style="color:${kbEin-kbAus>=0?'#2e7d32':'#c62828'}">= Saldo: € ${(kbEin-kbAus).toFixed(2).replace('.',',')}</span>
+  </div>
 </div>
 
+<!-- MITARBEITER -->
 <div class="section" id="mitarbeiter">
   <h2>👤 Mitarbeiter <span class="count">${tables.mitarbeiter.length} Personen</span></h2>
   ${maRows}
 </div>
 
+<!-- APP-DATEN -->
 <div class="section" id="app_data">
-  <h2>📦 App-Daten (Sync-Keys) <span class="count">${tables.app_data.length} Keys</span></h2>
+  <h2>📦 App-Daten (alle gespeicherten Bereiche) <span class="count">${tables.app_data.length} Keys</span></h2>
   ${adRows}
 </div>
 </body></html>`);

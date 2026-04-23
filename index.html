@@ -19443,11 +19443,18 @@ function _deletePdfFromDB(id) {
 
 // ── Daten-Helper ──
 var BUCH_TYPEN = [
-  { id: 'lohnzettel', label: 'Lohnzettel', icon: 'badge' },
-  { id: 'lohnsteuer', label: 'Lohnsteuer', icon: 'account_balance' },
-  { id: 'sva',        label: 'SVA',        icon: 'health_and_safety' },
-  { id: 'uva',        label: 'UVA',        icon: 'receipt_long' },
-  { id: 'sonstige',   label: 'Sonstige',   icon: 'description' }
+  { id: 'lohnzettel',       label: '👔 Lohnzettel',          icon: 'badge' },
+  { id: 'zahlungsjournal',  label: '📋 Zahlungsjournal',     icon: 'payments' },
+  { id: 'ogk',              label: '🏥 ÖGK Bescheid',        icon: 'health_and_safety' },
+  { id: 'finanzamt',        label: '🏛️ Finanzamt',           icon: 'account_balance' },
+  { id: 'lohnsteuer',       label: '📊 Lohnsteuer (L16)',    icon: 'account_balance' },
+  { id: 'uva',              label: '🧾 UVA',                 icon: 'receipt_long' },
+  { id: 'jahresabschluss',  label: '📅 Jahresabschluss',     icon: 'summarize' },
+  { id: 'miete',            label: '🏠 Miete/Pacht',         icon: 'home' },
+  { id: 'versicherung',     label: '🛡️ Versicherung',        icon: 'shield' },
+  { id: 'rechnung',         label: '🧾 Lieferanten-Rechnung',icon: 'receipt' },
+  { id: 'sva',              label: '💼 SVA',                  icon: 'work' },
+  { id: 'sonstige',         label: '📄 Sonstige',             icon: 'description' }
 ];
 var BUCH_STATUS = [
   { id: 'offen',    label: 'Offen',    color: '#e65100', bg: '#fff3e0' },
