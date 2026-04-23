@@ -54,6 +54,23 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 17c (2026-04-23) — Buchhalter-Modus + UM Trade
+
+### Was gebaut wurde:
+- **Lieferanten-Einkaufsübersicht** — Tabelle mit Beträgen pro Lieferant (UM Trade, Edenred, A1, SVS)
+- **UM Trade = RechnungNr XXXXX.pdf** — 43 Rechnungen, Gesamt €21.256,50 (Jul 2025–Jan 2026)
+- **Edenred = RG_10045_XXXXX.pdf** — war falsch zugeordnet, jetzt korrigiert
+- **mustafa@umgroup.at** → dauerhaft als Vertrauens-Absender in email-sync.js
+- **Auto-Analyse**: neue E-Mail von umgroup.at → PDF-Text wird automatisch analysiert, neue Artikel in Preisliste
+- **E-Mail Backfill** — historische Emails per IMAP (Von/Bis + Stichwort) nachladen
+- **Smart Scan** — liest PDF-Text, erkennt Monate und Typen automatisch
+- **Monate korrigieren** Button + Inline-Bearbeitung (Monat + Typ) pro Dokument
+
+### Offene Punkte:
+- UM Trade Jänner 2026 fehlt noch (E-Mail Backfill mit "RechnungNr" als Stichwort)
+- Produkt-Extraktion aus PDFs: Qualität begrenzt ohne Claude API Key (Artikelnummern statt Namen)
+- Mit Claude API Key → `/api/pdf/:id/zu-json` → volle Extraktion möglich
+
 ## Session 17b (2026-04-23) — Buchhaltung PDF-Verwaltung
 
 ### Neue Features in Buchhaltung-Tab:
