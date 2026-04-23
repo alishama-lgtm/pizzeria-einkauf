@@ -54,6 +54,16 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 17b (2026-04-23) — Buchhaltung PDF-Verwaltung
+
+### Neue Features in Buchhaltung-Tab:
+- **"Monate korrigieren" Button** — korrigiert automatisch Monate+Typen aller PDFs aus Dateinamen (`POST /api/pdf/korrigiere-monate`)
+- **✏️ Edit-Button** bei jedem Dokument — klappt Zeile auf mit Monat-Picker + Kategorie-Dropdown (`PUT /api/pdf/:id/metadaten`)
+- **Server-Route** `PUT /api/pdf/:id/metadaten` — Monat, Typ, Status einzeln ändern
+- **Ergebnis:** 21 von 81 Dokumenten wurden korrekt nach Monat/Typ klassifiziert
+
+---
+
 ## Als nächstes: Features 11–15
 
 | # | Feature | Status |
