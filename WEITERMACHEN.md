@@ -18,6 +18,25 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 17 (2026-04-23) — Was gebaut wurde ✅
+
+### PDFs → nur Turso Cloud (kein lokaler Speicher)
+
+- `POST /api/pdf/upload` schreibt **kein** lokales File mehr — nur Turso Cloud
+- Neue Turso-Tabellen: `dokumente` (Metadaten) + `dokumente_data` (base64 PDF-Inhalt)
+- Download/View-Endpunkte lesen aus Turso; lokale Files als Fallback
+- Beim Server-Start: alle 56 vorhandenen lokalen PDFs automatisch zu Turso migriert
+- `email-sync.js` läuft weiter — neue E-Mail-PDFs gehen direkt in Turso Cloud
+- JSON-Extraktion (`/api/pdf/:id/zu-json`) liest ebenfalls aus Turso
+- **Ergebnis:** 56 Rechnungen/Abrechnungen sicher in Turso Cloud, von überall abrufbar
+
+### E-Mail-Sync aktiv (Gmail IMAP)
+- Konto: `sancarino50@gmail.com` (App-Passwort aktiv)
+- Prüft alle 10 Minuten auf neue PDFs von: UM Trade, A1, Edenred, Lamböck, OGK, BMF, WKO, SVS
+- Bereits verarbeitet: Rechnungen Juli–Oktober 2025, Lohnabrechnungen, Dienstverträge
+
+---
+
 ## Session 16 (2026-04-22) — Was gebaut wurde ✅
 
 ### Einstellungen — Features 3–10 alle fertig
@@ -47,24 +66,10 @@ node server.js   # → http://localhost:3000
 
 ---
 
-## Turso Cloud-DB (Option B) — noch offen
+## Turso Cloud-DB ✅ Aktiv
 
-Für synchronisierten Stand zwischen Arbeits-PC und Laptop:
-
-```bash
-winget install tur.so
-turso auth signup
-turso db create pizzeria-san-carino
-turso db show pizzeria-san-carino   # → URL + Token
-```
-
-Dann in `.env`:
-```
-TURSO_URL=libsql://...turso.io
-TURSO_TOKEN=...
-```
-
-Und `server.js` von `node:sqlite` auf `@libsql/client` umstellen.
+Turso läuft bereits. In `.env` eingetragen: `TURSO_URL` + `TURSO_TOKEN`
+Tabellen: `app_data`, `kassenbuch`, `mitarbeiter`, `dokumente`, `dokumente_data`
 
 ---
 
