@@ -19986,6 +19986,68 @@ async function renderBuchhaltungTab() {
   }
   html += '</div>';
 
+  // ── Lohnabrechnungen vom Steuerberater ──
+  try {
+    var lohnRes = await fetch('/api/data/psc_lohnabrechnungen');
+    var lohnData = lohnRes.ok ? await lohnRes.json() : null;
+    if (lohnData && lohnData.abrechnungen && lohnData.abrechnungen.length > 0) {
+      var zj = lohnData.zahlungsjournal || {};
+      var monatLabel = zj.monat ? (['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][parseInt(zj.monat.split('-')[1])] + ' ' + zj.monat.split('-')[0]) : '';
+      html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+      html += '<div style="font-size:14px;font-weight:800;color:var(--text)">👔 Lohnabrechnung ' + monatLabel + '</div>';
+      html += '<span style="font-size:11px;color:var(--text-3);background:var(--bg);padding:4px 10px;border-radius:20px;border:1px solid var(--border)">Steuerberater-Daten</span>';
+      html += '</div>';
+      // Zusammenfassung Kacheln
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px">';
+      var kacheln = [
+        {l:'Mitarbeiter', v: zj.anzahl_mitarbeiter || lohnData.abrechnungen.length, suf:'', c:'#1565c0'},
+        {l:'Auszahlung', v: (zj.summe_mitarbeiter||0).toLocaleString('de-AT',{minimumFractionDigits:2}), suf:' €', c:'#c62828'},
+        {l:'ÖGK + FA + Stadt', v: (zj.summe_koerperschaften||0).toLocaleString('de-AT',{minimumFractionDigits:2}), suf:' €', c:'#e65100'},
+        {l:'Gesamt', v: (zj.gesamt||0).toLocaleString('de-AT',{minimumFractionDigits:2}), suf:' €', c:'#2e7d32'}
+      ];
+      kacheln.forEach(function(k) {
+        html += '<div style="background:var(--bg);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border)">';
+        html += '<div style="font-size:11px;color:var(--text-3);margin-bottom:4px">' + k.l + '</div>';
+        html += '<div style="font-size:15px;font-weight:800;color:' + k.c + '">' + k.v + k.suf + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      // Abgaben-Detail
+      if (zj.finanzamt_detail) {
+        html += '<div style="background:var(--bg);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text-3);display:flex;gap:16px;flex-wrap:wrap">';
+        html += '<span>ÖGK Wien: <strong style="color:var(--text)">€ ' + (zj.ogk_wien||0).toLocaleString('de-AT',{minimumFractionDigits:2}) + '</strong></span>';
+        html += '<span>LSt: <strong style="color:var(--text)">€ ' + (zj.finanzamt_detail.L||0).toFixed(2).replace('.',',') + '</strong></span>';
+        html += '<span>DB: <strong style="color:var(--text)">€ ' + (zj.finanzamt_detail.DB||0).toFixed(2).replace('.',',') + '</strong></span>';
+        html += '<span>DZ: <strong style="color:var(--text)">€ ' + (zj.finanzamt_detail.DZ||0).toFixed(2).replace('.',',') + '</strong></span>';
+        html += '<span>KommSt: <strong style="color:var(--text)">€ ' + (zj.kommst||0).toLocaleString('de-AT',{minimumFractionDigits:2}) + '</strong></span>';
+        html += '<span>DGA: <strong style="color:var(--text)">€ ' + (zj.dga||0).toFixed(2).replace('.',',') + '</strong></span>';
+        html += '</div>';
+      }
+      // Mitarbeiter-Tabelle
+      html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+      html += '<thead><tr style="background:var(--bg)">';
+      ['Name','Beruf','Brutto','SV','Netto','Auszahlung','BV-Beitrag'].forEach(function(h){
+        html += '<th style="padding:8px 10px;text-align:' + (h==='Name'||h==='Beruf'?'left':'right') + ';font-size:11px;color:var(--text-3);font-weight:700;white-space:nowrap;border-bottom:1px solid var(--border)">' + h + '</th>';
+      });
+      html += '</tr></thead><tbody>';
+      lohnData.abrechnungen.forEach(function(ma, i) {
+        var sv = Math.abs(ma.sv_lfd||0) + Math.abs(ma.sv_sz||0) + Math.abs(ma.lst_lfd||0);
+        html += '<tr style="border-bottom:1px solid var(--border);background:' + (i%2===0?'var(--surface)':'var(--bg)') + '">';
+        html += '<td style="padding:8px 10px;font-weight:700;color:var(--text)">' + ma.name + '</td>';
+        html += '<td style="padding:8px 10px;color:var(--text-3)">' + (ma.beruf||'—') + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right;color:var(--text)">€ ' + ma.brutto.toFixed(2).replace('.',',') + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right;color:#c62828">- € ' + sv.toFixed(2).replace('.',',') + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--text)">€ ' + ma.netto.toFixed(2).replace('.',',') + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right;color:#2e7d32;font-weight:700">€ ' + ma.auszahlung.toFixed(2).replace('.',',') + '</td>';
+        html += '<td style="padding:8px 10px;text-align:right;color:var(--text-3)">€ ' + (ma.bv_beitrag||0).toFixed(2).replace('.',',') + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      html += '</div>';
+    }
+  } catch(_) {}
+
   panel.innerHTML = html;
 
   // Chart rendern nach DOM-Update
