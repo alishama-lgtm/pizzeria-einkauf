@@ -803,6 +803,94 @@ app.get('/api/turso/status', async (_req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════
+// PDF / Dokumente API — Server-seitiger Dateispeicher
+// ════════════════════════════════════════════════════════════════════
+const PDF_DIR = path.join(__dirname, 'datenbank', 'buchhaltung');
+if (!fs.existsSync(PDF_DIR)) fs.mkdirSync(PDF_DIR, { recursive: true });
+
+// Tabelle anlegen
+db.exec(`CREATE TABLE IF NOT EXISTS dokumente (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  typ TEXT DEFAULT 'sonstige',
+  monat TEXT DEFAULT '',
+  status TEXT DEFAULT 'offen',
+  pfad TEXT NOT NULL,
+  groesse INTEGER DEFAULT 0,
+  erstellt TEXT DEFAULT (datetime('now'))
+)`);
+
+// Liste aller Dokumente
+app.get('/api/pdf', (_req, res) => {
+  try {
+    const docs = db.prepare('SELECT * FROM dokumente ORDER BY erstellt DESC').all();
+    res.json(docs);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Datei hochladen (base64 JSON)
+app.post('/api/pdf/upload', express.json({ limit: '50mb' }), (req, res) => {
+  try {
+    const { id, name, data, typ, monat } = req.body;
+    if (!id || !name || !data) return res.status(400).json({ error: 'id, name, data erforderlich' });
+    const base64 = data.replace(/^data:[^;]+;base64,/, '');
+    const buf = Buffer.from(base64, 'base64');
+    const safeName = name.replace(/[^a-zA-Z0-9._\-äöüÄÖÜß ]/g, '_');
+    const filename = id + '_' + safeName;
+    const filePath = path.join(PDF_DIR, filename);
+    fs.writeFileSync(filePath, buf);
+    db.prepare(`INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,pfad,groesse) VALUES (?,?,?,?,?,?,?)`)
+      .run(id, name, typ || 'sonstige', monat || '', 'offen', filePath, buf.length);
+    console.log(`  📄 PDF gespeichert: ${name} (${(buf.length/1024).toFixed(1)} KB)`);
+    res.json({ ok: true, id, name, groesse: buf.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Datei herunterladen
+app.get('/api/pdf/:id', (req, res) => {
+  try {
+    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
+    if (!doc || !fs.existsSync(doc.pfad)) return res.status(404).json({ error: 'Nicht gefunden' });
+    const ext = path.extname(doc.name).toLowerCase();
+    const mime = ext === '.pdf' ? 'application/pdf' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.png' ? 'image/png' : 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
+    res.sendFile(doc.pfad);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Dokument im Browser anzeigen (inline)
+app.get('/api/pdf/:id/view', (req, res) => {
+  try {
+    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
+    if (!doc || !fs.existsSync(doc.pfad)) return res.status(404).json({ error: 'Nicht gefunden' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.name)}"`);
+    res.sendFile(doc.pfad);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Status ändern
+app.put('/api/pdf/:id/status', express.json(), (req, res) => {
+  try {
+    db.prepare('UPDATE dokumente SET status=? WHERE id=?').run(req.body.status, req.params.id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Dokument löschen
+app.delete('/api/pdf/:id', (req, res) => {
+  try {
+    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
+    if (doc) {
+      try { if (fs.existsSync(doc.pfad)) fs.unlinkSync(doc.pfad); } catch(_) {}
+      db.prepare('DELETE FROM dokumente WHERE id=?').run(req.params.id);
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
 // Inbox API — Ordner-Watcher Endpunkte
 // ════════════════════════════════════════════════════════════════════
 

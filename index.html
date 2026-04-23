@@ -19402,44 +19402,33 @@ function renderGewinnTab() {
 // ═══════════════════════════════════════════════════════════════
 
 // ── IndexedDB Helper ──
-function _openBuchDB() {
+// PDF-Speicher: Server-Filesystem (nicht mehr IndexedDB)
+function _savePdfToDB(id, file, typ, monat) {
   return new Promise(function(resolve, reject) {
-    var req = indexedDB.open('BuchhaltungDB', 1);
-    req.onupgradeneeded = function(e) { e.target.result.createObjectStore('pdfs'); };
-    req.onsuccess = function(e) { resolve(e.target.result); };
-    req.onerror = function(e) { reject(e.target.error); };
-  });
-}
-function _savePdfToDB(id, blob) {
-  return _openBuchDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('pdfs', 'readwrite');
-      tx.objectStore('pdfs').put(blob, id);
-      tx.oncomplete = resolve;
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      fetch('/api/pdf/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, name: file.name, data: e.target.result, typ: typ || 'sonstige', monat: monat || '' })
+      }).then(function(r) { return r.json(); })
+        .then(function(d) { d.ok ? resolve(d) : reject(new Error(d.error)); })
+        .catch(reject);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 function _getPdfFromDB(id) {
-  return _openBuchDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('pdfs', 'readonly');
-      var req = tx.objectStore('pdfs').get(id);
-      req.onsuccess = function() { resolve(req.result); };
-      req.onerror = function(e) { reject(e.target.error); };
-    });
-  });
+  return fetch('/api/pdf/' + id)
+    .then(function(r) { return r.ok ? r.blob() : null; });
 }
 function _deletePdfFromDB(id) {
-  return _openBuchDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction('pdfs', 'readwrite');
-      tx.objectStore('pdfs').delete(id);
-      tx.oncomplete = resolve;
-      tx.onerror = function(e) { reject(e.target.error); };
-    });
-  });
+  return fetch('/api/pdf/' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); });
 }
+function _pdfViewUrl(id) { return '/api/pdf/' + id + '/view'; }
+function _pdfDownloadUrl(id) { return '/api/pdf/' + id; }
 
 // ── Daten-Helper ──
 var BUCH_TYPEN = [
@@ -19476,12 +19465,18 @@ function buchAddDoc(file, typ, monat) {
     status: 'offen', uploadDate: new Date().toISOString().slice(0, 10),
     size: file.size
   };
-  var docs = buchLoad();
-  docs.unshift(doc);
-  buchSave(docs);
-  _savePdfToDB(id, file).then(function() {
-    _showToast('Dokument hochgeladen ✓', 'success');
+  var btn = document.querySelector('[onclick="buchUploadHandler()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Wird hochgeladen...'; }
+  _savePdfToDB(id, file, typ, monat).then(function() {
+    var docs = buchLoad();
+    docs.unshift(doc);
+    buchSave(docs);
+    _showToast(file.name + ' hochgeladen ✓', 'success');
     renderBuchhaltungTab();
+  }).catch(function(e) {
+    _showToast('Upload-Fehler: ' + e.message, 'error');
+  }).finally(function() {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px">upload</span>Hochladen'; }
   });
 }
 
@@ -19497,18 +19492,21 @@ function buchDeleteDoc(id) {
 
 function buchSetStatus(id, status) {
   var docs = buchLoad();
-  var doc = docs.find(function(d) { return d.id === id; });
-  if (doc) { doc.status = status; buchSave(docs); renderBuchhaltungTab(); }
+  var doc = docs.find(function(d) { return d.id === d; });
+  if (doc) { doc.status = status; buchSave(docs); }
+  fetch('/api/pdf/' + id + '/status', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+  renderBuchhaltungTab();
 }
 
 function buchDownload(id, name) {
-  _getPdfFromDB(id).then(function(blob) {
-    if (!blob) { _showToast('Datei nicht gefunden', 'error'); return; }
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = name; a.click();
-    URL.revokeObjectURL(url);
-  });
+  var a = document.createElement('a');
+  a.href = _pdfDownloadUrl(id);
+  a.download = name;
+  a.click();
+}
+
+function buchView(id) {
+  window.open(_pdfViewUrl(id), '_blank');
 }
 
 function buchUploadHandler() {
@@ -19954,40 +19952,45 @@ async function renderBuchhaltungTab() {
   }
 
   // ── Dokumente-Tabelle ──
-  html += '<div style="background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #e3beb866;overflow:hidden">';
-  html += '<div style="padding:16px 20px;border-bottom:1px solid #e3beb844;display:flex;align-items:center;justify-content:space-between">';
-  html += '<span style="font-size:13px;font-weight:700;color:#261816">📄 Alle Dokumente</span>';
+  // ── Dokumente vom Server laden ──
+  var serverDocs = [];
+  try {
+    var sdRes = await fetch('/api/pdf');
+    if (sdRes.ok) serverDocs = await sdRes.json();
+  } catch(_) {}
+
+  html += '<div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px">';
+  html += '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html += '<span style="font-size:13px;font-weight:800;color:var(--text)">📄 Dokumente in der Datenbank</span>';
+  html += '<span style="font-size:11px;color:var(--text-3)">' + serverDocs.length + ' Dateien gespeichert</span>';
   html += '</div>';
 
-  if (filtered.length === 0) {
-    html += '<div style="padding:40px;text-align:center;color:#8d6562">';
-    html += '<span class="material-symbols-outlined" style="font-size:48px;color:#e3beb8;display:block;margin-bottom:10px">folder_off</span>';
-    html += '<p style="font-size:14px;font-weight:600">Keine Dokumente vorhanden</p>';
+  if (serverDocs.length === 0) {
+    html += '<div style="padding:36px;text-align:center;color:var(--text-3)">';
+    html += '<span class="material-symbols-outlined" style="font-size:44px;display:block;margin-bottom:8px;opacity:.4">folder_off</span>';
+    html += '<p style="font-size:13px;font-weight:600">Noch keine Dokumente</p>';
     html += '<p style="font-size:12px;margin-top:4px">Lade oben dein erstes PDF hoch</p>';
     html += '</div>';
   } else {
-    filtered.forEach(function(d) {
-      var typObj = BUCH_TYPEN.find(function(t) { return t.id === d.typ; }) || BUCH_TYPEN[4];
+    serverDocs.forEach(function(d) {
+      var typObj = BUCH_TYPEN.find(function(t) { return t.id === d.typ; }) || { label: d.typ, icon: 'description' };
       var statObj = BUCH_STATUS.find(function(s) { return s.id === d.status; }) || BUCH_STATUS[0];
       var parts = (d.monat || '').split('-');
-      var monatLabel = parts.length === 2 ? ['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][parseInt(parts[1])] + ' ' + parts[0] : d.monat;
-      var sizeKB = d.size ? Math.round(d.size / 1024) + ' KB' : '';
+      var monatLbl = parts.length === 2 ? (['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][parseInt(parts[1])] + ' ' + parts[0]) : (d.monat || '—');
+      var sizeKB = d.groesse ? (d.groesse > 1024*1024 ? (d.groesse/1024/1024).toFixed(1)+' MB' : Math.round(d.groesse/1024)+' KB') : '';
 
-      html += '<div style="padding:14px 20px;border-bottom:1px solid #f0e4e1;display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
-      html += '<span class="material-symbols-outlined" style="font-size:22px;color:#610000;flex-shrink:0">' + typObj.icon + '</span>';
-      html += '<div style="flex:1;min-width:140px">';
-      html += '<div style="font-size:13px;font-weight:700;color:#261816;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(d.name) + '</div>';
-      html += '<div style="font-size:11px;color:#8d6562;margin-top:2px">' + typObj.label + ' · ' + monatLabel + ' · ' + sizeKB + '</div>';
+      html += '<div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">';
+      html += '<span class="material-symbols-outlined" style="font-size:24px;color:#610000;flex-shrink:0">' + typObj.icon + '</span>';
+      html += '<div style="flex:1;min-width:160px">';
+      html += '<div style="font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(d.name) + '">' + _esc(d.name) + '</div>';
+      html += '<div style="font-size:11px;color:var(--text-3);margin-top:2px">' + typObj.label + ' · ' + monatLbl + (sizeKB ? ' · ' + sizeKB : '') + '</div>';
       html += '</div>';
-      // Status-Badge
-      html += '<select onchange="buchSetStatus(\'' + d.id + '\',this.value)" style="padding:5px 8px;border-radius:8px;border:1px solid ' + statObj.color + '33;background:' + statObj.bg + ';color:' + statObj.color + ';font-size:11px;font-weight:700;font-family:inherit;appearance:none;cursor:pointer;text-align:center;min-width:70px">';
-      BUCH_STATUS.forEach(function(s) {
-        html += '<option value="' + s.id + '"' + (d.status === s.id ? ' selected' : '') + '>' + s.label + '</option>';
-      });
+      html += '<select onchange="buchSetStatus(\'' + d.id + '\',this.value)" style="padding:4px 8px;border-radius:8px;border:1px solid ' + statObj.color + '55;background:' + statObj.bg + ';color:' + statObj.color + ';font-size:11px;font-weight:700;font-family:inherit;cursor:pointer">';
+      BUCH_STATUS.forEach(function(s) { html += '<option value="' + s.id + '"' + (d.status === s.id ? ' selected' : '') + '>' + s.label + '</option>'; });
       html += '</select>';
-      // Buttons
-      html += '<button onclick="buchDownload(\'' + d.id + '\',\'' + _esc(d.name) + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Download"><span class="material-symbols-outlined" style="font-size:16px;color:#610000">download</span></button>';
-      html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:#fff;cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:16px;color:#5a6472">delete</span></button>';
+      html += '<a href="/api/pdf/' + d.id + '/view" target="_blank" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;text-decoration:none;font-size:11px;font-weight:700;color:#1565c0;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:14px">visibility</span>Anzeigen</a>';
+      html += '<a href="/api/pdf/' + d.id + '" download="' + _esc(d.name) + '" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;text-decoration:none;font-size:11px;font-weight:700;color:#2e7d32;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:14px">download</span>Herunterladen</a>';
+      html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:14px;color:#5a6472">delete</span></button>';
       html += '</div>';
     });
   }
