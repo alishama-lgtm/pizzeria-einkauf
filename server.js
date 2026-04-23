@@ -12,6 +12,9 @@ import { fileURLToPath } from 'url';
 import { DatabaseSync } from 'node:sqlite';
 import { createClient as createTursoClient } from '@libsql/client';
 import { startWatcher, setBroadcast, getQueue, markDone, deleteEntry, clearProcessed, getFolderInfo } from './server/watcher.js';
+import { createRequire } from 'module';
+const _require = createRequire(import.meta.url);
+const pdfParse = _require('pdf-parse');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -891,6 +894,114 @@ app.delete('/api/pdf/:id', (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════
+// PDF → JSON Konvertierung (pdf-parse + Claude API)
+// ════════════════════════════════════════════════════════════════════
+
+const PDF_JSON_PROMPT = `Du bist ein österreichischer Buchhaltungs-Experte für die Pizzeria San Carino (Ali Shama KG, Wien).
+Analysiere den folgenden PDF-Text und gib strukturiertes JSON zurück.
+
+Erkenne automatisch den Dokumenttyp und verwende das passende Format:
+
+LOHNABRECHNUNG / ABRECHNUNGSBELEGE:
+{"typ":"lohnabrechnung","firma":"","monat":"YYYY-MM","mitarbeiter":[{"ma_nr":0,"name":"Nachname, Vorname","beruf":"","sv_nr":"","eintritt":"DD.MM.YYYY","austritt":"","brutto":0.00,"monatslohn":0.00,"sonderzahlung":0.00,"sv_lfd":0.00,"sv_sz":0.00,"lst_lfd":0.00,"lst_sz":0.00,"abzuege":0.00,"netto":0.00,"auszahlung":0.00,"bv_beitrag":0.00}]}
+
+ZAHLUNGSJOURNAL:
+{"typ":"zahlungsjournal","monat":"YYYY-MM","eintraege":[{"datum":"DD.MM.YYYY","empfaenger":"","iban":"","betrag":0.00,"verwendungszweck":""}],"gesamt":0.00}
+
+RECHNUNG:
+{"typ":"rechnung","datum":"YYYY-MM-DD","lieferant":"","rechnungsnr":"","positionen":[{"artikel":"","menge":0,"einheit":"","preis_einzel":0.00,"preis_gesamt":0.00}],"zwischensumme":0.00,"mwst":0.00,"gesamt":0.00}
+
+SONSTIGES:
+{"typ":"sonstiges","datum":"","betreff":"","zusammenfassung":"","daten":{}}
+
+Antworte NUR mit validem JSON ohne Markdown-Blöcke oder Erklärungen.`;
+
+// PDF → JSON konvertieren (per Dokument-ID)
+app.post('/api/pdf/:id/zu-json', async (req, res) => {
+  try {
+    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
+    if (!doc || !fs.existsSync(doc.pfad)) return res.status(404).json({ error: 'PDF nicht gefunden' });
+
+    // Text aus PDF extrahieren
+    const pdfBuf = fs.readFileSync(doc.pfad);
+    const pdfData = await pdfParse(pdfBuf);
+    const pdfText = pdfData.text;
+
+    const apiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+    let jsonData;
+
+    if (apiKey && !apiKey.includes('BITTE')) {
+      // Mit Claude strukturieren
+      const resp = await axios.post('https://api.anthropic.com/v1/messages', {
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 4096,
+        system: PDF_JSON_PROMPT,
+        messages: [{ role: 'user', content: 'PDF-Text:\n\n' + pdfText.slice(0, 20000) }]
+      }, { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+
+      const raw = (resp.data.content?.[0]?.text || '').trim().replace(/^```json\n?|^```\n?|```$/gm, '').trim();
+      jsonData = JSON.parse(raw);
+    } else {
+      // Fallback: Text als JSON (kein API-Key)
+      jsonData = { typ: doc.typ || 'sonstiges', name: doc.name, text: pdfText, seiten: pdfData.numpages, hinweis: 'Claude API Key fehlt — nur Rohtext' };
+    }
+
+    // Metadaten anhängen
+    jsonData._meta = { dok_id: doc.id, dok_name: doc.name, seiten: pdfData.numpages, konvertiert: new Date().toISOString() };
+
+    // In app_data speichern
+    const key = 'pdf_json_' + doc.id;
+    const dataStr = JSON.stringify(jsonData);
+    db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+
+    console.log(`  🔄 PDF→JSON: ${doc.name} (${pdfData.numpages} Seiten → ${dataStr.length} Zeichen JSON)`);
+    res.json({ ok: true, key, data: jsonData });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// JSON für ein Dokument abrufen
+app.get('/api/pdf/:id/json', (req, res) => {
+  try {
+    const key = 'pdf_json_' + req.params.id;
+    const row = db.prepare('SELECT data FROM app_data WHERE key=?').get(key);
+    if (!row) return res.status(404).json({ error: 'Noch nicht konvertiert' });
+    res.json(JSON.parse(row.data));
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// JSON für ein Dokument aktualisieren (editierbar in App)
+app.put('/api/pdf/:id/json', express.json({ limit: '5mb' }), (req, res) => {
+  try {
+    const key = 'pdf_json_' + req.params.id;
+    const dataStr = JSON.stringify(req.body);
+    db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Alle PDFs auf einmal konvertieren
+app.post('/api/pdf/alle-zu-json', async (req, res) => {
+  try {
+    const docs = db.prepare("SELECT * FROM dokumente WHERE pfad LIKE '%.pdf'").all();
+    res.json({ ok: true, gesamt: docs.length, nachricht: `${docs.length} PDFs werden im Hintergrund konvertiert` });
+    // Im Hintergrund konvertieren
+    for (const doc of docs) {
+      try {
+        if (!fs.existsSync(doc.pfad)) continue;
+        const pdfBuf = fs.readFileSync(doc.pfad);
+        const pdfData = await pdfParse(pdfBuf);
+        const key = 'pdf_json_' + doc.id;
+        const already = db.prepare('SELECT key FROM app_data WHERE key=?').get(key);
+        if (already) continue; // bereits konvertiert — überspringen
+        const jsonData = { typ: doc.typ||'sonstiges', name: doc.name, text: pdfData.text, seiten: pdfData.numpages, _meta: { dok_id: doc.id, konvertiert: new Date().toISOString() } };
+        db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, JSON.stringify(jsonData));
+        console.log(`  🔄 Bulk PDF→JSON: ${doc.name}`);
+      } catch(_) {}
+    }
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════════
 // Inbox API — Ordner-Watcher Endpunkte
 // ════════════════════════════════════════════════════════════════════
 
@@ -1340,6 +1451,75 @@ app.post('/api/mitarbeiter', express.json(), (req, res) => {
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+// Lohnzettel → Mitarbeiter-DB sync (Gehalt + Stunden automatisch)
+app.post('/api/mitarbeiter/sync-lohnzettel', (_req, res) => {
+  try {
+    const lohnRaw = db.prepare("SELECT data FROM app_data WHERE key='psc_lohnabrechnungen'").get();
+    if (!lohnRaw) return res.status(404).json({ error: 'Keine Lohnabrechnungsdaten vorhanden. Bitte zuerst PDF hochladen.' });
+    const lohnData = JSON.parse(lohnRaw.data);
+    const pdfMa = (lohnData && lohnData.abrechnungen) ? lohnData.abrechnungen : [];
+    if (!pdfMa.length) return res.status(404).json({ error: 'Keine Mitarbeiterdaten in Lohnabrechnung' });
+
+    const dbMa = db.prepare('SELECT * FROM mitarbeiter').all();
+    const MA_FARBEN = ['#8B0000','#c62828','#ad1457','#6a1b9a','#283593','#1565c0','#00695c','#2e7d32','#e65100','#4e342e'];
+
+    function nameWords(s) { return (s||'').toLowerCase().split(/\s+/).filter(w => w.length >= 3); }
+    function findMatch(pdfName, dbList) {
+      const pdfWords = nameWords(pdfName);
+      for (const dbE of dbList) {
+        const dbWords = nameWords(dbE.name);
+        for (const pw of pdfWords) { for (const dw of dbWords) { if (pw.startsWith(dw) || dw.startsWith(pw)) return dbE; } }
+      }
+      return null;
+    }
+    // Stunden/Lohn schätzen aus Monatslohn
+    function schätzeStundenLohn(ma) {
+      const monat = ma.monatslohn || 0;
+      const vollzeit = 173; // 40 Std/Wo × 4,33 Wo/Mo
+      let stunden, lohn;
+      if (monat >= 1300) { stunden = 40; lohn = +(monat / vollzeit).toFixed(2); }
+      else if (monat >= 700) { stunden = Math.round(monat / 4.33 / 13.5); lohn = 13.5; }
+      else if (monat > 0) { stunden = Math.max(8, Math.round(monat / 4.33 / 13.5)); lohn = 13.5; }
+      else { stunden = 0; lohn = 0; }
+      return { stunden, lohn };
+    }
+    function berufToRolle(beruf) {
+      const b = (beruf||'').toLowerCase();
+      if (b.includes('fahrer') || b.includes('liefer')) return 'Lieferung';
+      if (b.includes('küche') || b.includes('koch') || b.includes('köchin')) return 'Küche';
+      if (b.includes('service') || b.includes('kellner')) return 'Service';
+      if (b.includes('reinigung') || b.includes('reiniger')) return 'Reinigung';
+      return 'Küche';
+    }
+
+    let aktualisiert = 0, hinzugefuegt = 0;
+    const results = [];
+
+    for (const pdfE of pdfMa) {
+      const match = findMatch(pdfE.name, dbMa);
+      const { stunden, lohn } = schätzeStundenLohn(pdfE);
+      if (match) {
+        db.prepare('UPDATE mitarbeiter SET lohn=?, stunden=? WHERE id=?').run(lohn, stunden, match.id);
+        tursoWriteMa({ ...match, lohn, stunden });
+        aktualisiert++;
+        results.push({ aktion: 'aktualisiert', db_name: match.name, pdf_name: pdfE.name, lohn, stunden });
+      } else {
+        // Neu anlegen
+        const id = 'ma_lohn_' + pdfE.ma_nr + '_' + Date.now();
+        const rolle = berufToRolle(pdfE.beruf);
+        const farbe = MA_FARBEN[(dbMa.length + hinzugefuegt) % MA_FARBEN.length];
+        db.prepare('INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)').run(id, pdfE.name, rolle, stunden, lohn, farbe);
+        tursoWriteMa({ id, name: pdfE.name, rolle, stunden, lohn, farbe });
+        hinzugefuegt++;
+        results.push({ aktion: 'neu', pdf_name: pdfE.name, lohn, stunden, rolle });
+      }
+    }
+    // Aktuelle Liste für App-Broadcast
+    const alleMA = db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all();
+    res.json({ ok: true, aktualisiert, hinzugefuegt, gesamt: alleMA.length, details: results });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Abgleich: DB-Mitarbeiter vs. PDF-Lohnabrechnungen
 app.get('/api/mitarbeiter/abgleich', (_req, res) => {
   try {

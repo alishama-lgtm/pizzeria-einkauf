@@ -10990,15 +10990,25 @@ function _renderMALohnzettelHTML(data) {
       <div style="flex:1">
         <div style="font-size:14px;font-weight:800;color:#7b4b00;margin-bottom:4px">⚠️ ${fehlende.length} Mitarbeiter fehlen in der Datenbank</div>
         <div style="font-size:12px;color:#5a4000">Lohnzettel ${monatLabel}: ${pdfCount} Personen — Datenbank: ${dbCount} Personen.</div>
-        <button onclick="_maAlleFehlendHinzufuegen()" style="margin-top:10px;padding:9px 18px;background:#e65100;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-          <span class="material-symbols-outlined" style="font-size:16px">person_add</span>Alle ${fehlende.length} fehlenden Mitarbeiter hinzufügen
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <button onclick="_maAlleFehlendHinzufuegen()" style="padding:9px 18px;background:#e65100;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+            <span class="material-symbols-outlined" style="font-size:16px">person_add</span>Alle ${fehlende.length} fehlenden hinzufügen
+          </button>
+          <button onclick="buchSyncLohnzettel()" style="padding:9px 18px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+            <span class="material-symbols-outlined" style="font-size:16px">sync</span>Stunden + Gehalt übernehmen
+          </button>
+        </div>
       </div>
     </div>`;
   } else if (pdfMitarbeiter && pdfMitarbeiter.length > 0) {
-    html += `<div style="background:#e8f5e9;border:1.5px solid #81c784;border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-      <span class="material-symbols-outlined" style="font-size:22px;color:#2e7d32">check_circle</span>
-      <div style="font-size:13px;font-weight:700;color:#1b5e20">Alle ${pdfCount} Mitarbeiter aus Lohnzettel ${monatLabel} sind in der Datenbank vorhanden</div>
+    html += `<div style="background:#e8f5e9;border:1.5px solid #81c784;border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="material-symbols-outlined" style="font-size:22px;color:#2e7d32">check_circle</span>
+        <div style="font-size:13px;font-weight:700;color:#1b5e20">Alle ${pdfCount} Mitarbeiter aus Lohnzettel ${monatLabel} vorhanden</div>
+      </div>
+      <button onclick="buchSyncLohnzettel()" style="padding:8px 16px;background:#1565c0;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:15px">sync</span>Stunden + Gehalt übernehmen
+      </button>
     </div>`;
   }
 
@@ -19753,6 +19763,76 @@ function buchView(id) {
   window.open(_pdfViewUrl(id), '_blank');
 }
 
+async function buchPdfZuJson(id, name) {
+  _showToast('PDF wird konvertiert…', 'info');
+  try {
+    const r = await fetch('/api/pdf/' + id + '/zu-json', { method: 'POST' });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    _showToast('✓ JSON gespeichert: ' + name, 'success');
+    // JSON-Viewer öffnen
+    _buchZeigeJsonViewer(id, name, d.data);
+  } catch(e) { _showToast('Fehler: ' + e.message, 'error'); }
+}
+
+function _buchZeigeJsonViewer(id, name, data) {
+  const existing = document.getElementById('buch-json-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'buch-json-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  const jsonStr = JSON.stringify(data, null, 2);
+  modal.innerHTML = `
+    <div style="background:#1e1e2e;border-radius:18px;width:100%;max-width:760px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #333;flex-shrink:0">
+        <div style="font-size:14px;font-weight:700;color:#cdd6f4;display:flex;align-items:center;gap:8px">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#cba6f7">data_object</span>${name} — JSON
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="_buchSpeichereJson('${id}')" style="padding:7px 14px;background:#89b4fa;color:#1e1e2e;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px">
+            <span class="material-symbols-outlined" style="font-size:14px">save</span>Speichern
+          </button>
+          <button onclick="document.getElementById('buch-json-modal').remove()" style="padding:7px;background:#313244;border:none;border-radius:8px;cursor:pointer;line-height:0">
+            <span class="material-symbols-outlined" style="font-size:18px;color:#cdd6f4">close</span>
+          </button>
+        </div>
+      </div>
+      <textarea id="buch-json-editor" style="flex:1;background:#181825;color:#cdd6f4;border:none;padding:16px;font-family:monospace;font-size:13px;resize:none;outline:none;overflow-y:auto;min-height:400px">${jsonStr.replace(/</g,'&lt;')}</textarea>
+      <div style="padding:10px 16px;background:#181825;border-top:1px solid #333;font-size:11px;color:#6c7086;flex-shrink:0">
+        Dok-ID: ${id} · Bearbeitbar · Strg+S zum Speichern
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  const ta = modal.querySelector('#buch-json-editor');
+  ta.addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); _buchSpeichereJson(id); } });
+}
+
+async function _buchSpeichereJson(id) {
+  const ta = document.getElementById('buch-json-editor');
+  if (!ta) return;
+  try {
+    const parsed = JSON.parse(ta.value);
+    const r = await fetch('/api/pdf/' + id + '/json', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(parsed) });
+    const d = await r.json();
+    if (d.ok) _showToast('JSON gespeichert ✓', 'success');
+    else _showToast('Fehler beim Speichern', 'error');
+  } catch(e) { _showToast('Ungültiges JSON: ' + e.message, 'error'); }
+}
+
+async function buchSyncLohnzettel() {
+  _showToast('Lohndaten werden übernommen…', 'info');
+  try {
+    const r = await fetch('/api/mitarbeiter/sync-lohnzettel', { method: 'POST' });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    _showToast('✓ ' + d.aktualisiert + ' aktualisiert, ' + d.hinzugefuegt + ' neu hinzugefügt', 'success');
+    // Mitarbeiter-Liste in localStorage aktualisieren
+    const maR = await fetch('/api/mitarbeiter');
+    if (maR.ok) { const ma = await maR.json(); localStorage.setItem('pizzeria_mitarbeiter', JSON.stringify(ma)); }
+  } catch(e) { _showToast('Fehler: ' + e.message, 'error'); }
+}
+
 function buchUploadHandler() {
   var input = document.getElementById('buch-file-input');
   var typ = document.getElementById('buch-typ-select').value;
@@ -20234,6 +20314,7 @@ async function renderBuchhaltungTab() {
       html += '</select>';
       html += '<a href="/api/pdf/' + d.id + '/view" target="_blank" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;text-decoration:none;font-size:11px;font-weight:700;color:#1565c0;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:14px">visibility</span>Anzeigen</a>';
       html += '<a href="/api/pdf/' + d.id + '" download="' + _esc(d.name) + '" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;text-decoration:none;font-size:11px;font-weight:700;color:#2e7d32;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:14px">download</span>Herunterladen</a>';
+      html += '<button onclick="buchPdfZuJson(\'' + d.id + '\',\'' + _esc(d.name) + '\')" style="padding:6px 10px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer;font-size:11px;font-weight:700;color:#7b1fa2;display:flex;align-items:center;gap:4px;font-family:inherit" title="Als JSON speichern"><span class="material-symbols-outlined" style="font-size:14px">data_object</span>→ JSON</button>';
       html += '<button onclick="buchDeleteDoc(\'' + d.id + '\')" style="padding:6px;border-radius:8px;border:1px solid #e3beb8;background:var(--surface);cursor:pointer" title="Löschen"><span class="material-symbols-outlined" style="font-size:14px;color:#5a6472">delete</span></button>';
       html += '</div>';
     });
