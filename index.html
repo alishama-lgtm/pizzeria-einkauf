@@ -10603,16 +10603,19 @@ function weekMonday(date) {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+function _localDateStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 function weekKeyFromDate(date) {
-  return weekMonday(date).toISOString().slice(0, 10);
+  return _localDateStr(weekMonday(date));
 }
 function prevWeekKey(key) {
-  const d = new Date(key); d.setDate(d.getDate() - 7);
-  return d.toISOString().slice(0, 10);
+  const [y,m,d] = key.split('-').map(Number);
+  return _localDateStr(new Date(y, m-1, d-7));
 }
 function nextWeekKey(key) {
-  const d = new Date(key); d.setDate(d.getDate() + 7);
-  return d.toISOString().slice(0, 10);
+  const [y,m,d] = key.split('-').map(Number);
+  return _localDateStr(new Date(y, m-1, d+7));
 }
 function isoWeekNum(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -10730,13 +10733,25 @@ function renderMitarbeiterTab() {
         <span class="material-symbols-outlined" style="font-size:16px">group</span>Mitarbeiter
         <span style="background:${MA_STATE.view==='list'?'#610000':'#e3beb8'};color:${MA_STATE.view==='list'?'#fff':'#5a403c'};border-radius:20px;padding:1px 7px;font-size:11px">${mitarbeiter.length}</span>
       </button>
+      <button onclick="MA_STATE.view='lohn';renderMitarbeiterTab()"
+        style="padding:10px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;
+               color:${MA_STATE.view==='lohn'?'#610000':'#5a403c'};
+               border-bottom:${MA_STATE.view==='lohn'?'3px solid #610000':'3px solid transparent'};
+               margin-bottom:-2px;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <span class="material-symbols-outlined" style="font-size:16px">receipt_long</span>Lohnzettel
+      </button>
     </div>`;
 
-  html += MA_STATE.view === 'list'
-    ? renderMAListe(mitarbeiter)
-    : renderMAWochenplan(mitarbeiter, weekKey);
+  if (MA_STATE.view === 'list') {
+    html += renderMAListe(mitarbeiter);
+  } else if (MA_STATE.view === 'lohn') {
+    html += `<div id="ma-lohn-container"><div style="text-align:center;padding:48px;color:#8d6562"><span class="material-symbols-outlined" style="font-size:40px;display:block;margin-bottom:8px">sync</span>Lohndaten werden geladen…</div></div>`;
+  } else {
+    html += renderMAWochenplan(mitarbeiter, weekKey);
+  }
 
   panel.innerHTML = html;
+  if (MA_STATE.view === 'lohn') { _loadMALohnzettel(); }
 }
 
 function renderMAListe(mitarbeiter) {
@@ -10859,9 +10874,145 @@ function renderMAListe(mitarbeiter) {
   return html + `</div>`;
 }
 
+// ── Lohnzettel-Tab: lädt /api/mitarbeiter/abgleich und zeigt Gehälter ─────
+async function _loadMALohnzettel() {
+  const container = document.getElementById('ma-lohn-container');
+  if (!container) return;
+  try {
+    const r = await fetch('/api/mitarbeiter/abgleich');
+    const data = await r.json();
+    container.innerHTML = _renderMALohnzettelHTML(data);
+  } catch(e) {
+    container.innerHTML = '<div style="padding:32px;text-align:center;color:#c62828">Fehler beim Laden: ' + (e.message||'Unbekannt') + '</div>';
+  }
+}
+
+function _renderMALohnzettelHTML(data) {
+  const { dbCount, pdfCount, monat, pdfMitarbeiter, fehlende } = data;
+  const monatLabels = ['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  const monatLabel = monat ? (monatLabels[parseInt(monat.split('-')[1])] + ' ' + monat.split('-')[0]) : '';
+  let html = '';
+
+  // Warnbanner wenn Anzahl nicht übereinstimmt
+  if (fehlende && fehlende.length > 0) {
+    html += `<div style="background:#fff3cd;border:1.5px solid #ffc107;border-radius:14px;padding:16px 18px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px">
+      <span class="material-symbols-outlined" style="font-size:24px;color:#e65100;flex-shrink:0;margin-top:2px">warning</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:800;color:#7b4b00;margin-bottom:4px">⚠️ ${fehlende.length} Mitarbeiter fehlen in der Datenbank</div>
+        <div style="font-size:12px;color:#5a4000">Lohnzettel ${monatLabel}: ${pdfCount} Personen — Datenbank: ${dbCount} Personen.</div>
+        <button onclick="_maAlleFehlendHinzufuegen()" style="margin-top:10px;padding:9px 18px;background:#e65100;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+          <span class="material-symbols-outlined" style="font-size:16px">person_add</span>Alle ${fehlende.length} fehlenden Mitarbeiter hinzufügen
+        </button>
+      </div>
+    </div>`;
+  } else if (pdfMitarbeiter && pdfMitarbeiter.length > 0) {
+    html += `<div style="background:#e8f5e9;border:1.5px solid #81c784;border-radius:14px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <span class="material-symbols-outlined" style="font-size:22px;color:#2e7d32">check_circle</span>
+      <div style="font-size:13px;font-weight:700;color:#1b5e20">Alle ${pdfCount} Mitarbeiter aus Lohnzettel ${monatLabel} sind in der Datenbank vorhanden</div>
+    </div>`;
+  }
+
+  if (!pdfMitarbeiter || pdfMitarbeiter.length === 0) {
+    return html + `<div style="text-align:center;padding:48px;background:#fff8f6;border-radius:16px;border:1.5px dashed #e3beb8">
+      <span class="material-symbols-outlined" style="font-size:52px;color:#e3beb8;display:block">receipt_long</span>
+      <p style="color:#8d6562;margin-top:14px;font-size:14px">Noch keine Lohnabrechnungen importiert.<br>Gehe zu <strong>Buchhaltung → PDF hochladen</strong>.</p>
+    </div>`;
+  }
+
+  // Lohnzettel-Header mit Gesamtübersicht
+  const gesamtBrutto = pdfMitarbeiter.reduce((s, m) => s + (m.brutto||0), 0);
+  const gesamtNetto  = pdfMitarbeiter.reduce((s, m) => s + (m.netto||0), 0);
+  const gesamtAusz   = pdfMitarbeiter.reduce((s, m) => s + (m.auszahlung||0), 0);
+
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px">
+    <div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:14px;padding:14px 16px;color:#fff;text-align:center">
+      <div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:4px">BRUTTO GESAMT</div>
+      <div style="font-size:20px;font-weight:800">€ ${gesamtBrutto.toLocaleString('de-AT',{minimumFractionDigits:2})}</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:14px 16px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#5a403c;margin-bottom:4px">NETTO GESAMT</div>
+      <div style="font-size:20px;font-weight:800;color:#261816">€ ${gesamtNetto.toLocaleString('de-AT',{minimumFractionDigits:2})}</div>
+    </div>
+    <div style="background:#e8f5e9;border:1.5px solid #81c784;border-radius:14px;padding:14px 16px;text-align:center">
+      <div style="font-size:11px;font-weight:700;color:#2e7d32;margin-bottom:4px">AUSZAHLUNG</div>
+      <div style="font-size:20px;font-weight:800;color:#1b5e20">€ ${gesamtAusz.toLocaleString('de-AT',{minimumFractionDigits:2})}</div>
+    </div>
+  </div>`;
+
+  // Mitarbeiter-Karten
+  html += `<div style="display:flex;flex-direction:column;gap:12px">`;
+  const MA_FARBEN_LIST = ['#8B0000','#c62828','#ad1457','#6a1b9a','#283593','#1565c0','#00695c','#2e7d32','#e65100','#4e342e'];
+  pdfMitarbeiter.forEach(function(ma, idx) {
+    const matched = !!ma.dbMatch;
+    const sv = Math.abs(ma.sv_lfd||0) + Math.abs(ma.sv_sz||0) + Math.abs(ma.lst_lfd||0);
+    const farbe = MA_FARBEN_LIST[idx % MA_FARBEN_LIST.length];
+    html += `<div style="background:#fff;border:1.5px solid ${matched?'#e3beb8':'#ffc107'};border-radius:18px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:14px;padding:16px 18px">
+        <div style="width:46px;height:46px;border-radius:50%;background:${farbe};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;font-weight:800;color:#fff">${(ma.name||'?').charAt(0)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:800;color:#261816">${ma.name}</div>
+          <div style="font-size:12px;color:#8d6562;margin-top:2px">${ma.beruf||'—'}</div>
+        </div>
+        ${matched
+          ? `<span style="background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">check_circle</span>In DB</span>`
+          : `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+               <span style="background:#fff3cd;color:#7b4b00;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">warning</span>Fehlt</span>
+               <button onclick="_maFehlendHinzufuegen('${ma.name.replace(/'/g,"\\'")}','${(ma.beruf||'').replace(/'/g,"\\'")}',${ma.auszahlung||0})" style="padding:6px 12px;background:#e65100;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">+ Hinzufügen</button>
+             </div>`
+        }
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-top:1px solid #f0e8e6;background:#fdf8f7">
+        <div style="padding:12px 14px;text-align:center;border-right:1px solid #f0e8e6">
+          <div style="font-size:10px;color:#8d6562;font-weight:600;margin-bottom:3px">Brutto</div>
+          <div style="font-size:15px;font-weight:800;color:#261816">€ ${(ma.brutto||0).toFixed(2).replace('.',',')}</div>
+        </div>
+        <div style="padding:12px 14px;text-align:center;border-right:1px solid #f0e8e6">
+          <div style="font-size:10px;color:#8d6562;font-weight:600;margin-bottom:3px">SV + LSt</div>
+          <div style="font-size:15px;font-weight:800;color:#c62828">- € ${sv.toFixed(2).replace('.',',')}</div>
+        </div>
+        <div style="padding:12px 14px;text-align:center;border-right:1px solid #f0e8e6">
+          <div style="font-size:10px;color:#8d6562;font-weight:600;margin-bottom:3px">Netto</div>
+          <div style="font-size:15px;font-weight:800;color:#261816">€ ${(ma.netto||0).toFixed(2).replace('.',',')}</div>
+        </div>
+        <div style="padding:12px 14px;text-align:center">
+          <div style="font-size:10px;color:#2e7d32;font-weight:600;margin-bottom:3px">Auszahlung</div>
+          <div style="font-size:15px;font-weight:800;color:#2e7d32">€ ${(ma.auszahlung||0).toFixed(2).replace('.',',')}</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+async function _maFehlendHinzufuegen(name, beruf, auszahlung) {
+  const list = getMitarbeiter();
+  const newMa = { id: 'ma_' + Date.now(), name, rolle: 'Küche', stunden: 40, lohn: +(auszahlung/4.33/40).toFixed(2), farbe: '#8B0000' };
+  list.push(newMa);
+  saveMitarbeiterList(list);
+  await fetch('/api/mitarbeiter', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(newMa) }).catch(()=>{});
+  _showToast(name + ' hinzugefügt ✓', 'success');
+  _loadMALohnzettel();
+}
+
+async function _maAlleFehlendHinzufuegen() {
+  try {
+    const r = await fetch('/api/mitarbeiter/abgleich');
+    const data = await r.json();
+    if (!data.fehlende || data.fehlende.length === 0) { _showToast('Alle bereits vorhanden', 'info'); return; }
+    for (const ma of data.fehlende) {
+      await _maFehlendHinzufuegen(ma.name, ma.beruf, ma.auszahlung||0);
+      await new Promise(res => setTimeout(res, 50));
+    }
+    _showToast(data.fehlende.length + ' Mitarbeiter hinzugefügt ✓', 'success');
+    _loadMALohnzettel();
+  } catch(e) { _showToast('Fehler: ' + e.message, 'error'); }
+}
+
 function renderMAWochenplan(mitarbeiter, weekKey) {
-  const weekStart = new Date(weekKey);
-  const weekEnd   = new Date(weekKey); weekEnd.setDate(weekEnd.getDate() + 6);
+  const [_wy,_wm,_wd] = weekKey.split('-').map(Number);
+  const weekStart = new Date(_wy, _wm-1, _wd);
+  const weekEnd   = new Date(_wy, _wm-1, _wd+6);
   const plan      = getWochenplan();
   const weekPlan  = plan[weekKey] || {};
   const kw        = isoWeekNum(weekStart);

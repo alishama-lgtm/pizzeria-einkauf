@@ -1340,6 +1340,36 @@ app.post('/api/mitarbeiter', express.json(), (req, res) => {
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+// Abgleich: DB-Mitarbeiter vs. PDF-Lohnabrechnungen
+app.get('/api/mitarbeiter/abgleich', (_req, res) => {
+  try {
+    const dbMa = db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all();
+    const lohnRaw = db.prepare("SELECT value FROM app_data WHERE key='psc_lohnabrechnungen'").get();
+    const lohnData = lohnRaw ? JSON.parse(lohnRaw.value) : null;
+    const pdfMa = (lohnData && lohnData.abrechnungen) ? lohnData.abrechnungen : [];
+    const monat = (lohnData && lohnData.zahlungsjournal) ? (lohnData.zahlungsjournal.monat||'') : '';
+
+    function nameWords(s) { return (s||'').toLowerCase().split(/\s+/).filter(w => w.length >= 3); }
+    function findMatch(pdfName, dbList) {
+      const pdfWords = nameWords(pdfName);
+      for (const dbEntry of dbList) {
+        const dbWords = nameWords(dbEntry.name);
+        for (const pw of pdfWords) {
+          for (const dw of dbWords) {
+            if (pw.startsWith(dw) || dw.startsWith(pw)) return dbEntry;
+          }
+        }
+      }
+      return null;
+    }
+
+    const matched = pdfMa.map(pdfE => ({ ...pdfE, dbMatch: findMatch(pdfE.name, dbMa) || null }));
+    const fehlende = matched.filter(m => !m.dbMatch);
+
+    res.json({ dbCount: dbMa.length, pdfCount: pdfMa.length, monat, pdfMitarbeiter: matched, fehlende });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.delete('/api/mitarbeiter/:id', (req, res) => {
   try {
     db.prepare('DELETE FROM mitarbeiter WHERE id = ?').run(req.params.id);
