@@ -9133,6 +9133,7 @@ function tagesabschlussPdf(datum) {
 // ═══════════════════════════════════════════════════════════════
 
 function switchTab(tab) {
+  localStorage.setItem('psc_last_tab', tab);
   const isBiz = tab === 'business';
 
   // ── panels ──
@@ -13230,7 +13231,10 @@ function showApp() {
 
   // Kassenbuch migrieren + aus Server laden, dann ersten Tab öffnen
   const _openStartTab = () => {
-    const startTab = allowed.includes('dashboard') ? 'dashboard' : (allowed[0] || 'kombis');
+    const savedTab = localStorage.getItem('psc_last_tab');
+    const startTab = (savedTab && allowed.includes(savedTab))
+      ? savedTab
+      : (allowed.includes('dashboard') ? 'dashboard' : (allowed[0] || 'kombis'));
     switchTab(startTab);
     renderStatsDashboard();
   };
