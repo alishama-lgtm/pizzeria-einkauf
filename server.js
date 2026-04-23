@@ -118,6 +118,8 @@ async function tursoInitTables() {
     { sql: `CREATE TABLE IF NOT EXISTS app_data (key TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT DEFAULT (datetime('now')))`, args: [] },
     { sql: `CREATE TABLE IF NOT EXISTS kassenbuch (id TEXT PRIMARY KEY, datum TEXT NOT NULL, typ TEXT NOT NULL, beschreibung TEXT NOT NULL, netto REAL NOT NULL DEFAULT 0, mwst_satz REAL NOT NULL DEFAULT 0, mwst_betrag REAL NOT NULL DEFAULT 0, brutto REAL NOT NULL DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`, args: [] },
     { sql: `CREATE TABLE IF NOT EXISTS mitarbeiter (id TEXT PRIMARY KEY, name TEXT NOT NULL, rolle TEXT DEFAULT 'Küche', stunden REAL DEFAULT 0, lohn REAL DEFAULT 0, farbe TEXT DEFAULT '#8B0000', created_at TEXT DEFAULT (date('now')))`, args: [] },
+    { sql: `CREATE TABLE IF NOT EXISTS dokumente (id TEXT PRIMARY KEY, name TEXT NOT NULL, typ TEXT DEFAULT 'sonstige', monat TEXT DEFAULT '', status TEXT DEFAULT 'offen', groesse INTEGER DEFAULT 0, erstellt TEXT DEFAULT (datetime('now')))`, args: [] },
+    { sql: `CREATE TABLE IF NOT EXISTS dokumente_data (id TEXT PRIMARY KEY, data TEXT NOT NULL)`, args: [] },
   ], 'write');
   console.log('  ☁️  Turso: Tabellen OK');
 }
@@ -823,53 +825,103 @@ db.exec(`CREATE TABLE IF NOT EXISTS dokumente (
   erstellt TEXT DEFAULT (datetime('now'))
 )`);
 
-// Liste aller Dokumente
-app.get('/api/pdf', (_req, res) => {
+// Liste aller Dokumente (Turso + lokale kombiniert)
+app.get('/api/pdf', async (_req, res) => {
   try {
+    if (turso) {
+      const r = await turso.execute('SELECT id,name,typ,monat,status,groesse,erstellt FROM dokumente ORDER BY erstellt DESC');
+      const tursoIds = new Set(r.rows.map(x => x.id));
+      // Lokale Einträge die noch nicht in Turso sind, auch mitzählen
+      const lokale = db.prepare('SELECT id,name,typ,monat,status,groesse,erstellt FROM dokumente ORDER BY erstellt DESC').all()
+        .filter(d => !tursoIds.has(d.id));
+      const alle = [...r.rows, ...lokale].sort((a, b) => (b.erstellt||'') > (a.erstellt||'') ? 1 : -1);
+      return res.json(alle);
+    }
     const docs = db.prepare('SELECT * FROM dokumente ORDER BY erstellt DESC').all();
     res.json(docs);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Datei hochladen (base64 JSON)
-app.post('/api/pdf/upload', express.json({ limit: '50mb' }), (req, res) => {
+// Datei hochladen (base64 JSON) — nur Turso Cloud, kein lokales Dateisystem
+app.post('/api/pdf/upload', express.json({ limit: '50mb' }), async (req, res) => {
   try {
     const { id, name, data, typ, monat } = req.body;
     if (!id || !name || !data) return res.status(400).json({ error: 'id, name, data erforderlich' });
     const base64 = data.replace(/^data:[^;]+;base64,/, '');
     const buf = Buffer.from(base64, 'base64');
-    const safeName = name.replace(/[^a-zA-Z0-9._\-äöüÄÖÜß ]/g, '_');
-    const filename = id + '_' + safeName;
-    const filePath = path.join(PDF_DIR, filename);
-    fs.writeFileSync(filePath, buf);
-    db.prepare(`INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,pfad,groesse) VALUES (?,?,?,?,?,?,?)`)
-      .run(id, name, typ || 'sonstige', monat || '', 'offen', filePath, buf.length);
-    console.log(`  📄 PDF gespeichert: ${name} (${(buf.length/1024).toFixed(1)} KB)`);
+
+    if (turso) {
+      // Nur in Turso Cloud speichern
+      await turso.batch([
+        { sql: `INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,groesse) VALUES (?,?,?,?,?,?)`,
+          args: [id, name, typ||'sonstige', monat||'', 'offen', buf.length] },
+        { sql: `INSERT OR REPLACE INTO dokumente_data (id,data) VALUES (?,?)`,
+          args: [id, base64] },
+      ], 'write');
+      console.log(`  ☁️  PDF → Turso: ${name} (${(buf.length/1024).toFixed(1)} KB)`);
+    } else {
+      // Fallback: lokal speichern (nur wenn kein Turso konfiguriert)
+      const safeName = name.replace(/[^a-zA-Z0-9._\-äöüÄÖÜß ]/g, '_');
+      const filePath = path.join(PDF_DIR, id + '_' + safeName);
+      fs.writeFileSync(filePath, buf);
+      db.prepare(`INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,pfad,groesse) VALUES (?,?,?,?,?,?,?)`)
+        .run(id, name, typ||'sonstige', monat||'', 'offen', filePath, buf.length);
+      console.log(`  📄 PDF lokal gespeichert: ${name} (${(buf.length/1024).toFixed(1)} KB)`);
+    }
+
+    // Lokale SQLite-Kopie der Metadaten (pfad='cloud' → kein lokales File)
+    try { db.prepare(`INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,pfad,groesse) VALUES (?,?,?,?,?,?,?)`)
+      .run(id, name, typ||'sonstige', monat||'', 'offen', turso ? 'cloud' : '', buf.length); } catch(_) {}
+
     res.json({ ok: true, id, name, groesse: buf.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Hilfsfunktion: PDF-Buffer aus Turso oder lokalem Dateisystem laden
+async function ladePdfBuffer(id) {
+  if (turso) {
+    const r = await turso.execute({ sql: 'SELECT data FROM dokumente_data WHERE id=?', args: [id] });
+    if (r.rows[0]?.data) return Buffer.from(r.rows[0].data, 'base64');
+  }
+  const doc = db.prepare('SELECT pfad FROM dokumente WHERE id=?').get(id);
+  if (doc?.pfad && doc.pfad !== 'cloud' && fs.existsSync(doc.pfad)) return fs.readFileSync(doc.pfad);
+  return null;
+}
+
+// Hilfsfunktion: Dokument-Metadaten laden (Turso bevorzugt)
+async function ladeDokMeta(id) {
+  if (turso) {
+    const r = await turso.execute({ sql: 'SELECT * FROM dokumente WHERE id=?', args: [id] });
+    if (r.rows[0]) return r.rows[0];
+  }
+  return db.prepare('SELECT * FROM dokumente WHERE id=?').get(id) || null;
+}
+
 // Datei herunterladen
-app.get('/api/pdf/:id', (req, res) => {
+app.get('/api/pdf/:id', async (req, res) => {
   try {
-    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
-    if (!doc || !fs.existsSync(doc.pfad)) return res.status(404).json({ error: 'Nicht gefunden' });
+    const doc = await ladeDokMeta(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Nicht gefunden' });
+    const buf = await ladePdfBuffer(req.params.id);
+    if (!buf) return res.status(404).json({ error: 'Datei nicht gefunden' });
     const ext = path.extname(doc.name).toLowerCase();
     const mime = ext === '.pdf' ? 'application/pdf' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.png' ? 'image/png' : 'application/octet-stream';
     res.setHeader('Content-Type', mime);
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.name)}"`);
-    res.sendFile(doc.pfad);
+    res.send(buf);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Dokument im Browser anzeigen (inline)
-app.get('/api/pdf/:id/view', (req, res) => {
+app.get('/api/pdf/:id/view', async (req, res) => {
   try {
-    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
-    if (!doc || !fs.existsSync(doc.pfad)) return res.status(404).json({ error: 'Nicht gefunden' });
+    const doc = await ladeDokMeta(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Nicht gefunden' });
+    const buf = await ladePdfBuffer(req.params.id);
+    if (!buf) return res.status(404).json({ error: 'Datei nicht gefunden' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.name)}"`);
-    res.sendFile(doc.pfad);
+    res.send(buf);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -882,12 +934,20 @@ app.put('/api/pdf/:id/status', express.json(), (req, res) => {
 });
 
 // Dokument löschen
-app.delete('/api/pdf/:id', (req, res) => {
+app.delete('/api/pdf/:id', async (req, res) => {
   try {
     const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
     if (doc) {
-      try { if (fs.existsSync(doc.pfad)) fs.unlinkSync(doc.pfad); } catch(_) {}
+      if (doc.pfad && doc.pfad !== 'cloud') {
+        try { if (fs.existsSync(doc.pfad)) fs.unlinkSync(doc.pfad); } catch(_) {}
+      }
       db.prepare('DELETE FROM dokumente WHERE id=?').run(req.params.id);
+    }
+    if (turso) {
+      await turso.batch([
+        { sql: 'DELETE FROM dokumente WHERE id=?', args: [req.params.id] },
+        { sql: 'DELETE FROM dokumente_data WHERE id=?', args: [req.params.id] },
+      ], 'write').catch(()=>{});
     }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -919,11 +979,12 @@ Antworte NUR mit validem JSON ohne Markdown-Blöcke oder Erklärungen.`;
 // PDF → JSON konvertieren (per Dokument-ID)
 app.post('/api/pdf/:id/zu-json', async (req, res) => {
   try {
-    const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
-    if (!doc || !fs.existsSync(doc.pfad)) return res.status(404).json({ error: 'PDF nicht gefunden' });
+    const doc = await ladeDokMeta(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'PDF nicht gefunden' });
 
-    // Text aus PDF extrahieren
-    const pdfBuf = fs.readFileSync(doc.pfad);
+    // Text aus PDF extrahieren (Turso oder lokales File)
+    const pdfBuf = await ladePdfBuffer(req.params.id);
+    if (!pdfBuf) return res.status(404).json({ error: 'PDF-Daten nicht gefunden' });
     const pdfData = await pdfParse(pdfBuf);
     const pdfText = pdfData.text;
 
@@ -949,10 +1010,11 @@ app.post('/api/pdf/:id/zu-json', async (req, res) => {
     // Metadaten anhängen
     jsonData._meta = { dok_id: doc.id, dok_name: doc.name, seiten: pdfData.numpages, konvertiert: new Date().toISOString() };
 
-    // In app_data speichern
+    // In app_data speichern (lokal + Turso)
     const key = 'pdf_json_' + doc.id;
     const dataStr = JSON.stringify(jsonData);
     db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+    tursoWriteAppData(key, dataStr);
 
     console.log(`  🔄 PDF→JSON: ${doc.name} (${pdfData.numpages} Seiten → ${dataStr.length} Zeichen JSON)`);
     res.json({ ok: true, key, data: jsonData });
@@ -979,22 +1041,29 @@ app.put('/api/pdf/:id/json', express.json({ limit: '5mb' }), (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Alle PDFs auf einmal konvertieren
+// Alle PDFs auf einmal konvertieren (Turso + lokale Docs)
 app.post('/api/pdf/alle-zu-json', async (req, res) => {
   try {
-    const docs = db.prepare("SELECT * FROM dokumente WHERE pfad LIKE '%.pdf'").all();
+    let docs = [];
+    if (turso) {
+      const r = await turso.execute("SELECT id,name,typ FROM dokumente");
+      docs = r.rows;
+    } else {
+      docs = db.prepare("SELECT id,name,typ,pfad FROM dokumente WHERE pfad LIKE '%.pdf'").all();
+    }
     res.json({ ok: true, gesamt: docs.length, nachricht: `${docs.length} PDFs werden im Hintergrund konvertiert` });
-    // Im Hintergrund konvertieren
     for (const doc of docs) {
       try {
-        if (!fs.existsSync(doc.pfad)) continue;
-        const pdfBuf = fs.readFileSync(doc.pfad);
-        const pdfData = await pdfParse(pdfBuf);
         const key = 'pdf_json_' + doc.id;
         const already = db.prepare('SELECT key FROM app_data WHERE key=?').get(key);
-        if (already) continue; // bereits konvertiert — überspringen
+        if (already) continue;
+        const pdfBuf = await ladePdfBuffer(doc.id);
+        if (!pdfBuf) continue;
+        const pdfData = await pdfParse(pdfBuf);
         const jsonData = { typ: doc.typ||'sonstiges', name: doc.name, text: pdfData.text, seiten: pdfData.numpages, _meta: { dok_id: doc.id, konvertiert: new Date().toISOString() } };
-        db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, JSON.stringify(jsonData));
+        const dataStr = JSON.stringify(jsonData);
+        db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+        tursoWriteAppData(key, dataStr);
         console.log(`  🔄 Bulk PDF→JSON: ${doc.name}`);
       } catch(_) {}
     }
@@ -1952,6 +2021,31 @@ setBroadcast((msg) => {
   }
 });
 
+// Lokale PDFs einmalig zu Turso Cloud migrieren
+async function migriereLocalPdfsZuTurso() {
+  if (!turso) return;
+  const docs = db.prepare("SELECT * FROM dokumente WHERE pfad != 'cloud' AND pfad != '' AND pfad IS NOT NULL").all()
+    .filter(d => d.pfad && fs.existsSync(d.pfad));
+  if (docs.length === 0) return;
+  console.log(`  ☁️  Migriere ${docs.length} lokale PDFs zu Turso ...`);
+  let ok = 0;
+  for (const doc of docs) {
+    try {
+      const buf = fs.readFileSync(doc.pfad);
+      const base64 = buf.toString('base64');
+      await turso.batch([
+        { sql: `INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,groesse) VALUES (?,?,?,?,?,?)`,
+          args: [doc.id, doc.name, doc.typ||'sonstige', doc.monat||'', doc.status||'offen', doc.groesse||buf.length] },
+        { sql: `INSERT OR IGNORE INTO dokumente_data (id,data) VALUES (?,?)`,
+          args: [doc.id, base64] },
+      ], 'write');
+      db.prepare("UPDATE dokumente SET pfad='cloud' WHERE id=?").run(doc.id);
+      ok++;
+    } catch(e) { console.error(`  ❌ Migration ${doc.name}: ${e.message}`); }
+  }
+  console.log(`  ☁️  Migration: ${ok}/${docs.length} PDFs in Turso Cloud`);
+}
+
 (async () => {
   if (turso) {
     try {
@@ -1970,6 +2064,8 @@ setBroadcast((msg) => {
         tRows.forEach(r => { if (SYNC_KEYS.includes(r.key)) { try { syncStore.set(r.key, { data: JSON.parse(r.data), timestamp: Date.now(), updatedBy: 'turso' }); } catch(_){} } });
         if (tRows.length > 0) console.log(`  ☁️  syncStore: ${tRows.length} Keys aus Turso`);
       } catch(_) {}
+      // Lokale PDFs im Hintergrund zu Turso migrieren (einmalig)
+      setTimeout(() => migriereLocalPdfsZuTurso(), 5000);
     } catch(e) { console.error('  Turso Fehler (Server startet trotzdem):', e.message); }
   }
   console.log('\n  Lade Preisdaten ...');

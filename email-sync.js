@@ -24,7 +24,16 @@ const CHECK_INTERVAL = parseInt(process.env.EMAIL_CHECK_INTERVAL_MIN || '10') * 
 // Ordner wo verarbeitete E-Mails hin verschoben werden
 const PROCESSED_FOLDER = 'Pizzeria-Verarbeitet';
 
-// Keywords die eine E-Mail als relevant markieren
+// Vertrauenswürdige Absender — E-Mails von diesen werden IMMER verarbeitet (mit PDF-Anhang)
+const VERTRAUENSWUERDIGE_ABSENDER = [
+  'lamboeck.at',      // Steuerberater Christian Lamboeck
+  'wko.at',           // Wirtschaftskammer
+  'bmf.gv.at',        // Finanzamt
+  'oegk.at',          // Österreichische Gesundheitskasse
+  'svs.at',           // Sozialversicherung
+];
+
+// Keywords die eine E-Mail als relevant markieren (für unbekannte Absender)
 const RELEVANT_KEYWORDS = [
   'rechnung', 'invoice', 'abrechnung', 'lohnzettel', 'lohn',
   'meldebestätigung', 'meldung', 'sozialversicherung', 'ogk',
@@ -85,14 +94,17 @@ async function sendePdfAnServer(dateiname, pdfBuffer, typ, monat) {
   });
 }
 
-// Prüft ob eine E-Mail relevant ist (Betreff + Anhang)
+// Prüft ob eine E-Mail relevant ist (Absender + Anhang + Keywords)
 function istRelevant(mail) {
   const betreff = (mail.subject || '').toLowerCase();
-  const absender = (mail.from?.text || '').toLowerCase();
+  const absender = (mail.from?.text || mail.from?.value?.[0]?.address || '').toLowerCase();
   const hatPdfAnhang = mail.attachments?.some(a =>
-    a.contentType === 'application/pdf' || (a.filename || '').endsWith('.pdf')
+    a.contentType === 'application/pdf' || (a.filename || '').toLowerCase().endsWith('.pdf')
   );
   if (!hatPdfAnhang) return false;
+  // Vertrauenswürdige Absender immer verarbeiten
+  if (VERTRAUENSWUERDIGE_ABSENDER.some(d => absender.includes(d))) return true;
+  // Sonst Keywords prüfen
   const kombText = betreff + ' ' + absender;
   return RELEVANT_KEYWORDS.some(k => kombText.includes(k));
 }
@@ -105,7 +117,7 @@ async function pruefeEmails() {
   }
 
   const client = new ImapFlow({
-    host: 'imap-mail.outlook.com',
+    host: 'imap.gmail.com',
     port: 993,
     secure: true,
     auth: { user: EMAIL_USER, pass: EMAIL_PASS },
@@ -186,7 +198,7 @@ async function pruefeEmails() {
     log(`✅ Fertig: ${verarbeitet} gespeichert, ${uebersprungen} übersprungen (kein PDF/kein Keyword)`);
 
   } catch(e) {
-    log(`❌ IMAP-Fehler: ${e.message}`);
+    log(`❌ IMAP-Fehler: ${e.message} | Code: ${e.responseCode||''} | Info: ${e.serverMessage||''}`);
     try { await client.logout(); } catch(_) {}
   }
 }
