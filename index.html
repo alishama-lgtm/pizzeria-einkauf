@@ -19894,6 +19894,16 @@ async function buchKorrigiereMonate() {
   else _showToast('Fehler', 'error');
 }
 
+async function buchSmartScan() {
+  _showToast('📋 Smart Scan gestartet — lese PDF-Texte…', 'info');
+  const r = await fetch('/api/pdf/smart-scan', { method: 'POST' });
+  const d = await r.json();
+  if (d.ok) {
+    _showToast('✓ ' + d.gesamt + ' PDFs werden gescannt — Seite in 10s neu laden', 'info');
+    setTimeout(function() { renderBuchhaltungTab(); }, 10000);
+  } else _showToast('Fehler beim Smart Scan', 'error');
+}
+
 function buchToggleEdit(id) {
   var row = document.getElementById('buch-edit-' + id);
   if (row) row.style.display = row.style.display === 'none' ? 'flex' : 'none';
@@ -20433,7 +20443,7 @@ async function renderBuchhaltungTab() {
   html += '<div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px">';
   html += '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
   html += '<span style="font-size:13px;font-weight:800;color:var(--text)">📄 Dokumente in der Datenbank</span>';
-  html += '<div style="display:flex;gap:8px;align-items:center"><button onclick="buchKorrigiereMonate()" style="padding:5px 10px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;font-size:11px;font-weight:700;color:#610000;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">auto_fix_high</span>Monate korrigieren</button><span style="font-size:11px;color:var(--text-3)">' + serverDocs.length + ' Dateien</span></div>';
+  html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button onclick="buchKorrigiereMonate()" style="padding:5px 10px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;font-size:11px;font-weight:700;color:#610000;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">auto_fix_high</span>Monate korrigieren</button><button onclick="buchSmartScan()" style="padding:5px 10px;border-radius:8px;border:1px solid #c3e6cb;background:#f0fff4;font-size:11px;font-weight:700;color:#155724;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px"><span class="material-symbols-outlined" style="font-size:13px">document_scanner</span>Smart Scan</button><span style="font-size:11px;color:var(--text-3)">' + serverDocs.length + ' Dateien</span></div>';
   html += '</div>';
 
   if (serverDocs.length === 0) {

@@ -1041,6 +1041,134 @@ app.put('/api/pdf/:id/json', express.json({ limit: '5mb' }), (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Monat aus Dateiname/Betreff extrahieren ───────────────────────────────────
+const MONAT_NAMEN = {
+  jan:1, jän:1, feb:2, mär:3, mar:3, apr:4, mai:5, may:5,
+  jun:6, jul:7, aug:8, sep:9, okt:10, oct:10, nov:11, dez:12, dec:12,
+  januar:1, jänner:1, februar:2, maerz:3, märz:3, april:4,
+  juni:6, juli:7, august:8, september:9, oktober:10, november:11, dezember:12
+};
+
+function extrahiereMonat(text) {
+  if (!text) return null;
+  const t = text.toLowerCase();
+  // Format: "Juli 2025", "Oktober 2025"
+  for (const [name, num] of Object.entries(MONAT_NAMEN)) {
+    const re = new RegExp(name + '[\\s._-]*(\\d{4})', 'i');
+    const m = t.match(re);
+    if (m) return m[1] + '-' + String(num).padStart(2,'0');
+  }
+  // Format: "_M.YYYY" oder "_MM.YYYY" (z.B. Rechnung_383201310.1_12.2025.pdf)
+  const us = t.match(/_(0?[1-9]|1[0-2])\.(20\d{2})/);
+  if (us) return us[2] + '-' + String(parseInt(us[1])).padStart(2,'0');
+  // Format: "MM.YYYY" oder "MM/YYYY"
+  const mj = t.match(/\b(0?[1-9]|1[0-2])[.\\/](20\d{2})\b/);
+  if (mj) return mj[2] + '-' + String(parseInt(mj[1])).padStart(2,'0');
+  // Format: "YYYY-MM" bereits korrekt
+  const ym = t.match(/\b(20\d{2})[-_](0?[1-9]|1[0-2])\b/);
+  if (ym) return ym[1] + '-' + String(parseInt(ym[2])).padStart(2,'0');
+  return null;
+}
+
+// Alle Dokumente: Monat aus Dateiname korrigieren
+app.post('/api/pdf/korrigiere-monate', async (req, res) => {
+  if (!turso) return res.status(503).json({ error: 'Kein Turso' });
+  const r = await turso.execute('SELECT id, name, monat, typ FROM dokumente');
+  let korrigiert = 0;
+  const updates = [];
+  for (const doc of r.rows) {
+    const neuerMonat = extrahiereMonat(doc.name);
+    // Auch Typ aus Dateiname ableiten
+    const n = (doc.name||'').toLowerCase();
+    let neuerTyp = doc.typ;
+    if (n.includes('lohnzettel') || n.includes('abrechnungsbelege') || n.includes('abrechnung')) neuerTyp = 'lohnzettel';
+    else if (n.includes('dienstnehmerzahlung') || n.includes('zahlungsjournal')) neuerTyp = 'zahlungsjournal';
+    else if (n.includes('meldebestätigung') || n.includes('meldebest')) neuerTyp = 'ogk';
+    else if (n.includes('dienstvertrag') || n.includes('verdienstnachweis')) neuerTyp = 'sonstige';
+    else if (n.includes('rechnung') || n.includes('rg_') || n.includes('re-') || n.includes('rechnungnr')) neuerTyp = 'rechnung';
+    const monatGeaendert = neuerMonat && neuerMonat !== doc.monat;
+    const typGeaendert = neuerTyp !== doc.typ;
+    if (monatGeaendert || typGeaendert) {
+      updates.push({ sql: 'UPDATE dokumente SET monat=?, typ=? WHERE id=?',
+        args: [neuerMonat || doc.monat, neuerTyp, doc.id] });
+      korrigiert++;
+    }
+  }
+  if (updates.length > 0) {
+    for (const u of updates) await turso.execute(u).catch(()=>{});
+  }
+  // Auch lokale SQLite aktualisieren
+  for (const doc of r.rows) {
+    const nm = extrahiereMonat(doc.name);
+    if (nm) try { db.prepare('UPDATE dokumente SET monat=? WHERE id=?').run(nm, doc.id); } catch(_) {}
+  }
+  console.log(`  ☁️  Monate korrigiert: ${korrigiert}/${r.rows.length} Dokumente`);
+  res.json({ ok: true, gesamt: r.rows.length, korrigiert });
+});
+
+// Status eines Dokuments + Monat + Typ ändern
+app.put('/api/pdf/:id/metadaten', express.json(), async (req, res) => {
+  try {
+    const { monat, typ, status } = req.body;
+    const id = req.params.id;
+    db.prepare('UPDATE dokumente SET monat=COALESCE(?,monat), typ=COALESCE(?,typ), status=COALESCE(?,status) WHERE id=?').run(monat||null, typ||null, status||null, id);
+    if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=COALESCE(?,monat), typ=COALESCE(?,typ), status=COALESCE(?,status) WHERE id=?', args: [monat||null, typ||null, status||null, id] }).catch(()=>{});
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Smart Scan: PDF-Text lesen und Monat/Typ automatisch erkennen
+app.post('/api/pdf/smart-scan', async (req, res) => {
+  try {
+    let docs = [];
+    if (turso) {
+      const r = await turso.execute("SELECT id,name,monat,typ FROM dokumente");
+      docs = r.rows;
+    } else {
+      docs = db.prepare("SELECT id,name,monat,typ FROM dokumente").all();
+    }
+    // Nur Dokumente ohne korrekten Monat (= aktueller Monat als Fallback)
+    const heute = new Date();
+    const aktuellMonat = heute.getFullYear() + '-' + String(heute.getMonth()+1).padStart(2,'0');
+    const zuKorrigieren = docs.filter(d => !d.monat || d.monat === aktuellMonat);
+
+    res.json({ ok: true, gesamt: zuKorrigieren.length, nachricht: `${zuKorrigieren.length} PDFs werden im Hintergrund gescannt` });
+
+    let korrigiert = 0;
+    for (const doc of zuKorrigieren) {
+      try {
+        const pdfBuf = await ladePdfBuffer(doc.id);
+        if (!pdfBuf) continue;
+        const pdfData = await pdfParse(pdfBuf);
+        const text = pdfData.text || '';
+
+        // Monat aus PDF-Text extrahieren
+        const neuerMonat = extrahiereMonat(text);
+
+        // Typ aus PDF-Text ableiten
+        const tl = text.toLowerCase();
+        let neuerTyp = doc.typ;
+        if (!neuerTyp || neuerTyp === 'rechnung') {
+          if (tl.includes('lohnzettel') || tl.includes('abrechnungsbeleg') || tl.includes('gesamtlohn') || tl.includes('bruttolohn')) neuerTyp = 'lohnzettel';
+          else if (tl.includes('zahlungsjournal') || tl.includes('dienstnehmerzahlung')) neuerTyp = 'zahlungsjournal';
+          else if (tl.includes('meldebestätigung') || tl.includes('anmeldung') && tl.includes('ögk')) neuerTyp = 'ogk';
+          else if (tl.includes('dienstvertrag') || tl.includes('beschäftigungsausmaß')) neuerTyp = 'sonstige';
+          else if (tl.includes('finanzamt') || tl.includes('umsatzsteuervoranmeldung')) neuerTyp = 'finanzamt';
+        }
+
+        if (neuerMonat && neuerMonat !== doc.monat || neuerTyp !== doc.typ) {
+          const nm = neuerMonat || doc.monat;
+          db.prepare('UPDATE dokumente SET monat=?, typ=? WHERE id=?').run(nm, neuerTyp, doc.id);
+          if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=?, typ=? WHERE id=?', args: [nm, neuerTyp, doc.id] }).catch(()=>{});
+          korrigiert++;
+          console.log(`  📋 Smart Scan: ${doc.name} → ${nm} [${neuerTyp}]`);
+        }
+      } catch(_) {}
+    }
+    console.log(`  ✅ Smart Scan fertig: ${korrigiert}/${zuKorrigieren.length} Dokumente korrigiert`);
+  } catch(e) { console.error('Smart Scan Fehler:', e.message); }
+});
+
 // Alle PDFs auf einmal konvertieren (Turso + lokale Docs)
 app.post('/api/pdf/alle-zu-json', async (req, res) => {
   try {
