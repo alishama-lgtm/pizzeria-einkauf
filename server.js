@@ -10,6 +10,7 @@ import https from 'https';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { DatabaseSync } from 'node:sqlite';
+import { createClient as createTursoClient } from '@libsql/client';
 import { startWatcher, setBroadcast, getQueue, markDone, deleteEntry, clearProcessed, getFolderInfo } from './server/watcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -100,6 +101,87 @@ db.exec(`
 db.exec('CREATE INDEX IF NOT EXISTS idx_kb_datum ON kassenbuch(datum)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_kb_typ   ON kassenbuch(typ)');
 console.log('  SQLite Kassenbuch bereit');
+
+// ── Turso Cloud DB ─────────────────────────────────────────────────────────
+const turso = (process.env.TURSO_URL && process.env.TURSO_TOKEN)
+  ? createTursoClient({ url: process.env.TURSO_URL, authToken: process.env.TURSO_TOKEN })
+  : null;
+if (turso) console.log('  ☁️  Turso Cloud verbunden:', process.env.TURSO_URL);
+else console.log('  ⚠️  Kein Turso konfiguriert (nur lokal)');
+
+async function tursoInitTables() {
+  if (!turso) return;
+  await turso.batch([
+    { sql: `CREATE TABLE IF NOT EXISTS app_data (key TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT DEFAULT (datetime('now')))`, args: [] },
+    { sql: `CREATE TABLE IF NOT EXISTS kassenbuch (id TEXT PRIMARY KEY, datum TEXT NOT NULL, typ TEXT NOT NULL, beschreibung TEXT NOT NULL, netto REAL NOT NULL DEFAULT 0, mwst_satz REAL NOT NULL DEFAULT 0, mwst_betrag REAL NOT NULL DEFAULT 0, brutto REAL NOT NULL DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`, args: [] },
+    { sql: `CREATE TABLE IF NOT EXISTS mitarbeiter (id TEXT PRIMARY KEY, name TEXT NOT NULL, rolle TEXT DEFAULT 'Küche', stunden REAL DEFAULT 0, lohn REAL DEFAULT 0, farbe TEXT DEFAULT '#8B0000', created_at TEXT DEFAULT (date('now')))`, args: [] },
+  ], 'write');
+  console.log('  ☁️  Turso: Tabellen OK');
+}
+
+async function tursoPushAll() {
+  if (!turso) return;
+  const adRows = db.prepare('SELECT key, data, updated_at FROM app_data').all();
+  for (const r of adRows) {
+    await turso.execute({ sql: "INSERT INTO app_data (key,data,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at", args: [r.key, r.data, r.updated_at || new Date().toISOString()] }).catch(()=>{});
+  }
+  const kbRows = db.prepare('SELECT * FROM kassenbuch').all();
+  for (const r of kbRows) {
+    await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [r.id, r.datum, r.typ, r.beschreibung, r.netto, r.mwst_satz, r.mwst_betrag, r.brutto] }).catch(()=>{});
+  }
+  const maRows = db.prepare('SELECT * FROM mitarbeiter').all();
+  for (const r of maRows) {
+    await turso.execute({ sql: 'INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)', args: [r.id, r.name, r.rolle, r.stunden, r.lohn, r.farbe] }).catch(()=>{});
+  }
+  console.log(`  ☁️  Turso Push: ${adRows.length} app_data, ${kbRows.length} kassenbuch, ${maRows.length} mitarbeiter`);
+}
+
+async function tursoPull() {
+  if (!turso) return;
+  const [adRes, kbRes, maRes] = await Promise.all([
+    turso.execute('SELECT key, data, updated_at FROM app_data'),
+    turso.execute('SELECT * FROM kassenbuch'),
+    turso.execute('SELECT * FROM mitarbeiter'),
+  ]);
+  for (const r of adRes.rows) {
+    db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at WHERE excluded.updated_at >= app_data.updated_at")
+      .run(String(r.key), String(r.data), String(r.updated_at||''));
+  }
+  for (const r of kbRes.rows) {
+    db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
+      .run(String(r.id), String(r.datum), String(r.typ), String(r.beschreibung), parseFloat(String(r.netto))||0, parseFloat(String(r.mwst_satz))||0, parseFloat(String(r.mwst_betrag))||0, parseFloat(String(r.brutto))||0);
+  }
+  for (const r of maRes.rows) {
+    db.prepare('INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)')
+      .run(String(r.id), String(r.name), String(r.rolle)||'Küche', parseFloat(String(r.stunden))||0, parseFloat(String(r.lohn))||0, String(r.farbe)||'#8B0000');
+  }
+  console.log(`  ☁️  Turso Pull: ${adRes.rows.length} app_data, ${kbRes.rows.length} kassenbuch, ${maRes.rows.length} mitarbeiter`);
+}
+
+function tursoWriteAppData(key, data) {
+  if (!turso) return;
+  const now = new Date().toISOString().replace('T',' ').slice(0,19);
+  turso.execute({ sql: "INSERT INTO app_data (key,data,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at", args: [key, data, now] })
+    .catch(e => console.error('  Turso app_data:', e.message));
+}
+function tursoWriteKb(e) {
+  if (!turso) return;
+  turso.execute({ sql: 'INSERT OR REPLACE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [e.id, e.datum, e.typ, e.beschreibung, e.netto||0, e.mwst_satz||0, e.mwst_betrag||0, e.brutto||0] })
+    .catch(err => console.error('  Turso kb:', err.message));
+}
+function tursoDeleteKb(id) {
+  if (!turso) return;
+  turso.execute({ sql: 'DELETE FROM kassenbuch WHERE id=?', args: [id] }).catch(()=>{});
+}
+function tursoWriteMa(ma) {
+  if (!turso) return;
+  turso.execute({ sql: 'INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)', args: [ma.id, ma.name, ma.rolle||'Küche', ma.stunden||0, ma.lohn||0, ma.farbe||'#8B0000'] })
+    .catch(e => console.error('  Turso ma:', e.message));
+}
+function tursoDeleteMa(id) {
+  if (!turso) return;
+  turso.execute({ sql: 'DELETE FROM mitarbeiter WHERE id=?', args: [id] }).catch(()=>{});
+}
 
 const phInsert = db.prepare(`
   INSERT INTO preishistorie (produkt_id, produkt, preis, normalpreis, shop, shop_id, datum, quelle)
@@ -358,9 +440,22 @@ app.get('/api/status', (_req, res) => {
 // WebSocket Sync — Keys & Store
 // ════════════════════════════════════════════════════════════════════
 const SYNC_KEYS = [
+  // Betrieb & Lager
   'pizzeria_lager', 'pizzeria_bestellung', 'pizzeria_fehlmaterial',
   'pizzeria_aufgaben', 'pizzeria_mitarbeiter', 'pizzeria_wochenplan',
-  'pizzeria_dienstplan', 'pizzeria_schichtcheck', 'pizzeria_notifications'
+  'pizzeria_dienstplan', 'pizzeria_schichtcheck', 'pizzeria_notifications',
+  // Kasse & Buchhaltung
+  'pizzeria_kassenbuch', 'pizzeria_kassenschnitt', 'pizzeria_tagesberichte',
+  'pizzeria_umsatz_einnahmen', 'pizzeria_umsatz_ausgaben',
+  'pizzeria_statistik', 'pizzeria_wareneinsatz',
+  // Stammdaten
+  'pizzeria_produkte', 'pizzeria_lieferanten', 'pizzeria_rezepte',
+  'pizzeria_preisalarm_rules', 'pizzeria_custom_deals', 'pizzeria_verlauf',
+  // Einstellungen
+  'psc_schichtzeiten', 'psc_monatsziel', 'psc_drucker_ip', 'psc_drucker_port',
+  'psc_pizza_groessen', 'psc_mindest_defaults', 'psc_personal_alarm_pct',
+  'psc_haccp', 'psc_haccp_geraete', 'psc_mhd',
+  'biz_fixkosten'
 ];
 
 const syncStore = new Map();
@@ -403,11 +498,15 @@ wss.on('connection', (ws, request) => {
 
         case 'update':
           if (SYNC_KEYS.includes(msg.key)) {
+            const dataStr = typeof msg.data === 'string' ? msg.data : JSON.stringify(msg.data);
             syncStore.set(msg.key, {
               data: msg.data,
               timestamp: msg.timestamp || Date.now(),
               updatedBy: msg.user || 'unknown'
             });
+            // SQLite + Turso persistieren
+            try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(msg.key, dataStr); } catch(_) {}
+            tursoWriteAppData(msg.key, dataStr);
             const broadcast = JSON.stringify({
               action: 'remote_update',
               key: msg.key,
@@ -434,6 +533,10 @@ wss.on('connection', (ws, request) => {
                     timestamp: u.timestamp,
                     updatedBy: u.user || 'unknown'
                   });
+                  // SQLite + Turso persistieren
+                  const dStr = typeof u.data === 'string' ? u.data : JSON.stringify(u.data);
+                  try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(u.key, dStr); } catch(_) {}
+                  tursoWriteAppData(u.key, dStr);
                 }
               }
             });
@@ -517,6 +620,33 @@ app.put('/api/sync/:key', (req, res) => {
     }
   }
   res.json({ success: true });
+});
+
+// Browser localStorage → SQLite + Turso (einmaliger Bulk-Push)
+app.post('/api/turso/bulk', express.json({ limit: '10mb' }), (req, res) => {
+  const entries = req.body; // { key: dataString|object, ... }
+  if (!entries || typeof entries !== 'object') return res.status(400).json({ error: 'Ungültiges Format' });
+  let saved = 0;
+  for (const [key, value] of Object.entries(entries)) {
+    if (!SYNC_KEYS.includes(key)) continue;
+    const dataStr = typeof value === 'string' ? value : JSON.stringify(value);
+    const ts = Date.now();
+    syncStore.set(key, { data: value, timestamp: ts, updatedBy: 'browser-push' });
+    try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr); } catch(_) {}
+    tursoWriteAppData(key, dataStr);
+    saved++;
+  }
+  console.log(`  ☁️  Browser-Push: ${saved} Keys gespeichert`);
+  res.json({ ok: true, saved });
+});
+
+// Turso-Status prüfen
+app.get('/api/turso/status', async (_req, res) => {
+  if (!turso) return res.json({ connected: false });
+  try {
+    await turso.execute('SELECT 1 as ok');
+    res.json({ connected: true, url: process.env.TURSO_URL });
+  } catch(e) { res.json({ connected: false, error: e.message }); }
 });
 
 // ════════════════════════════════════════════════════════════════════
@@ -840,6 +970,7 @@ app.post('/api/data/:key', express.json(), (req, res) => {
     const data = JSON.stringify(req.body);
     db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
       .run(req.params.key, data);
+    tursoWriteAppData(req.params.key, data);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -961,6 +1092,7 @@ app.post('/api/mitarbeiter', express.json(), (req, res) => {
     if (!id || !name) return res.status(400).json({ error: 'id und name erforderlich' });
     db.prepare(`INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)`)
       .run(id, name, rolle, parseFloat(stunden)||0, parseFloat(lohn)||0, farbe);
+    tursoWriteMa({id, name, rolle, stunden: parseFloat(stunden)||0, lohn: parseFloat(lohn)||0, farbe});
     // Spiegel in datenbank/mitarbeiter/
     const jsonPath = path.join(DATENBANK_DIR,'mitarbeiter', id+'.json');
     fs.writeFileSync(jsonPath, JSON.stringify({id,name,rolle,stunden,lohn,farbe,gespeichert:new Date().toISOString()}, null, 2));
@@ -970,6 +1102,7 @@ app.post('/api/mitarbeiter', express.json(), (req, res) => {
 app.delete('/api/mitarbeiter/:id', (req, res) => {
   try {
     db.prepare('DELETE FROM mitarbeiter WHERE id = ?').run(req.params.id);
+    tursoDeleteMa(req.params.id);
     const jsonPath = path.join(DATENBANK_DIR,'mitarbeiter', req.params.id+'.json');
     if (fs.existsSync(jsonPath)) fs.unlinkSync(jsonPath);
     res.json({ ok: true });
@@ -1053,8 +1186,10 @@ for (const [ordner, syncKey] of Object.entries(ORDNER_KEY_MAP)) {
         if (!Array.isArray(arr)) arr = [];
         // Array = alles ersetzen, Objekt = anhängen
         const merged = Array.isArray(neueDaten) ? neueDaten : [...arr, neueDaten];
+        const mergedJson = JSON.stringify(merged);
         db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at")
-          .run(syncKey, JSON.stringify(merged));
+          .run(syncKey, mergedJson);
+        tursoWriteAppData(syncKey, mergedJson);
         syncStore.set(syncKey, { data: merged, timestamp: Date.now(), updatedBy: 'import' });
         wsBroadcast({ action: 'remote_update', key: syncKey, data: merged, timestamp: Date.now(), updatedBy: 'import' });
         console.log(`  [Import] ${ordner}/${filename} → ${syncKey} (${Array.isArray(neueDaten) ? neueDaten.length + ' Einträge' : '1 Eintrag'})`);
@@ -1261,17 +1396,14 @@ app.post('/api/kassenbuch', express.json(), (req, res) => {
     const e = req.body;
     if (!e || !e.typ || !e.beschreibung) return res.status(400).json({ error: 'Fehlende Felder' });
     const id = e.id || Date.now().toString(36) + Math.random().toString(36).slice(2,5);
-    db.prepare(`INSERT OR REPLACE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto)
-      VALUES (?,?,?,?,?,?,?,?)`).run(
-      id,
-      e.datum || new Date().toISOString(),
-      e.typ,
-      e.beschreibung,
-      parseFloat(e.netto) || 0,
-      parseFloat(e.mwst_satz) || 0,
-      parseFloat(e.mwst_betrag) || 0,
-      parseFloat(e.brutto) || 0
-    );
+    const kbEntry = {
+      id, datum: e.datum || new Date().toISOString(), typ: e.typ, beschreibung: e.beschreibung,
+      netto: parseFloat(e.netto)||0, mwst_satz: parseFloat(e.mwst_satz)||0,
+      mwst_betrag: parseFloat(e.mwst_betrag)||0, brutto: parseFloat(e.brutto)||0
+    };
+    db.prepare(`INSERT OR REPLACE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)`)
+      .run(kbEntry.id, kbEntry.datum, kbEntry.typ, kbEntry.beschreibung, kbEntry.netto, kbEntry.mwst_satz, kbEntry.mwst_betrag, kbEntry.brutto);
+    tursoWriteKb(kbEntry);
     res.json({ ok: true, id });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1279,6 +1411,7 @@ app.post('/api/kassenbuch', express.json(), (req, res) => {
 app.delete('/api/kassenbuch/:id', (req, res) => {
   try {
     db.prepare('DELETE FROM kassenbuch WHERE id = ?').run(req.params.id);
+    tursoDeleteKb(req.params.id);
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1368,8 +1501,28 @@ setBroadcast((msg) => {
   }
 });
 
-console.log('\n  Lade Preisdaten ...');
-loadHeissePreise().then(() => {
+(async () => {
+  if (turso) {
+    try {
+      await tursoInitTables();
+      // Prüfen ob Turso leer → ersten Push
+      const countRes = await turso.execute('SELECT COUNT(*) as n FROM app_data');
+      const n = Number(countRes.rows[0]?.n) || 0;
+      if (n === 0) {
+        console.log('  ☁️  Turso leer → Push lokale Daten ...');
+        await tursoPushAll();
+      }
+      await tursoPull();
+      // syncStore mit Turso-Daten aktualisieren
+      try {
+        const tRows = db.prepare('SELECT key, data FROM app_data').all();
+        tRows.forEach(r => { if (SYNC_KEYS.includes(r.key)) { try { syncStore.set(r.key, { data: JSON.parse(r.data), timestamp: Date.now(), updatedBy: 'turso' }); } catch(_){} } });
+        if (tRows.length > 0) console.log(`  ☁️  syncStore: ${tRows.length} Keys aus Turso`);
+      } catch(_) {}
+    } catch(e) { console.error('  Turso Fehler (Server startet trotzdem):', e.message); }
+  }
+  console.log('\n  Lade Preisdaten ...');
+  loadHeissePreise().then(() => {
   const httpServer = app.listen(PORT, '0.0.0.0', () => {
     handleUpgrade(httpServer);
     startWatcher();
@@ -1414,4 +1567,5 @@ loadHeissePreise().then(() => {
       console.log('   4. Server neu starten');
     }
   });
-});
+  });
+})();

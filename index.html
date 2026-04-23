@@ -2693,9 +2693,22 @@ function _safeLocalSet(key, val) {
 
 // Sync-fähiges localStorage schreiben
 const SYNC_KEYS = [
+  // Betrieb & Lager
   'pizzeria_lager', 'pizzeria_bestellung', 'pizzeria_fehlmaterial',
   'pizzeria_aufgaben', 'pizzeria_mitarbeiter', 'pizzeria_wochenplan',
-  'pizzeria_dienstplan', 'pizzeria_schichtcheck', 'pizzeria_notifications'
+  'pizzeria_dienstplan', 'pizzeria_schichtcheck', 'pizzeria_notifications',
+  // Kasse & Buchhaltung
+  'pizzeria_kassenbuch', 'pizzeria_kassenschnitt', 'pizzeria_tagesberichte',
+  'pizzeria_umsatz_einnahmen', 'pizzeria_umsatz_ausgaben',
+  'pizzeria_statistik', 'pizzeria_wareneinsatz',
+  // Stammdaten
+  'pizzeria_produkte', 'pizzeria_lieferanten', 'pizzeria_rezepte',
+  'pizzeria_preisalarm_rules', 'pizzeria_custom_deals', 'pizzeria_verlauf',
+  // Einstellungen
+  'psc_schichtzeiten', 'psc_monatsziel', 'psc_drucker_ip', 'psc_drucker_port',
+  'psc_pizza_groessen', 'psc_mindest_defaults', 'psc_personal_alarm_pct',
+  'psc_haccp', 'psc_haccp_geraete', 'psc_mhd',
+  'biz_fixkosten'
 ];
 
 function _syncedLocalSet(key, val) {
@@ -2828,7 +2841,19 @@ const syncManager = {
       'pizzeria_wochenplan': 'renderDienstplanTab',
       'pizzeria_dienstplan': 'renderDienstplanTab',
       'pizzeria_schichtcheck': 'renderChecklistTab',
-      'pizzeria_notifications': 'notifUpdateBadge'
+      'pizzeria_notifications': 'notifUpdateBadge',
+      'pizzeria_kassenbuch': 'renderKassenbuchTab',
+      'pizzeria_kassenschnitt': 'renderKassenschnittTab',
+      'pizzeria_tagesberichte': 'renderBusinessTab',
+      'pizzeria_umsatz_einnahmen': 'renderUmsatzTab',
+      'pizzeria_umsatz_ausgaben': 'renderUmsatzTab',
+      'pizzeria_statistik': 'renderStatistikTab',
+      'pizzeria_wareneinsatz': 'renderWareneinsatzTab',
+      'pizzeria_produkte': 'renderProdukteTab',
+      'pizzeria_lieferanten': 'renderLieferantenTab',
+      'pizzeria_rezepte': 'renderSpeisekarteTab',
+      'pizzeria_preisalarm_rules': 'renderPreisalarmTab',
+      'pizzeria_verlauf': 'renderVerlaufTab'
     };
     const fnName = map[key];
     if (fnName && typeof window[fnName] === 'function') {
@@ -15219,6 +15244,19 @@ function openSettings() {
         })()}
       </div>
 
+      <!-- Turso Cloud Sync Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:18px">☁️</span> Turso Cloud-Sync
+        </label>
+        <p style="font-size:12px;color:#8d6562;margin:0 0 10px">Alle Daten (Lager, Kasse, Mitarbeiter, ...) in Turso hochladen — dann auf jedem Gerät verfügbar.</p>
+        <div id="turso-push-status" style="font-size:12px;margin-bottom:8px;display:none"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="tursoCloudPush()" style="padding:9px 18px;background:#0d47a1;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⬆️ Jetzt zu Cloud pushen</button>
+          <button onclick="tursoCheckStatus()" style="padding:9px 18px;background:#f3ebe9;color:#610000;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🔍 Status prüfen</button>
+        </div>
+      </div>
+
       <!-- Drucker Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15549,6 +15587,54 @@ function appAutoBackupCheck() {
   const last = localStorage.getItem('psc_last_backup');
   if (last && (Date.now() - new Date(last).getTime()) < 86400000) return;
   appBackupNow(true);
+}
+
+async function tursoCloudPush() {
+  const btn = document.querySelector('[onclick="tursoCloudPush()"]');
+  const statusEl = document.getElementById('turso-push-status');
+  const show = (t, ok) => { if (statusEl) { statusEl.textContent = t; statusEl.style.color = ok ? '#386a20' : '#ba1a1a'; statusEl.style.display = 'block'; } };
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Wird hochgeladen...'; }
+  try {
+    const payload = {};
+    for (const key of SYNC_KEYS) {
+      const val = localStorage.getItem(key);
+      if (val) {
+        try { payload[key] = JSON.parse(val); } catch(_) { payload[key] = val; }
+      }
+    }
+    const res = await fetch('/api/turso/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      show('✓ ' + data.saved + ' Datenbereiche zu Turso hochgeladen', true);
+      _showToast(data.saved + ' Bereiche in Cloud gespeichert ✓', 'success');
+    } else {
+      show('Fehler: ' + (data.error || 'Unbekannt'), false);
+    }
+  } catch(e) {
+    show('Verbindungsfehler: ' + e.message, false);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬆️ Jetzt zu Cloud pushen'; }
+  }
+}
+
+async function tursoCheckStatus() {
+  const statusEl = document.getElementById('turso-push-status');
+  const show = (t, ok) => { if (statusEl) { statusEl.textContent = t; statusEl.style.color = ok ? '#386a20' : '#ba1a1a'; statusEl.style.display = 'block'; } };
+  try {
+    const res = await fetch('/api/turso/status');
+    const data = await res.json();
+    if (data.connected) {
+      show('✓ Turso verbunden: ' + data.url, true);
+    } else {
+      show('✗ Turso nicht verbunden' + (data.error ? ': ' + data.error : ''), false);
+    }
+  } catch(e) {
+    show('Fehler: ' + e.message, false);
+  }
 }
 function settingsChangePw() {
   const cur = (document.getElementById('s-pw-current')?.value||'').trim();
