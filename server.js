@@ -1344,8 +1344,8 @@ app.post('/api/mitarbeiter', express.json(), (req, res) => {
 app.get('/api/mitarbeiter/abgleich', (_req, res) => {
   try {
     const dbMa = db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all();
-    const lohnRaw = db.prepare("SELECT value FROM app_data WHERE key='psc_lohnabrechnungen'").get();
-    const lohnData = lohnRaw ? JSON.parse(lohnRaw.value) : null;
+    const lohnRaw = db.prepare("SELECT data FROM app_data WHERE key='psc_lohnabrechnungen'").get();
+    const lohnData = lohnRaw ? JSON.parse(lohnRaw.data) : null;
     const pdfMa = (lohnData && lohnData.abrechnungen) ? lohnData.abrechnungen : [];
     const monat = (lohnData && lohnData.zahlungsjournal) ? (lohnData.zahlungsjournal.monat||'') : '';
 
