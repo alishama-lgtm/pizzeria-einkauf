@@ -13052,11 +13052,17 @@ function showApp() {
     _updateMobMehrActive();
   };
 
-  // Ersten erlaubten Tab oeffnen — Dashboard als Standard fuer Admin/Manager
-  const startTab = allowed.includes('dashboard') ? 'dashboard' : (allowed[0] || 'kombis');
-  switchTab(startTab);
-
-  renderStatsDashboard();
+  // Kassenbuch migrieren + aus Server laden, dann ersten Tab öffnen
+  const _openStartTab = () => {
+    const startTab = allowed.includes('dashboard') ? 'dashboard' : (allowed[0] || 'kombis');
+    switchTab(startTab);
+    renderStatsDashboard();
+  };
+  if (typeof kbMigrateIfNeeded === 'function') {
+    kbMigrateIfNeeded().then(() => kbSync()).catch(() => {}).finally(_openStartTab);
+  } else {
+    _openStartTab();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -19583,9 +19589,8 @@ async function kbSync() {
   }
 }
 function kbGet() {
-  // Immer aus Cache — kbSync() muss vorher aufgerufen worden sein
   if (window._KB && window._KB.length > 0) return window._KB;
-  try { return kbGet(); } catch(_) { return []; }
+  try { return JSON.parse(localStorage.getItem('pizzeria_kassenbuch')||'[]'); } catch(_) { return []; }
 }
 async function kbMigrateIfNeeded() {
   if (localStorage.getItem('psc_kb_migrated')) return;
