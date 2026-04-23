@@ -19894,6 +19894,63 @@ async function buchKorrigiereMonate() {
   else _showToast('Fehler', 'error');
 }
 
+async function buchLieferantAnalyse(key, label) {
+  const el = document.getElementById('buch-lieferant-ergebnis');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px"><span class="material-symbols-outlined" style="font-size:28px;display:block;margin-bottom:8px;animation:spin 1s linear infinite">progress_activity</span>Lade PDFs und extrahiere Beträge…</div>';
+
+  const r = await fetch('/api/pdf/lieferant-analyse', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ lieferant: key })
+  });
+  const d = await r.json();
+  if (!d.ok) { el.innerHTML = '<div style="color:#c62828;padding:12px">Fehler: ' + (d.error||'?') + '</div>'; return; }
+
+  const monatNamen = ['','Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  function monatLabel(m) {
+    if (!m || m==='—') return '—';
+    var p = m.split('-');
+    return p.length===2 ? monatNamen[parseInt(p[1])]||p[1]+' '+p[0] : m;
+  }
+
+  var gesamt = d.gesamt || 0;
+  var html2 = '<div style="background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-bottom:8px">';
+  html2 += '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  html2 += '<div><div style="font-size:14px;font-weight:800;color:var(--text)">🏪 ' + label + '</div>';
+  html2 += '<div style="font-size:11px;color:var(--text-3);margin-top:2px">' + d.dokumente.length + ' Rechnungen gefunden</div></div>';
+  html2 += '<div style="font-size:18px;font-weight:800;color:#c62828">Gesamt: € ' + gesamt.toFixed(2).replace('.',',') + '</div>';
+  html2 += '</div>';
+
+  if (d.dokumente.length === 0) {
+    html2 += '<div style="padding:28px;text-align:center;color:var(--text-3);font-size:13px">Keine Dokumente gefunden</div>';
+  } else {
+    html2 += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
+    html2 += '<thead><tr style="background:var(--bg)">';
+    ['Monat','Datei','Betrag',''].forEach(function(h){ html2+='<th style="padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:var(--text-3);white-space:nowrap">'+h+'</th>'; });
+    html2 += '</tr></thead><tbody>';
+
+    var sumCheck = 0;
+    d.dokumente.forEach(function(doc, i) {
+      var betrag = doc.betrag ? '€ '+doc.betrag.toFixed(2).replace('.',',') : '<span style="color:var(--text-3)">—</span>';
+      if (doc.betrag) sumCheck += doc.betrag;
+      html2 += '<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'var(--surface)':'var(--bg)')+'">';
+      html2 += '<td style="padding:9px 14px;font-size:13px;font-weight:700;color:var(--text);white-space:nowrap">' + monatLabel(doc.monat) + ' ' + (doc.monat||'').split('-')[0] + '</td>';
+      html2 += '<td style="padding:9px 14px;font-size:12px;color:var(--text-2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+_esc(doc.name)+'">' + _esc(doc.name) + '</td>';
+      html2 += '<td style="padding:9px 14px;font-size:13px;font-weight:700;color:'+(doc.betrag?'#2e7d32':'var(--text-3)')+'">'+betrag+'</td>';
+      html2 += '<td style="padding:9px 14px"><a href="/api/pdf/'+doc.id+'/view" target="_blank" style="font-size:11px;color:#1565c0;text-decoration:none;font-weight:700">Öffnen</a></td>';
+      html2 += '</tr>';
+    });
+
+    html2 += '<tr style="background:var(--bg);border-top:2px solid var(--border)">';
+    html2 += '<td colspan="2" style="padding:10px 14px;font-size:13px;font-weight:800;color:var(--text)">GESAMT</td>';
+    html2 += '<td style="padding:10px 14px;font-size:15px;font-weight:800;color:#c62828">€ '+(gesamt||sumCheck).toFixed(2).replace('.',',')+'</td>';
+    html2 += '<td></td></tr>';
+    html2 += '</tbody></table></div>';
+  }
+  html2 += '</div>';
+  el.innerHTML = html2;
+}
+
 async function buchEmailBackfill() {
   const von = document.getElementById('bf-von')?.value;
   const bis = document.getElementById('bf-bis')?.value;
@@ -20375,6 +20432,24 @@ async function renderBuchhaltungTab() {
   html += '<input type="month" id="kb-abschluss-monat" value="' + new Date().toISOString().slice(0,7) + '" style="padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)"></div>';
   html += '<button onclick="monatsabschlussPdf()" style="padding:10px 20px;border-radius:10px;border:none;background:#610000;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:18px;white-space:nowrap">📊 Monatsabschluss PDF erstellen</button>';
   html += '</div></div>';
+
+  // ── Lieferanten-Einkaufsübersicht ──
+  html += '<div id="buch-lieferant-section" style="margin-bottom:16px">';
+  html += '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:10px;padding-top:4px">🏪 Einkaufsübersicht pro Lieferant</div>';
+  html += '<div id="buch-lieferant-btns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+  var lieferanten = [
+    {key:'umtrade', label:'UM Trade (Mustafa)', farbe:'#1565c0'},
+    {key:'a1', label:'A1 Mobilfunk', farbe:'#c62828'},
+    {key:'edenred', label:'Edenred', farbe:'#e65100'},
+    {key:'rechnungnr', label:'Lieferant RechNr', farbe:'#2e7d32'},
+    {key:'svs', label:'SVS', farbe:'#6a1b9a'},
+  ];
+  lieferanten.forEach(function(l) {
+    html += '<button onclick="buchLieferantAnalyse(\''+l.key+'\',\''+l.label+'\')" style="padding:7px 14px;border-radius:10px;border:2px solid '+l.farbe+'33;background:'+l.farbe+'11;color:'+l.farbe+';font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px"><span class="material-symbols-outlined" style="font-size:14px">store</span>'+l.label+'</button>';
+  });
+  html += '</div>';
+  html += '<div id="buch-lieferant-ergebnis"></div>';
+  html += '</div>';
 
   // ── E-Mail Backfill ──
   html += '<div style="background:var(--surface);border-radius:16px;padding:18px 20px;border:1px solid var(--border);margin-bottom:16px">';

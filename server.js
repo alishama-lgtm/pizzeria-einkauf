@@ -1117,6 +1117,82 @@ app.put('/api/pdf/:id/metadaten', express.json(), async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Lieferanten-Definitionen
+const LIEFERANTEN_MUSTER = {
+  umtrade:    { label: 'UM Trade (Mustafa)', fn: n => n.includes('rg_10045') },
+  a1:         { label: 'A1 Mobilfunk',       fn: n => n.includes('rechnung_383201310') },
+  edenred:    { label: 'Edenred',            fn: n => /^re-\d/i.test(n) },
+  rechnungnr: { label: 'Lieferant RechNr',  fn: n => n.toLowerCase().startsWith('rechnungnr') },
+  lamboeck:   { label: 'Lamböck',           fn: n => n.includes('lamboeck') || n.includes('lamböck') },
+  svs:        { label: 'SVS',               fn: n => /^sg7/i.test(n) },
+};
+
+// Gesamtbetrag aus PDF-Text extrahieren
+function extrahiereBetrag(text) {
+  const muster = [
+    /(?:rechnungsbetrag|gesamtbetrag|zu zahlen|endbetrag|gesamt|total)[:\s]*(?:eur\s*)?(\d{1,7}[,.]\d{2})/i,
+    /(?:eur|€)\s*(\d{1,7}[,.]\d{2})\s*$/im,
+    /(\d{1,7},\d{2})\s*(?:€|eur)/i,
+  ];
+  for (const re of muster) {
+    const m = text.match(re);
+    if (m) {
+      const val = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+      if (val > 0 && val < 500000) return val;
+    }
+  }
+  return null;
+}
+
+// Lieferanten-Einkaufsübersicht
+app.post('/api/pdf/lieferant-analyse', express.json(), async (req, res) => {
+  const { lieferant } = req.body || {};
+  const def = LIEFERANTEN_MUSTER[lieferant];
+  if (!def) return res.json({ ok: false, error: 'Unbekannter Lieferant' });
+
+  let allDocs = [];
+  if (turso) {
+    const r = await turso.execute('SELECT id,name,monat,typ,groesse FROM dokumente');
+    allDocs = r.rows;
+  } else {
+    allDocs = db.prepare('SELECT id,name,monat,typ,groesse FROM dokumente').all();
+  }
+  const docs = allDocs.filter(d => def.fn((d.name||'').toLowerCase()));
+
+  const ergebnis = [];
+  for (const doc of docs) {
+    const eintrag = { id: doc.id, name: doc.name, monat: doc.monat||'—', typ: doc.typ, betrag: null };
+    try {
+      const buf = await ladePdfBuffer(doc.id);
+      if (buf) {
+        const parsed = await pdfParse(buf);
+        eintrag.betrag = extrahiereBetrag(parsed.text);
+      }
+    } catch(_) {}
+    ergebnis.push(eintrag);
+  }
+  ergebnis.sort((a,b) => (a.monat||'').localeCompare(b.monat||''));
+  const gesamt = ergebnis.reduce((s,e) => s + (e.betrag||0), 0);
+  res.json({ ok: true, label: def.label, dokumente: ergebnis, gesamt });
+});
+
+// Alle Lieferanten-Stats (Anzahl Docs pro Lieferant)
+app.get('/api/pdf/lieferanten', async (_req, res) => {
+  let allDocs = [];
+  if (turso) {
+    const r = await turso.execute('SELECT name FROM dokumente');
+    allDocs = r.rows;
+  } else {
+    allDocs = db.prepare('SELECT name FROM dokumente').all();
+  }
+  const stats = {};
+  for (const [key, def] of Object.entries(LIEFERANTEN_MUSTER)) {
+    const count = allDocs.filter(d => def.fn((d.name||'').toLowerCase())).length;
+    if (count > 0) stats[key] = { label: def.label, count };
+  }
+  res.json(stats);
+});
+
 // Smart Scan: PDF-Text lesen und Monat/Typ automatisch erkennen
 app.post('/api/pdf/smart-scan', async (req, res) => {
   try {
