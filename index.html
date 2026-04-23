@@ -15648,11 +15648,6 @@ function getSchichtForDay(dateObj) {
 function renderDienstplanTab() {
   const p = document.getElementById('panel-dienstplan');
   const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
-  // Schichtzeit für heute / aktuelle Woche
-  const SCHICHT = (() => {
-    const todaySchicht = getSchichtForDay(monday);
-    return todaySchicht.ruhetag ? 'Ruhetag' : todaySchicht.label + ' Uhr';
-  })();
 
   // Mitarbeiter aus localStorage laden
   let mitarbeiter = [];
@@ -15680,6 +15675,12 @@ function renderDienstplanTab() {
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
   monday.setHours(0,0,0,0);
+
+  // Schichtzeit für heute berechnen (monday ist jetzt definiert)
+  const SCHICHT = (() => {
+    const todaySchicht = getSchichtForDay(monday);
+    return todaySchicht.ruhetag ? 'Ruhetag' : todaySchicht.label + ' Uhr';
+  })();
 
   const weekKey = monday.toISOString().slice(0,10);
   if (!plan[weekKey]) plan[weekKey] = {};
