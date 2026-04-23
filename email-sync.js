@@ -39,7 +39,8 @@ const RELEVANT_KEYWORDS = [
   'meldebestätigung', 'meldung', 'sozialversicherung', 'ogk',
   'finanzamt', 'steuer', 'buchhaltung', 'lieferschein',
   'zahlungsjournal', 'gehalt', 'personal', 'dienstvertrag',
-  'metro', 'billa', 'lidl', 'spar', 'etsan', 'um trade'
+  'metro', 'billa', 'lidl', 'spar', 'etsan', 'um trade',
+  'mustafa', 'großhändler', 'grosshaendler', 'lieferant'
 ];
 
 // Welche Dokument-Typen erkannt werden (für DB-Kategorie)
@@ -53,9 +54,35 @@ function erkenneDokumentTyp(betreff, absender) {
   return 'sonstige';
 }
 
-// Aktuellen Monat im Format YYYY-MM
-function aktuellerMonat() {
-  const d = new Date();
+// Monat aus Dateiname oder E-Mail-Datum extrahieren
+const MONAT_MAP = {
+  jan:1, jän:1, feb:2, mär:3, mar:3, apr:4, mai:5, may:5,
+  jun:6, jul:7, aug:8, sep:9, okt:10, oct:10, nov:11, dez:12, dec:12,
+  januar:1, jänner:1, februar:2, märz:3, april:4,
+  juni:6, juli:7, august:8, september:9, oktober:10, november:11, dezember:12
+};
+
+function monatAusText(text) {
+  if (!text) return null;
+  const t = text.toLowerCase();
+  for (const [name, num] of Object.entries(MONAT_MAP)) {
+    const m = t.match(new RegExp(name + '[\\s._-]*(\\d{4})', 'i'));
+    if (m) return m[1] + '-' + String(num).padStart(2, '0');
+  }
+  const mj = t.match(/\b(0?[1-9]|1[0-2])[.\\/](20\d{2})\b/);
+  if (mj) return mj[2] + '-' + String(parseInt(mj[1])).padStart(2, '0');
+  return null;
+}
+
+function monatAusEmail(mail, dateiname) {
+  // 1. Versuch: Monat aus Dateiname
+  const ausDatei = monatAusText(dateiname);
+  if (ausDatei) return ausDatei;
+  // 2. Versuch: Monat aus E-Mail-Betreff
+  const ausBetreff = monatAusText(mail.subject || '');
+  if (ausBetreff) return ausBetreff;
+  // 3. Fallback: E-Mail-Datum
+  const d = mail.date ? new Date(mail.date) : new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
 
@@ -162,7 +189,6 @@ async function pruefeEmails() {
         const betreff = mail.subject || 'Kein Betreff';
         const absender = mail.from?.text || '';
         const typ = erkenneDokumentTyp(betreff, absender);
-        const monat = aktuellerMonat();
 
         log(`📄 Relevant: "${betreff}" von ${absender}`);
 
@@ -170,6 +196,7 @@ async function pruefeEmails() {
         for (const anhang of mail.attachments || []) {
           if (anhang.contentType !== 'application/pdf' && !(anhang.filename || '').endsWith('.pdf')) continue;
           const dateiname = anhang.filename || 'email_anhang_' + Date.now() + '.pdf';
+          const monat = monatAusEmail(mail, dateiname);
           try {
             const ergebnis = await sendePdfAnServer(dateiname, anhang.content, typ, monat);
             if (ergebnis.ok) {

@@ -2124,6 +2124,98 @@ app.get('/api/backup/list', (_req, res) => {
   }
 });
 
+// ── E-Mail Backfill: historische Emails per IMAP laden ──────────────────────
+import { ImapFlow } from 'imapflow';
+import { simpleParser } from 'mailparser';
+
+app.post('/api/email-sync/backfill', express.json(), async (req, res) => {
+  const { von, bis, stichwort } = req.body || {};
+  const emailUser = process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_APP_PASS;
+  if (!emailUser || !emailPass) return res.status(503).json({ error: '.env: EMAIL_USER oder EMAIL_APP_PASS fehlt' });
+
+  res.json({ ok: true, nachricht: `Suche gestartet (${von} – ${bis}, "${stichwort || 'alle'}") — Ergebnis im Server-Log` });
+
+  const client = new ImapFlow({
+    host: 'imap.gmail.com', port: 993, secure: true,
+    auth: { user: emailUser, pass: emailPass },
+    logger: false, tls: { rejectUnauthorized: false }
+  });
+
+  try {
+    await client.connect();
+    console.log(`  📬 Backfill: verbunden als ${emailUser}`);
+    await client.mailboxOpen('INBOX');
+
+    // IMAP-Suche: Datum + optionales Stichwort (Betreff)
+    const kriterien = {};
+    if (von) kriterien.since = new Date(von);
+    if (bis) kriterien.before = new Date(bis);
+    // Alle E-Mails (gelesen + ungelesen)
+
+    const uids = await client.search(kriterien);
+    console.log(`  📩 Backfill: ${uids.length} E-Mails im Zeitraum gefunden`);
+
+    let verarbeitet = 0;
+    const stichwortLower = (stichwort || '').toLowerCase();
+
+    for (const uid of uids) {
+      try {
+        const msg = await client.fetchOne(uid, { source: true }, { uid: true });
+        const mail = await simpleParser(msg.source);
+        const betreff = (mail.subject || '').toLowerCase();
+        const absender = (mail.from?.text || '').toLowerCase();
+
+        // Stichwort-Filter
+        if (stichwortLower && !betreff.includes(stichwortLower) && !absender.includes(stichwortLower)) continue;
+
+        // PDF-Anhänge suchen
+        const pdfs = (mail.attachments || []).filter(a =>
+          a.contentType === 'application/pdf' || (a.filename || '').toLowerCase().endsWith('.pdf')
+        );
+        if (!pdfs.length) continue;
+
+        console.log(`  📄 Backfill: "${mail.subject}" von ${mail.from?.text} — ${pdfs.length} PDF(s)`);
+
+        // Typ aus Betreff/Absender ableiten
+        const typText = (betreff + ' ' + absender);
+        let typ = 'rechnung';
+        if (typText.includes('lohn') || typText.includes('abrechnung')) typ = 'lohnzettel';
+        else if (typText.includes('ogk') || typText.includes('sozialversicherung')) typ = 'ogk';
+        else if (typText.includes('finanzamt') || typText.includes('steuer')) typ = 'finanzamt';
+
+        // Monat aus E-Mail-Datum
+        const datum = mail.date || new Date();
+        const monat = datum.getFullYear() + '-' + String(datum.getMonth()+1).padStart(2,'0');
+
+        for (const anhang of pdfs) {
+          const dateiname = anhang.filename || 'backfill_' + Date.now() + '.pdf';
+          const b64 = anhang.content.toString('base64');
+          const id = 'email_bf_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+
+          // In lokale DB + Turso speichern
+          try {
+            db.prepare('INSERT OR IGNORE INTO dokumente (id,name,typ,monat,status,groesse,erstellt) VALUES (?,?,?,?,?,?,datetime("now"))')
+              .run(id, dateiname, typ, monat, 'offen', anhang.content.length);
+            db.prepare("INSERT OR IGNORE INTO dokumente_data (id,data) VALUES (?,?)").run(id, b64);
+            if (turso) {
+              await turso.execute({ sql: 'INSERT OR IGNORE INTO dokumente (id,name,typ,monat,status,groesse,erstellt) VALUES (?,?,?,?,?,?,datetime("now"))', args: [id, dateiname, typ, monat, 'offen', anhang.content.length] }).catch(()=>{});
+              await turso.execute({ sql: 'INSERT OR IGNORE INTO dokumente_data (id,data) VALUES (?,?)', args: [id, b64] }).catch(()=>{});
+            }
+            console.log(`  ✅ Backfill gespeichert: ${dateiname} (${monat}, ${typ})`);
+            verarbeitet++;
+          } catch(e2) { console.error(`  ❌ Backfill Speicher-Fehler: ${e2.message}`); }
+        }
+      } catch(_) {}
+    }
+    console.log(`  ✅ Backfill fertig: ${verarbeitet} PDFs importiert`);
+    await client.logout();
+  } catch(e) {
+    console.error('  ❌ Backfill IMAP Fehler:', e.message);
+    try { await client.logout(); } catch(_) {}
+  }
+});
+
 // Beim Start: app_data in syncStore laden (verhindert Datenverlust bei Neustart)
 try {
   const rows = db.prepare('SELECT key, data FROM app_data').all();
