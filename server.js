@@ -1966,42 +1966,8 @@ function wsBroadcast(msg) {
   for (const c of syncClients) { if (c.readyState === 1) c.send(payload); }
 }
 
-// Beim Start: alle mitarbeiter JSONs einlesen die noch nicht in DB sind
-fs.readdirSync(path.join(DATENBANK_DIR, 'mitarbeiter')).forEach(filename => {
-  if (!filename.endsWith('.json')) return;
-  const filepath = path.join(DATENBANK_DIR, 'mitarbeiter', filename);
-  try {
-    const d = JSON.parse(fs.readFileSync(filepath, 'utf8'));
-    if (!d.id || !d.name) return;
-    const exists = db.prepare('SELECT id FROM mitarbeiter WHERE id=?').get(d.id);
-    if (exists) return;
-    db.prepare('INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)')
-      .run(d.id, d.name, d.rolle||'Küche', parseFloat(d.stunden)||0, parseFloat(d.lohn)||0, d.farbe||'#8B0000');
-    console.log('  [Import] Startup-Scan Mitarbeiter:', d.name);
-  } catch(e) {}
-});
-
-// mitarbeiter: JSON → direkt in DB-Tabelle
-const _maDebouncers = new Map();
-fs.watch(path.join(DATENBANK_DIR, 'mitarbeiter'), (event, filename) => {
-  if (!filename || !filename.endsWith('.json')) return;
-  const key = 'ma_' + filename;
-  clearTimeout(_maDebouncers.get(key));
-  _maDebouncers.set(key, setTimeout(() => {
-    _maDebouncers.delete(key);
-    const filepath = path.join(DATENBANK_DIR, 'mitarbeiter', filename);
-    if (!fs.existsSync(filepath)) return;
-    try {
-      const d = JSON.parse(fs.readFileSync(filepath, 'utf8'));
-      if (!d.id || !d.name) return;
-      db.prepare('INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)')
-        .run(d.id, d.name, d.rolle||'Küche', parseFloat(d.stunden)||0, parseFloat(d.lohn)||0, d.farbe||'#8B0000');
-      const alle = db.prepare('SELECT * FROM mitarbeiter ORDER BY name').all();
-      wsBroadcast({ action: 'remote_update', key: 'pizzeria_mitarbeiter', data: alle, timestamp: Date.now(), updatedBy: 'import' });
-      console.log('  [Import] Mitarbeiter:', d.name);
-    } catch(e) { console.error('  [Import] Mitarbeiter Fehler:', e.message); }
-  }, 600));
-});
+// Mitarbeiter kommen NUR aus der mitarbeiter-Tabelle (SQLite/Turso)
+// JSON-Ordner-Import deaktiviert — eine einzige Datenquelle
 
 // Andere Ordner: JSON → app_data + WebSocket broadcast
 const ORDNER_KEY_MAP = {
