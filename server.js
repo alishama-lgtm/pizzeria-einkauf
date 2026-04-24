@@ -2467,6 +2467,90 @@ async function migriereLocalPdfsZuTurso() {
   console.log(`  ☁️  Migration: ${ok}/${docs.length} PDFs in Turso Cloud`);
 }
 
+// ── DB Admin API (nur für interne Nutzung) ────────────────────────────────
+
+// Alle Keys im syncStore anzeigen
+app.get('/api/admin/store', (_req, res) => {
+  const result = [];
+  for (const [key, val] of syncStore) {
+    const data = val.data;
+    const isArray = Array.isArray(data);
+    const count = isArray ? data.length : (data && typeof data === 'object' ? Object.keys(data).length : 1);
+    result.push({ key, type: isArray ? 'array' : typeof data, count, updated: val.timestamp });
+  }
+  result.sort((a, b) => a.key.localeCompare(b.key));
+  res.json({ ok: true, keys: result });
+});
+
+// Inhalt eines Keys abrufen
+app.get('/api/admin/store/:key', (req, res) => {
+  const entry = syncStore.get(req.params.key);
+  if (!entry) {
+    // Fallback: direkt aus DB lesen
+    const row = db.prepare('SELECT data, updated_at FROM app_data WHERE key=?').get(req.params.key);
+    if (!row) return res.status(404).json({ ok: false, error: 'Key nicht gefunden' });
+    return res.json({ ok: true, key: req.params.key, data: JSON.parse(row.data), updated: row.updated_at });
+  }
+  res.json({ ok: true, key: req.params.key, data: entry.data, updated: entry.timestamp });
+});
+
+// Key vollständig aktualisieren
+app.post('/api/admin/store/:key', express.json({ limit: '10mb' }), (req, res) => {
+  const key = req.params.key;
+  const data = req.body.data;
+  const dataStr = JSON.stringify(data);
+  syncStore.set(key, { data, timestamp: Date.now(), updatedBy: 'db-admin' });
+  db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+  tursoWriteAppData(key, dataStr);
+  res.json({ ok: true, key });
+});
+
+// Einzelnes Item aus Array-Key löschen (nach Index oder id-Feld)
+app.delete('/api/admin/store/:key/item/:id', (req, res) => {
+  const key = req.params.key;
+  const itemId = req.params.id;
+  const entry = syncStore.get(key);
+  if (!entry || !Array.isArray(entry.data)) return res.status(404).json({ ok: false, error: 'Key nicht gefunden oder kein Array' });
+  const vorher = entry.data.length;
+  const neu = entry.data.filter(item => String(item.id || item.ID || '') !== itemId);
+  if (neu.length === vorher) return res.status(404).json({ ok: false, error: 'Item nicht gefunden' });
+  const dataStr = JSON.stringify(neu);
+  syncStore.set(key, { data: neu, timestamp: Date.now(), updatedBy: 'db-admin' });
+  db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+  tursoWriteAppData(key, dataStr);
+  res.json({ ok: true, geloescht: vorher - neu.length, verbleibend: neu.length });
+});
+
+// Alle Tabellen-Übersicht (Kassenbuch, Mitarbeiter, Dokumente)
+app.get('/api/admin/tables', async (_req, res) => {
+  try {
+    const kb = db.prepare('SELECT COUNT(*) as n FROM kassenbuch').get();
+    const ma = db.prepare('SELECT COUNT(*) as n FROM mitarbeiter').get();
+    const dok = db.prepare('SELECT COUNT(*) as n FROM dokumente').get();
+    const ad = db.prepare('SELECT COUNT(*) as n FROM app_data').get();
+    res.json({ ok: true, tabellen: [
+      { name: 'kassenbuch', zeilen: kb.n, beschreibung: 'Einnahmen & Ausgaben' },
+      { name: 'mitarbeiter', zeilen: ma.n, beschreibung: 'Mitarbeiterdaten' },
+      { name: 'dokumente', zeilen: dok.n, beschreibung: 'PDF-Metadaten' },
+      { name: 'app_data', zeilen: ad.n, beschreibung: 'App-Einstellungen & Listen' },
+    ]});
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Tabelle mit Paginierung abrufen
+app.get('/api/admin/table/:name', (req, res) => {
+  const erlaubt = ['kassenbuch','mitarbeiter','dokumente','app_data'];
+  const name = req.params.name;
+  if (!erlaubt.includes(name)) return res.status(403).json({ ok: false, error: 'Nicht erlaubt' });
+  const limit = Math.min(parseInt(req.query.limit || '50'), 200);
+  const offset = parseInt(req.query.offset || '0');
+  try {
+    const rows = db.prepare(`SELECT * FROM ${name} LIMIT ? OFFSET ?`).all(limit, offset);
+    const total = db.prepare(`SELECT COUNT(*) as n FROM ${name}`).get();
+    res.json({ ok: true, tabelle: name, rows, total: total.n, limit, offset });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 (async () => {
   if (turso) {
     try {
