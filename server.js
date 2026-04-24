@@ -1198,8 +1198,33 @@ app.post('/api/pdf/:id/auto-analyse', express.json(), async (req, res) => {
     if (!buf) return res.status(404).json({ error: 'PDF nicht gefunden' });
     const parsed = await pdfParse(buf);
     const text = parsed.text;
-    const produkte = extrahiereUmTradeProdukte(text);
     const betrag = extrahiereBetrag(text);
+    let produkte = [];
+
+    // Claude API verwenden wenn verfügbar → bessere Produktnamen
+    const apiKey = process.env.CLAUDE_API_KEY || process.env.ANTHROPIC_API_KEY;
+    if (apiKey && !apiKey.includes('BITTE')) {
+      try {
+        const resp = await axios.post('https://api.anthropic.com/v1/messages', {
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: `Extrahiere alle Produkte aus dieser UM Trade Rechnung als JSON-Array.
+Format: [{"bezeichnung":"Produktname","menge":1,"einheit":"kg","preis":12.50}]
+Nur JSON, keine Erklärung.
+
+PDF-Text:
+${text.slice(0, 8000)}` }]
+        }, { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' } });
+        const raw = (resp.data.content?.[0]?.text || '').trim().replace(/^```json\n?|^```\n?|```$/gm, '').trim();
+        const extracted = JSON.parse(raw);
+        if (Array.isArray(extracted)) produkte = extracted;
+      } catch(e) {
+        console.log('  Claude Analyse Fallback auf Regex:', e.message);
+        produkte = extrahiereUmTradeProdukte(text);
+      }
+    } else {
+      produkte = extrahiereUmTradeProdukte(text);
+    }
 
     // Bestehende Preise laden
     let preislisteRaw = db.prepare("SELECT data FROM app_data WHERE key='pizzeria_preise'").get();

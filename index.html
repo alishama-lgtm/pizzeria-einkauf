@@ -15735,6 +15735,59 @@ function openSettings() {
         <p style="font-size:11px;color:#8d6562;margin:6px 0 0">Wird im Dashboard als rote Warnung angezeigt wenn die Grenze überschritten wird.</p>
       </div>
 
+      <!-- Benachrichtigungs-Filter Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">🔔</span> Benachrichtigungs-Filter
+        </label>
+        ${(function(){
+          var filter = {};
+          try { filter = JSON.parse(localStorage.getItem('psc_alarm_filter')||'{}'); } catch(e) {}
+          var alarme = [
+            { id:'lager',     label:'Lager-Alarm',           icon:'📦', desc:'Wenn Bestand unter Minimum fällt' },
+            { id:'personal',  label:'Personalkosten-Alarm',  icon:'👥', desc:'Wenn Lohnkosten-Grenze überschritten' },
+            { id:'preis',     label:'Preis-Alarm',           icon:'💰', desc:'Wenn günstigere Preise gefunden werden' },
+            { id:'mhd',       label:'MHD-Alarm',             icon:'📅', desc:'Wenn Ablaufdatum in 3 Tagen' },
+            { id:'rechnung',  label:'Neue Rechnungen',       icon:'📄', desc:'Bei neuen E-Mail-PDFs' },
+          ];
+          return alarme.map(function(a){
+            var aktiv = filter[a.id] !== false;
+            return '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f8f4f4;border-radius:8px;margin-bottom:6px;cursor:pointer">' +
+              '<input type="checkbox" id="alarm-' + a.id + '" ' + (aktiv?'checked':'') + ' style="width:16px;height:16px;accent-color:#610000">' +
+              '<span style="font-size:15px">' + a.icon + '</span>' +
+              '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:#261816">' + a.label + '</div>' +
+              '<div style="font-size:10px;color:#8d6562">' + a.desc + '</div></div></label>';
+          }).join('');
+        })()}
+        <p style="font-size:11px;color:#8d6562;margin:6px 0 0">Deaktivierte Alarme werden beim Speichern ausgeblendet.</p>
+      </div>
+
+      <!-- Trinkgeld-Regeln % Abteilung -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:18px">💰</span> Trinkgeld-Regeln (% pro Abteilung)
+        </label>
+        ${(function(){
+          var regeln = { kueche:30, service:40, lieferung:30 };
+          try { var s = localStorage.getItem('psc_trinkgeld_regeln'); if(s) regeln = JSON.parse(s); } catch(e) {}
+          var abt = [
+            { id:'kueche',    label:'👨‍🍳 Küche',    key:'kueche' },
+            { id:'service',   label:'🍽️ Service',   key:'service' },
+            { id:'lieferung', label:'🚗 Lieferung', key:'lieferung' },
+          ];
+          return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' +
+            abt.map(function(a){
+              return '<div style="background:#f8f4f4;border-radius:8px;padding:10px;text-align:center">' +
+                '<div style="font-size:12px;font-weight:600;color:#261816;margin-bottom:6px">' + a.label + '</div>' +
+                '<div style="display:flex;align-items:center;gap:4px;justify-content:center">' +
+                '<input type="number" id="tg-regel-' + a.id + '" min="0" max="100" value="' + (regeln[a.key]||0) + '" ' +
+                'style="width:55px;padding:6px;border:1.5px solid #e3beb8;border-radius:6px;font-size:15px;font-weight:700;text-align:center;font-family:inherit">' +
+                '<span style="font-size:13px;color:#5a403c">%</span></div></div>';
+            }).join('') + '</div>' +
+            '<p style="font-size:11px;color:#8d6562;margin:8px 0 0">Summe sollte 100% ergeben. Wird im Trinkgeld-Tab für automatische Aufteilung verwendet.</p>';
+        })()}
+      </div>
+
       <!-- Passwort ändern Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15828,6 +15881,18 @@ function saveApiKey() {
   // Personalkosten-Alarm speichern
   const palPct = parseFloat(document.getElementById('s-personal-alarm-pct')?.value || '35');
   if (palPct > 0) _safeLocalSet('psc_personal_alarm_pct', String(palPct));
+  // Benachrichtigungs-Filter speichern
+  var alarmIds = ['lager','personal','preis','mhd','rechnung'];
+  var alarmFilter = {};
+  alarmIds.forEach(function(id) { alarmFilter[id] = document.getElementById('alarm-'+id)?.checked !== false; });
+  try { localStorage.setItem('psc_alarm_filter', JSON.stringify(alarmFilter)); } catch(_) {}
+  // Trinkgeld-Regeln speichern
+  var tgRegeln = {};
+  ['kueche','service','lieferung'].forEach(function(a) {
+    var v = parseInt(document.getElementById('tg-regel-'+a)?.value || '0');
+    tgRegeln[a] = isNaN(v) ? 0 : v;
+  });
+  try { localStorage.setItem('psc_trinkgeld_regeln', JSON.stringify(tgRegeln)); } catch(_) {}
   // Schichtzeiten speichern
   const szDays = ['Mo','Di','Mi','Do','Fr','Sa','So'];
   const szData = {};
@@ -17708,6 +17773,29 @@ function renderBewertungenTab() {
     html += '<div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase">Unbeantwortet</div></div>';
     html += '</div>';
 
+    // ── Bewertungs-Ziel ──
+    var bwZiel = parseFloat(localStorage.getItem('psc_bewertungsziel') || '4.5');
+    var avgNum = parseFloat(avg) || 0;
+    var zielPct = Math.min(100, avgNum > 0 ? Math.round((avgNum / bwZiel) * 100) : 0);
+    var zielFarbe = avgNum >= bwZiel ? '#2e7d32' : avgNum >= bwZiel - 0.3 ? '#f57f17' : '#c62828';
+    var zielStatus = avgNum >= bwZiel ? '✅ Ziel erreicht!' : (avgNum > 0 ? ('Noch ' + (bwZiel - avgNum).toFixed(1) + ' ⭐ zum Ziel') : 'Noch keine Bewertungen');
+    html += '<div style="background:#fff;border:1.5px solid #e8f0fe;border-radius:14px;padding:16px 18px;margin-bottom:20px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">';
+    html += '<div style="font-size:13px;font-weight:800;color:#1565c0">🎯 Bewertungs-Ziel</div>';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<span style="font-size:12px;color:' + zielFarbe + ';font-weight:700">' + zielStatus + '</span>';
+    html += '<button onclick="bwZielSetzen()" style="padding:5px 12px;border-radius:8px;border:1.5px solid #9fc3f8;background:#e8f0fe;color:#1565c0;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Ziel ändern</button>';
+    html += '</div></div>';
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">';
+    html += '<div style="font-size:26px;font-weight:900;color:' + zielFarbe + '">' + (avgNum > 0 ? avg : '–') + '</div>';
+    html += '<div style="flex:1;height:14px;background:#f0f0f0;border-radius:20px;overflow:hidden">';
+    html += '<div style="height:100%;width:' + zielPct + '%;background:' + zielFarbe + ';border-radius:20px;transition:width 0.5s"></div>';
+    html += '</div>';
+    html += '<div style="font-size:26px;font-weight:900;color:#1565c0">Ziel: ' + bwZiel.toFixed(1) + ' ⭐</div>';
+    html += '</div>';
+    html += '<div style="font-size:11px;color:#8d6562">' + zielPct + '% des Ziels erreicht · Ziel: ' + bwZiel.toFixed(1) + ' ⭐ Durchschnitt</div>';
+    html += '</div>';
+
     // ── Google Reviews Aktions-Banner ──
     if (googlePlaceId) {
       var reviewUrl = 'https://search.google.com/local/reviews?placeid=' + encodeURIComponent(googlePlaceId);
@@ -17818,6 +17906,17 @@ function renderBewertungenTab() {
 }
 
 function bwNeu() { bwFormular(null); }
+
+function bwZielSetzen() {
+  var aktuell = localStorage.getItem('psc_bewertungsziel') || '4.5';
+  var neu = prompt('Bewertungs-Ziel setzen (1.0 – 5.0):', aktuell);
+  if (!neu) return;
+  var val = parseFloat(neu.replace(',','.'));
+  if (isNaN(val) || val < 1 || val > 5) { _showToast('Ungültiger Wert — bitte 1.0 bis 5.0', 'error'); return; }
+  localStorage.setItem('psc_bewertungsziel', val.toFixed(1));
+  _showToast('Ziel gesetzt: ' + val.toFixed(1) + ' ⭐', 'success');
+  renderBewertungenTab();
+}
 function bwEdit(id) {
   var item = bwLoad().find(function(i){ return i.id === id; });
   if (item) bwFormular(item);
@@ -21462,6 +21561,7 @@ function renderTrinkgeldTab() {
           <select id="tg-modus" onchange="tgVorschau()" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:14px">
             <option value="gleich">Gleich aufteilen</option>
             <option value="stunden">Nach Stunden</option>
+            <option value="abteilung">Nach Abteilung %</option>
           </select>
         </div>
       </div>
@@ -21511,6 +21611,30 @@ function tgBerechnen(betrag, modus, auswahl) {
   if (modus === 'gleich') {
     const pro = betrag / auswahl.length;
     return auswahl.map(m => ({ ...m, betrag: Math.round(pro*100)/100 }));
+  }
+  if (modus === 'abteilung') {
+    // % pro Abteilung aus Einstellungen
+    var regeln = { kueche:30, service:40, lieferung:30 };
+    try { var s = localStorage.getItem('psc_trinkgeld_regeln'); if(s) regeln = JSON.parse(s); } catch(e) {}
+    var mitarbeiter = getMitarbeiter();
+    var abtMap = { 'Küche':'kueche','Lieferung':'lieferung','Service':'service','Fahrer':'lieferung','Reinigung':'service' };
+    // Betrag pro Abteilung berechnen
+    var abtGruppen = {};
+    auswahl.forEach(function(m) {
+      var ma = mitarbeiter.find(function(x){ return x.id === m.id; });
+      var abt = (ma?.abteilung || ma?.rolle || '').trim();
+      var key = abtMap[abt] || 'service';
+      if (!abtGruppen[key]) abtGruppen[key] = [];
+      abtGruppen[key].push(m);
+    });
+    var splits = [];
+    Object.entries(abtGruppen).forEach(function([abtKey, mas]) {
+      var pct = (regeln[abtKey] || 0) / 100;
+      var abtBetrag = betrag * pct;
+      var proPerson = mas.length > 0 ? abtBetrag / mas.length : 0;
+      mas.forEach(function(m) { splits.push({ ...m, betrag: Math.round(proPerson*100)/100 }); });
+    });
+    return splits;
   }
   const totalStd = auswahl.reduce((s,m)=>s+m.stunden,0);
   return auswahl.map(m => ({ ...m, betrag: totalStd > 0 ? Math.round(betrag*(m.stunden/totalStd)*100)/100 : 0 }));
