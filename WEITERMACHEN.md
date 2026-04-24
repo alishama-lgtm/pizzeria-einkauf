@@ -18,6 +18,31 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 19 (2026-04-24) — Was gebaut wurde ✅
+
+### Feature 11: Feiertage Österreich im Dienstplan
+- **AT_FEIERTAGE** erweitert: 2025 + 2028 hinzugefügt (gesamt 2025–2028)
+- **Feiertag-Banner**: Goldene Warnbox oben im Dienstplan wenn Feiertage in der Woche sind ("Feiertagszuschlag beachten!")
+- **Zell-Hervorhebung**: Mitarbeiter-Felder bei Feiertags-Spalten amber/gold markiert
+- **Toggle-Button**: Zeigt "🎉 Offen" (statt "— —") bei Feiertagen; "✅ Feiertag" wenn jemand arbeitet
+- Spalten-Header waren schon korrekt — jetzt auch die Daten-Zellen konsistent
+
+### Feature 12: Trinkgeld-Regeln (% pro Abteilung)
+- **Neuer Modus**: "Nach Abteilung %" in der Aufteilung-Auswahl
+- **Konfig-Sektion**: Erscheint wenn Modus gewählt — % je Abteilung konfigurierbar
+- **Echtzeit-Summe**: Zeigt grün (=100%) / orange (≠100%) / rot (>100%)
+- **Speichern**: Regeln in `psc_trinkgeld_regeln` (localStorage)
+- **Berechnung**: Abteilungs-% wird gleichmäßig auf alle MA dieser Abteilung verteilt
+- Beispiel: Küche 40% + Service 40% + Lieferung 20% → 2 Köche = je 20%, 1 Service = 40%, usw.
+
+### Offen für nächste Session
+- Feature 13: Benachrichtigungs-Filter
+- Feature 14: App-PIN für Mitarbeiter
+- Feature 15: Bewertungs-Ziel (Ziel-Ø setzen)
+- UM Trade Jänner 2026 noch fehlend
+
+---
+
 ## Session 18 (2026-04-24) — Was gebaut wurde ✅
 
 ### Lieferanten-Einkaufsübersicht verbessert
@@ -30,12 +55,6 @@ node server.js   # → http://localhost:3000
 - **Sortierung**: Neueste Rechnung zuerst (nach Monat)
 - Server: `extrahiereDatum(text)` — liest Rechnungsdatum aus PDF-Text (Regex für AT-Format)
 - Server: `lieferant-analyse` gibt jetzt auch `datum`, `erstellt`, `status` zurück
-
-### Offen für morgen
-- Features 11–15 (Feiertage AT, Trinkgeld-Regeln, Benachrichtigungs-Filter, App-PIN, Bewertungs-Ziel)
-- UM Trade Jänner 2026 noch fehlend → E-Mail Backfill mit "RechnungNr" + Datum 01.01.–01.02.2026
-- Claude API Key testen → bessere Produktextraktion aus UM Trade PDFs
-- Weitere Buchhaltung-Verbesserungen
 
 ---
 
@@ -102,12 +121,12 @@ node server.js   # → http://localhost:3000
 
 ---
 
-## Als nächstes: Features 11–15
+## Als nächstes: Features 13–15
 
 | # | Feature | Status |
 |---|---------|--------|
-| 11 | **Feiertage Österreich** — AT-Feiertage im Dienstplan automatisch | ⬜ (AT_FEIERTAGE Konstante schon vorhanden) |
-| 12 | **Trinkgeld-Regeln** — feste Aufteilung % pro Abteilung | ⬜ |
+| 11 | **Feiertage Österreich** — AT-Feiertage im Dienstplan automatisch | ✅ Session 19 |
+| 12 | **Trinkgeld-Regeln** — feste Aufteilung % pro Abteilung | ✅ Session 19 |
 | 13 | **Benachrichtigungs-Filter** — welche Alarme aktiv/stumm | ⬜ |
 | 14 | **App-PIN für Mitarbeiter** — 4-stellige PIN statt Passwort | ⬜ (users.js hat schon PIN-Feld) |
 | 15 | **Bewertungs-Ziel** — Ziel-Ø setzen, Fortschritt anzeigen | ⬜ |

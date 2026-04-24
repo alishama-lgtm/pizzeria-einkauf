@@ -16085,8 +16085,14 @@ function showCloudflareTunnelInfo() {
 // ═══════════════════════════════════════════════════════════════
 // PHASE 2 — DIENSTPLAN
 // ═══════════════════════════════════════════════════════════════
-// Österreichische Feiertage (fixes Datum + beweglich bis 2030)
+// Österreichische Feiertage (fixes Datum + beweglich 2025–2028)
 const AT_FEIERTAGE = {
+  '2025-01-01':'Neujahr','2025-01-06':'Heilige Drei Könige',
+  '2025-04-21':'Ostermontag','2025-05-01':'Staatsfeiertag',
+  '2025-05-29':'Christi Himmelfahrt','2025-06-09':'Pfingstmontag',
+  '2025-06-19':'Fronleichnam','2025-08-15':'Mariä Himmelfahrt',
+  '2025-10-26':'Nationalfeiertag','2025-11-01':'Allerheiligen',
+  '2025-12-08':'Mariä Empfängnis','2025-12-25':'Weihnachten','2025-12-26':'Stefanitag',
   '2026-01-01':'Neujahr','2026-01-06':'Heilige Drei Könige',
   '2026-04-06':'Ostermontag','2026-05-01':'Staatsfeiertag',
   '2026-05-14':'Christi Himmelfahrt','2026-05-25':'Pfingstmontag',
@@ -16098,7 +16104,13 @@ const AT_FEIERTAGE = {
   '2027-05-06':'Christi Himmelfahrt','2027-05-17':'Pfingstmontag',
   '2027-05-27':'Fronleichnam','2027-08-15':'Mariä Himmelfahrt',
   '2027-10-26':'Nationalfeiertag','2027-11-01':'Allerheiligen',
-  '2027-12-08':'Mariä Empfängnis','2027-12-25':'Weihnachten','2027-12-26':'Stefanitag'
+  '2027-12-08':'Mariä Empfängnis','2027-12-25':'Weihnachten','2027-12-26':'Stefanitag',
+  '2028-01-01':'Neujahr','2028-01-06':'Heilige Drei Könige',
+  '2028-04-17':'Ostermontag','2028-05-01':'Staatsfeiertag',
+  '2028-05-25':'Christi Himmelfahrt','2028-06-05':'Pfingstmontag',
+  '2028-06-15':'Fronleichnam','2028-08-15':'Mariä Himmelfahrt',
+  '2028-10-26':'Nationalfeiertag','2028-11-01':'Allerheiligen',
+  '2028-12-08':'Mariä Empfängnis','2028-12-25':'Weihnachten','2028-12-26':'Stefanitag'
 };
 function getSchichtForDay(dateObj) {
   let sz = null;
@@ -16158,6 +16170,19 @@ function renderDienstplanTab() {
     return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7);
   })();
 
+  // Feiertage dieser Woche für Banner und Zell-Hervorhebung
+  const feiertageDieseWoche = weekDates
+    .map((d, i) => { const iso = d.toISOString().slice(0,10); return AT_FEIERTAGE[iso] ? { tag: DAYS[i], datum: fmt(d), name: AT_FEIERTAGE[iso] } : null; })
+    .filter(Boolean);
+  const feiertagBanner = feiertageDieseWoche.length
+    ? `<div style="background:#fff8e1;border:1.5px solid #fbc02d;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:22px;flex-shrink:0">🎉</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:4px">Feiertage diese Woche — Feiertagszuschlag beachten!</div>
+          ${feiertageDieseWoche.map(f=>`<div style="font-size:12px;color:#795548"><strong>${f.tag} ${f.datum}:</strong> ${f.name}</div>`).join('')}
+        </div>
+      </div>` : '';
+
   const dayHeaders = `<th style="padding:8px;font-size:13px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6;min-width:120px">Mitarbeiter</th>`
     + DAYS.map((day,i) => {
       const dateObj   = weekDates[i];
@@ -16187,17 +16212,21 @@ function renderDienstplanTab() {
       const color = ABTEILUNG_COLORS[rolle] || '#8B0000';
 
       const maRows = group.map(ma => {
-        const cells = DAYS.map(day => {
+        const cells = DAYS.map((day, i) => {
           const key = ma.id || ma.name;
           const val = (plan[weekKey][key]||{})[day] || '';
           const arbeitet = val === 'arbeitet';
           const frei = val === 'frei';
-          return `<td style="padding:5px;border:1px solid #e3beb8;text-align:center">
+          const isoDate = weekDates[i].toISOString().slice(0,10);
+          const isFeiertag = !!AT_FEIERTAGE[isoDate];
+          const btnBg    = arbeitet ? '#e8f5e9' : frei ? '#fce4ec' : isFeiertag ? '#fff8e1' : '#f5f5f5';
+          const btnColor = arbeitet ? '#2e7d32' : frei ? '#c62828' : isFeiertag ? '#b45309' : '#9e9e9e';
+          const btnText  = arbeitet ? (isFeiertag ? '✅ Feiertag' : '✅ Arbeitet') : frei ? '❌ Frei' : isFeiertag ? '🎉 Offen' : '— —';
+          return `<td style="padding:5px;border:1px solid #e3beb8;text-align:center${isFeiertag?';background:#fffde7':''}">
             <button onclick="dienstplanToggle('${weekKey}','${key}','${day}')"
-              style="width:100%;padding:7px 4px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;
-              background:${arbeitet?'#e8f5e9':frei?'#fce4ec':'#f5f5f5'};
-              color:${arbeitet?'#2e7d32':frei?'#c62828':'#9e9e9e'}">
-              ${arbeitet?'✅ Arbeitet':frei?'❌ Frei':'— —'}
+              style="width:100%;padding:7px 4px;border-radius:8px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;
+              background:${btnBg};color:${btnColor}">
+              ${btnText}
             </button>
           </td>`;
         }).join('');
@@ -16253,6 +16282,9 @@ function renderDienstplanTab() {
           <button onclick="personalAbrechnungPdf()" style="padding:9px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">💰 Abrechnung PDF</button>
         </div>
       </div>
+
+      <!-- Feiertag-Banner (nur wenn Feiertage in dieser Woche) -->
+      ${feiertagBanner}
 
       <!-- Info-Box -->
       <div style="background:#fff8f6;border-radius:10px;border:1.5px solid #e3beb8;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -21418,6 +21450,22 @@ function renderTrinkgeldTab() {
   const heute = new Date().toISOString().slice(0,10);
   const fmtD = d => { const [y,m,t] = d.split('-'); return `${t}.${m}.${y}`; };
 
+  // Trinkgeld-Regeln laden (% pro Abteilung)
+  let regeln = {};
+  try { regeln = JSON.parse(localStorage.getItem('psc_trinkgeld_regeln') || '{}'); } catch(e) {}
+  const rollen = [...new Set(mitarbeiter.map(m => m.rolle || 'Sonstige'))];
+  const regelFelder = rollen.length
+    ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:8px">` +
+      rollen.map(r => `<div>
+        <div style="font-size:11px;color:#5a403c;font-weight:600;margin-bottom:3px">${_esc(r)}</div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="number" class="tg-regel-pct" data-rolle="${_esc(r)}" min="0" max="100" value="${regeln[r]||0}"
+            oninput="tgRegelSumme()"
+            style="width:60px;border:1.5px solid #e3beb8;border-radius:6px;padding:5px 6px;font-size:14px;text-align:center">
+          <span style="font-size:13px;color:#5a403c">%</span>
+        </div></div>`).join('') + `</div>`
+    : '<div style="font-size:12px;color:#9e9e9e;margin-bottom:8px">Zuerst Mitarbeiter anlegen, um Abteilungen zu konfigurieren.</div>';
+
   const maCheckboxen = mitarbeiter.length
     ? mitarbeiter.map(m => `
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8f4f4;border-radius:8px;cursor:pointer;margin-bottom:6px">
@@ -21459,10 +21507,21 @@ function renderTrinkgeldTab() {
         </div>
         <div>
           <div style="font-size:12px;color:#5a403c;font-weight:600;margin-bottom:4px">Aufteilung</div>
-          <select id="tg-modus" onchange="tgVorschau()" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:14px">
+          <select id="tg-modus" onchange="tgRegelToggle();tgVorschau()" style="width:100%;box-sizing:border-box;border:1.5px solid #e3beb8;border-radius:8px;padding:10px;font-size:14px">
             <option value="gleich">Gleich aufteilen</option>
             <option value="stunden">Nach Stunden</option>
+            <option value="regeln">Nach Abteilung %</option>
           </select>
+        </div>
+      </div>
+
+      <!-- Regeln-Konfiguration (nur sichtbar bei "Nach Abteilung %") -->
+      <div id="tg-regeln-kfg" style="display:none;background:#f8f4f4;border-radius:10px;padding:12px;margin-bottom:14px;border:1.5px solid #e3beb8">
+        <div style="font-size:12px;font-weight:700;color:#5a403c;margin-bottom:8px">⚙️ Prozent pro Abteilung <span style="font-weight:400">(Summe sollte 100% ergeben)</span></div>
+        ${regelFelder}
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span id="tg-regel-summe" style="font-size:13px;font-weight:700;color:#9e9e9e">Summe: 0%</span>
+          <button onclick="tgRegelSpeichern()" style="padding:6px 14px;background:#8B0000;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✓ Speichern</button>
         </div>
       </div>
 
@@ -21512,8 +21571,56 @@ function tgBerechnen(betrag, modus, auswahl) {
     const pro = betrag / auswahl.length;
     return auswahl.map(m => ({ ...m, betrag: Math.round(pro*100)/100 }));
   }
-  const totalStd = auswahl.reduce((s,m)=>s+m.stunden,0);
-  return auswahl.map(m => ({ ...m, betrag: totalStd > 0 ? Math.round(betrag*(m.stunden/totalStd)*100)/100 : 0 }));
+  if (modus === 'stunden') {
+    const totalStd = auswahl.reduce((s,m)=>s+m.stunden,0);
+    return auswahl.map(m => ({ ...m, betrag: totalStd > 0 ? Math.round(betrag*(m.stunden/totalStd)*100)/100 : 0 }));
+  }
+  if (modus === 'regeln') {
+    let regeln = {};
+    try { regeln = JSON.parse(localStorage.getItem('psc_trinkgeld_regeln') || '{}'); } catch(e) {}
+    const alleMA = getMitarbeiter();
+    // Zähle MA je Abteilung (nur aus der aktuellen Auswahl)
+    const perAbt = {};
+    auswahl.forEach(m => {
+      const rolle = alleMA.find(x=>x.id===m.id)?.rolle || 'Sonstige';
+      if (!perAbt[rolle]) perAbt[rolle] = 0;
+      perAbt[rolle]++;
+    });
+    return auswahl.map(m => {
+      const rolle = alleMA.find(x=>x.id===m.id)?.rolle || 'Sonstige';
+      const pct = (regeln[rolle] || 0) / 100;
+      const anzahl = perAbt[rolle] || 1;
+      return { ...m, betrag: Math.round(betrag * pct / anzahl * 100) / 100 };
+    });
+  }
+  return [];
+}
+
+function tgRegelToggle() {
+  const modus = document.getElementById('tg-modus')?.value;
+  const kfg = document.getElementById('tg-regeln-kfg');
+  if (kfg) kfg.style.display = modus === 'regeln' ? 'block' : 'none';
+  if (modus === 'regeln') tgRegelSumme();
+}
+
+function tgRegelSumme() {
+  const felder = document.querySelectorAll('.tg-regel-pct');
+  const summe = [...felder].reduce((s,f)=>s+(parseFloat(f.value)||0),0);
+  const el = document.getElementById('tg-regel-summe');
+  if (!el) return;
+  const ok = Math.abs(summe - 100) < 0.01;
+  el.textContent = `Summe: ${summe}%`;
+  el.style.color = ok ? '#2e7d32' : summe > 100 ? '#c62828' : '#b45309';
+}
+
+function tgRegelSpeichern() {
+  const felder = document.querySelectorAll('.tg-regel-pct');
+  const regeln = {};
+  felder.forEach(f => { regeln[f.dataset.rolle] = parseFloat(f.value)||0; });
+  localStorage.setItem('psc_trinkgeld_regeln', JSON.stringify(regeln));
+  _showToast('Trinkgeld-Regeln gespeichert ✓', 'success');
+  tgRegelSumme();
+  tgVorschau();
 }
 
 function tgSpeichern() {
