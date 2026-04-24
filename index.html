@@ -2980,9 +2980,84 @@ const SHOPS = [
 // pricePerUnit indexed as PRICE_MAP[shopId][productId]
 // Wird beim Start aus SQLite geladen + beim Rechnung-Scan befüllt
 const PRICE_MAP = {
-  metro: {},
-  billa: {},
-  lidl:  {},
+  // Metro Gastro-Großhandel (Gastro-Einkaufspreise AT, April 2026)
+  metro: {
+    mehl:             0.89,  // kg  Pizzamehl Tipo 00
+    tomaten:          1.59,  // Dose San Marzano 400g
+    olivenoel:        4.99,  // L   Extra Vergine
+    hefe:             0.45,  // Päck. Frische Hefe 42g
+    pizzablock:       5.49,  // kg  Pizzablock EXPORT
+    pizza_sauce:      6.99,  // Dose Campino 5/1
+    mozzarella:       9.90,  // kg  Mozzarella di Bufala
+    mozzarella_stange:7.49,  // Pkg Mozzarella Stange 1kg
+    parmesan:        13.90,  // kg  Parmigiano Reggiano
+    cheddar:          9.49,  // Pkg Cheddar 1000g
+    boereklik:       18.99,  // Ktn Böreklik 4kg
+    salami:           7.19,  // kg  Salami Milano
+    salami_gesch:     7.19,  // kg  Salami geschnitten
+    bacon_gastro:     9.49,  // kg  Bacon Hochreiter
+    peperoni:         4.99,  // kg  Peperoni
+    doener:           9.49,  // Pkg Döner 1kg
+    cevapcici:       10.49,  // Pkg Cevapcici 800g
+    huehnerbrust_tk:  6.49,  // kg  Hühnerbrust TK
+    kartoffelsalat:  31.99,  // Kübel Kartoffelsalat 10kg
+    potato_wedges:    2.19,  // Pkg Potato Wedges 2.5kg
+    pommes_kebab:     2.09,  // Pkg Pommes Kebab 2.5kg
+    champignons_fr:   9.99,  // kiste Champignon 3kg
+    karfiol_tk:       1.79,  // Pkg Karfiol 2.5kg TK
+    erbsen_tk:        1.99,  // Pkg Erbsen 2.5kg TK
+    artischocken:     9.19,  // Dose Artischocken 2650ml
+    thunfisch_dose:   8.99,  // Dose Thunfisch 1705g
+    hamburger_sauce:  4.99,  // PFl Hamburger Sauce 875ml
+    tartare_port:    11.49,  // Ktn Tartare Portionen
+    ketchup_port:     9.49,  // Ktn Ketchup Portionen
+    mayo_port:        9.49,  // Ktn Mayo Portionen
+    basmati_reis:    15.49,  // Stk Basmati Reis 4.5kg
+    gnocchi:          2.69,  // Pkg Gnocchi 1000g
+    spaghetti:        7.99,  // Pkg Spaghetti 5kg
+    hamburger_brot:   9.49,  // Ktn Hamburger Brot 16St
+    fuzetea_zitrone:  6.60,  // Tray 12x0.5L
+    fuzetea_pfirsich: 6.60,  // Tray 12x0.5L
+    vanillesauce:     8.49,  // PFl Vanillesauce 2L
+    eierbiskotten:   20.49,  // Ktn Eierbiskotten 2.4kg
+    basilikum:        0.99,  // Bund Frischer Basilikum
+  },
+  // Billa Supermarkt (Consumer-Preise AT, April 2026)
+  billa: {
+    mehl:             1.29,  // kg  W480 Tipo 00
+    tomaten:          1.99,  // Dose Pelati 400g
+    olivenoel:        5.99,  // L   Extra Vergine
+    hefe:             0.79,  // Päck. Frische Hefe 42g
+    mozzarella:      10.99,  // kg  (2x125g = 1.49 → ~€5.96/kg, aber hier Block)
+    parmesan:        15.99,  // kg  Parmesan gerieben
+    salami:           9.99,  // kg  Salami aufschnitt
+    peperoni:         6.99,  // kg  Peperoni frisch
+    champignons_fr:   3.99,  // kiste 500g-Schale (kleinere Packung)
+    karfiol_tk:       2.49,  // Pkg TK Blumenkohl 500g
+    erbsen_tk:        2.19,  // Pkg TK Erbsen 450g
+    thunfisch_dose:   1.89,  // Dose Thunfisch 185g
+    gnocchi:          1.99,  // Pkg Gnocchi 500g
+    spaghetti:        2.99,  // Pkg Spaghetti 500g
+    hamburger_sauce:  3.49,  // PFl 875ml
+    basilikum:        1.29,  // Bund Basilikum
+  },
+  // Lidl Discounter (Aktionspreise AT, April 2026)
+  lidl: {
+    mehl:             0.79,  // kg  Tipo 00
+    tomaten:          1.49,  // Dose Pelati 400g
+    olivenoel:        4.49,  // L   Extra Vergine
+    hefe:             0.65,  // Päck. Frische Hefe
+    mozzarella:       9.49,  // kg  Mozzarella Block
+    parmesan:        13.99,  // kg  Parmigiano
+    salami:           8.99,  // kg  Salami
+    peperoni:         5.49,  // kg  Peperoni
+    karfiol_tk:       1.99,  // Pkg TK Karfiol 500g
+    erbsen_tk:        1.79,  // Pkg TK Erbsen
+    gnocchi:          1.79,  // Pkg Gnocchi 500g
+    spaghetti:        2.69,  // Pkg Spaghetti 500g
+    hamburger_sauce:  2.99,  // PFl Hamburger Sauce
+    basilikum:        0.89,  // Bund Basilikum
+  },
   spar:  {},
   // UM Trade GmbH — Rechnung Nr. 93722 vom 25.03.2026 (Preise pro Einheit)
   umtrade: {
