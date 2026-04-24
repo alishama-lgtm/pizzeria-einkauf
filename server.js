@@ -2469,6 +2469,26 @@ async function migriereLocalPdfsZuTurso() {
 
 // ── DB Admin API (nur für interne Nutzung) ────────────────────────────────
 
+// node:sqlite gibt manchmal Uint8Array zurück statt String → korrekt dekodieren
+function dbFixRow(row) {
+  const fixed = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (v instanceof Uint8Array) {
+      fixed[k] = new TextDecoder('utf-8').decode(v);
+    } else if (typeof v === 'string') {
+      // Versuche latin1→utf8 Konvertierung falls nötig (◆ Fix)
+      try {
+        const bytes = Buffer.from(v, 'binary');
+        const decoded = bytes.toString('utf8');
+        fixed[k] = decoded.includes('�') ? v : decoded;
+      } catch(_) { fixed[k] = v; }
+    } else {
+      fixed[k] = v;
+    }
+  }
+  return fixed;
+}
+
 // Alle Keys im syncStore anzeigen
 app.get('/api/admin/store', (_req, res) => {
   const result = [];
@@ -2545,7 +2565,8 @@ app.get('/api/admin/table/:name', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit || '50'), 200);
   const offset = parseInt(req.query.offset || '0');
   try {
-    const rows = db.prepare(`SELECT * FROM ${name} LIMIT ? OFFSET ?`).all(limit, offset);
+    const raw = db.prepare(`SELECT * FROM ${name} LIMIT ? OFFSET ?`).all(limit, offset);
+    const rows = raw.map(dbFixRow);
     const total = db.prepare(`SELECT COUNT(*) as n FROM ${name}`).get();
     res.json({ ok: true, tabelle: name, rows, total: total.n, limit, offset });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
