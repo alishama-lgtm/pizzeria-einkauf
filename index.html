@@ -21482,10 +21482,12 @@ async function n8nHook(name, data) {
 function einkaufLoggModal() {
   document.getElementById('einkauf-log-overlay')?.remove();
   const shops = [
-    { id: 'metro', name: 'Metro', color: '#003DA5' },
-    { id: 'billa', name: 'Billa', color: '#ed1c24' },
-    { id: 'lidl',  name: 'Lidl',  color: '#0050AA' },
-    { id: 'spar',  name: 'Spar',  color: '#007f3e' },
+    { id: 'metro',    name: 'Metro',    color: '#003DA5' },
+    { id: 'billa',    name: 'Billa',    color: '#ed1c24' },
+    { id: 'lidl',     name: 'Lidl',     color: '#0050AA' },
+    { id: 'spar',     name: 'Spar',     color: '#007f3e' },
+    { id: 'etsan',    name: 'Etsan',    color: '#e65100' },
+    { id: 'umtrade',  name: 'UM Trade', color: '#6a1b9a' },
   ];
   const shopBtns = shops.map(s =>
     `<button onclick="einkaufLoggShop('${s.id}')" id="el-shop-${s.id}"
@@ -21540,8 +21542,8 @@ function einkaufLoggClose() {
 
 function einkaufLoggShop(id) {
   document.getElementById('el-shop-val').value = id;
-  const colors = { metro: '#003DA5', billa: '#ed1c24', lidl: '#0050AA', spar: '#007f3e' };
-  ['metro', 'billa', 'lidl', 'spar'].forEach(s => {
+  const colors = { metro: '#003DA5', billa: '#ed1c24', lidl: '#0050AA', spar: '#007f3e', etsan: '#e65100', umtrade: '#6a1b9a' };
+  ['metro', 'billa', 'lidl', 'spar', 'etsan', 'umtrade'].forEach(s => {
     const btn = document.getElementById('el-shop-' + s);
     if (!btn) return;
     if (s === id) { btn.style.background = colors[s]; btn.style.color = '#fff'; }
@@ -21581,7 +21583,7 @@ function einkaufLoggGesamt() {
 
 function einkaufLoggSave() {
   const shopId   = document.getElementById('el-shop-val')?.value;
-  const shopObj  = { metro: 'Metro', billa: 'Billa', lidl: 'Lidl', spar: 'Spar' };
+  const shopObj  = { metro: 'Metro', billa: 'Billa', lidl: 'Lidl', spar: 'Spar', etsan: 'Etsan', umtrade: 'UM Trade' };
   const shopName = shopObj[shopId] || shopId || 'Unbekannt';
   const heute    = new Date().toISOString().slice(0, 10);
   const rows     = document.querySelectorAll('[id^="el-row-"]');
