@@ -11101,29 +11101,50 @@ function renderMAListe(mitarbeiter) {
       </div>`;
   }
 
-  const gesamtWoche = mitarbeiter.reduce((s, m) => s + (m.lohn || 0) * (m.stunden || 0), 0);
-  const gesamtMonat = gesamtWoche * 4.33;
+  // Lohnzettel-Daten laden
+  let lohnMap = {};
+  try {
+    const lohnData = JSON.parse(localStorage.getItem('psc_lohnabrechnungen') || '{}');
+    for (const a of (lohnData.abrechnungen || [])) {
+      if (!lohnMap[a.name] || a.monat > lohnMap[a.name].monat) lohnMap[a.name] = a;
+    }
+  } catch(_) {}
 
-  if (mitarbeiter.length > 0) {
-    html += `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
-        <div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:16px;padding:18px 20px;color:#fff">
-          <div style="font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Personalkosten / Woche</div>
-          <div style="font-size:26px;font-weight:800">${eur(gesamtWoche)}</div>
-          <div style="font-size:11px;opacity:.7;margin-top:4px">${mitarbeiter.length} Mitarbeiter</div>
-        </div>
-        <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:16px;padding:18px 20px">
-          <div style="font-size:11px;font-weight:700;color:#8d6562;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Personalkosten / Monat</div>
-          <div style="font-size:26px;font-weight:800;color:#261816">${eur(gesamtMonat)}</div>
-          <div style="font-size:11px;color:#8d6562;margin-top:4px">× 4,33 Wochen</div>
-        </div>
-      </div>`;
+  // AG-Kostensätze Österreich
+  const AG_SV = 0.2113, DB_S = 0.039, DZ_S = 0.0044, KOMM = 0.03;
+  function agGesamt(a) {
+    return a.brutto * (1 + AG_SV + DB_S + DZ_S + KOMM) + (a.bv_beitrag || 0);
   }
+
+  let gesamtBrutto = 0, gesamtAG = 0, gesamtNetto = 0;
+  for (const ma of mitarbeiter) {
+    const lz = lohnMap[ma.name];
+    if (lz) { gesamtBrutto += lz.brutto; gesamtAG += agGesamt(lz); gesamtNetto += lz.netto; }
+    else { const w = (ma.lohn||0)*(ma.stunden||0)*4.33; gesamtBrutto += w; gesamtAG += w*1.30; }
+  }
+
+  html += `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,#610000,#8b0000);border-radius:16px;padding:18px 20px;color:#fff">
+        <div style="font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Brutto Lohn / Monat</div>
+        <div style="font-size:26px;font-weight:800">${eur(gesamtBrutto)}</div>
+        <div style="font-size:11px;opacity:.7;margin-top:4px">${mitarbeiter.length} Mitarbeiter · Netto AN: ${eur(gesamtNetto)}</div>
+      </div>
+      <div style="background:#7b0000;border-radius:16px;padding:18px 20px;color:#fff">
+        <div style="font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AG-Gesamtkosten / Monat</div>
+        <div style="font-size:26px;font-weight:800">${eur(gesamtAG)}</div>
+        <div style="font-size:11px;opacity:.7;margin-top:4px">inkl. SV-AG, DB, DZ, KommSt, BV</div>
+      </div>
+    </div>`;
 
   html += `<div style="display:flex;flex-direction:column;gap:14px">`;
   for (const ma of mitarbeiter) {
-    const wochenlohn = (ma.lohn || 0) * (ma.stunden || 0);
-    const monatslohn = wochenlohn * 4.33;
+    const lz = lohnMap[ma.name];
+    const brutto   = lz ? lz.brutto : (ma.lohn||0)*(ma.stunden||0)*4.33;
+    const netto    = lz ? lz.netto  : null;
+    const agKosten = lz ? agGesamt(lz) : brutto * 1.30;
+    const agPlus   = agKosten - brutto;
+    const quelle   = lz ? `<span style="color:#2e7d32;font-weight:700">Lohnzettel ${lz.monat}</span>` : `<span style="color:#e65100">geschätzt</span>`;
     html += `
       <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:18px;overflow:hidden">
         <div style="display:flex;align-items:center;gap:16px;padding:18px 20px">
@@ -11134,7 +11155,7 @@ function renderMAListe(mitarbeiter) {
             <div style="font-size:17px;font-weight:800;color:#261816">${escHtml(ma.name)}</div>
             <div style="font-size:13px;color:#8d6562;margin-top:3px;display:flex;align-items:center;gap:6px">
               <span style="width:8px;height:8px;border-radius:50%;background:${ma.farbe};display:inline-block"></span>
-              ${escHtml(ma.rolle)}
+              ${escHtml(ma.rolle)} · ${quelle}
             </div>
           </div>
           <div style="display:flex;gap:6px">
@@ -11148,22 +11169,19 @@ function renderMAListe(mitarbeiter) {
             </button>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-top:1.5px solid #f0e8e6;background:#fdf8f7">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1.5px solid #f0e8e6;background:#fdf8f7">
           <div style="padding:14px 16px;text-align:center;border-right:1px solid #f0e8e6">
-            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">€ / Std</div>
-            <div style="font-size:18px;font-weight:800;color:#261816">${ma.lohn ? eur(ma.lohn) : '—'}</div>
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Brutto / Monat</div>
+            <div style="font-size:18px;font-weight:800;color:#261816">${eur(brutto)}</div>
           </div>
           <div style="padding:14px 16px;text-align:center;border-right:1px solid #f0e8e6">
-            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Std / Wo</div>
-            <div style="font-size:18px;font-weight:800;color:#261816">${ma.stunden || '—'}</div>
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Netto AN</div>
+            <div style="font-size:18px;font-weight:800;color:#2e7d32">${netto != null ? eur(netto) : '—'}</div>
           </div>
-          <div style="padding:14px 16px;text-align:center;border-right:1px solid #f0e8e6;background:${wochenlohn>0?'#fff8f6':''}">
-            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Wochenlohn</div>
-            <div style="font-size:18px;font-weight:800;color:${wochenlohn>0?'#610000':'#c0b0ae'}">${wochenlohn > 0 ? eur(wochenlohn) : '—'}</div>
-          </div>
-          <div style="padding:14px 16px;text-align:center;background:${monatslohn>0?'#fff8f6':''}">
-            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">Monatslohn</div>
-            <div style="font-size:18px;font-weight:800;color:${monatslohn>0?'#610000':'#c0b0ae'}">${monatslohn > 0 ? eur(monatslohn) : '—'}</div>
+          <div style="padding:14px 16px;text-align:center;background:#fff8f6">
+            <div style="font-size:11px;color:#8d6562;font-weight:600;margin-bottom:4px">AG-Gesamtkosten</div>
+            <div style="font-size:18px;font-weight:800;color:#610000">${eur(agKosten)}</div>
+            <div style="font-size:10px;color:#8d6562">+${eur(agPlus)} Abgaben</div>
           </div>
         </div>
       </div>`;
