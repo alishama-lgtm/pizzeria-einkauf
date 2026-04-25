@@ -20811,6 +20811,55 @@ async function zbonImport(input) {
   input.value = '';
 }
 
+async function lohnPdfsImport() {
+  var result = document.getElementById('lohn-import-result');
+  if (result) result.innerHTML = '<div style="margin-top:12px;color:#ce93d8;font-size:12px">⏳ Wird importiert…</div>';
+  try {
+    var resp = await fetch('/api/kassenbuch/import-lohn-pdfs', { method: 'POST' });
+    var d = await resp.json();
+    if (!d.ok) throw new Error(d.error);
+    await kbSync();
+    var html = '<div style="margin-top:14px;background:#1a0d2e;border-radius:12px;padding:14px 16px">';
+    html += '<div style="font-size:12px;font-weight:700;color:#ce93d8;margin-bottom:6px">✅ ' + d.imported + ' importiert · ' + d.skipped + ' übersprungen · Gesamt: €' + (d.total||0).toFixed(2).replace('.',',') + '</div>';
+    (d.eintraege||[]).forEach(function(e){ html += '<div style="font-size:11px;color:#e1bee7">✓ ' + _esc(e.monat||'?') + ' — €' + (e.betrag||0).toFixed(2).replace('.',',') + '</div>'; });
+    (d.skippedList||[]).slice(0,3).forEach(function(s){ html += '<div style="font-size:10px;color:#9575cd">↷ ' + _esc(s) + '</div>'; });
+    html += '</div>';
+    if (result) result.innerHTML = html;
+    renderBuchhaltungTab();
+  } catch(e) {
+    if (result) result.innerHTML = '<div style="margin-top:12px;color:#ef9a9a;font-size:12px">❌ ' + _esc(e.message) + '</div>';
+  }
+}
+
+async function fixkostenImport() {
+  var result = document.getElementById('fixkosten-import-result');
+  if (result) result.innerHTML = '<div style="margin-top:12px;color:#ffe082;font-size:12px">⏳ Wird generiert…</div>';
+  try {
+    var fix = {}; try { fix = JSON.parse(localStorage.getItem('biz_fixkosten')||'{}'); } catch(_) {}
+    var monate = [];
+    for (var y = 2025; y <= 2026; y++) {
+      for (var mo = 1; mo <= 12; mo++) {
+        var m = y+'-'+(mo<10?'0':'')+mo;
+        if (m >= '2025-07' && m <= new Date().toISOString().slice(0,7)) monate.push(m);
+      }
+    }
+    var resp = await fetch('/api/kassenbuch/import-fixkosten', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ fixkosten: fix, monate: monate })
+    });
+    var d = await resp.json();
+    if (!d.ok) throw new Error(d.error);
+    await kbSync();
+    var html = '<div style="margin-top:14px;background:#1a1500;border-radius:12px;padding:14px 16px">';
+    html += '<div style="font-size:12px;font-weight:700;color:#ffe082">✅ ' + d.imported + ' Einträge generiert · ' + d.skipped + ' bereits vorhanden · Gesamt: €' + (d.total||0).toFixed(2).replace('.',',') + '</div>';
+    html += '</div>';
+    if (result) result.innerHTML = html;
+    renderBuchhaltungTab();
+  } catch(e) {
+    if (result) result.innerHTML = '<div style="margin-top:12px;color:#ef9a9a;font-size:12px">❌ ' + _esc(e.message) + '</div>';
+  }
+}
+
 async function rechnungenImport() {
   var result = document.getElementById('rechnung-import-result');
   if (result) result.innerHTML = '<div style="margin-top:12px;color:#90caf9;font-size:12px">⏳ Wird importiert…</div>';
@@ -20925,6 +20974,42 @@ async function renderBuchhaltungTab() {
   html += '<div id="rechnung-import-result" style="margin-top:0"></div>';
   html += '</div>';
 
+  // ── Lohn-PDFs Import ──
+  html += '<div style="background:linear-gradient(135deg,#2a1a3a,#3a1e5c);border-radius:16px;padding:20px;border:1px solid #ce93d844;margin-bottom:16px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+  html += '<div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">👥 Lohn-PDFs importieren</div>';
+  html += '<div style="font-size:11px;color:#ce93d8">Abrechnungsbelege & Zahlungsjournale → Lohnausgaben ins Kassenbuch</div></div>';
+  html += '<button onclick="lohnPdfsImport()" style="padding:10px 20px;border-radius:10px;border:none;background:#7b1fa2;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">sync</span>Jetzt importieren</button>';
+  html += '</div>';
+  html += '<div id="lohn-import-result" style="margin-top:0"></div>';
+  html += '</div>';
+
+  // ── Fixkosten monatlich generieren ──
+  (function() {
+    var fix = {}; try { fix = JSON.parse(localStorage.getItem('biz_fixkosten')||'{}'); } catch(_) {}
+    var fixTotal = (parseFloat(fix.miete||0)+parseFloat(fix.strom||0)+parseFloat(fix.versicherung||0)+parseFloat(fix.buchhaltung||0)+parseFloat(fix.sonstige||0));
+    var monate = [];
+    for (var y = 2025; y <= 2026; y++) {
+      for (var mo = 1; mo <= 12; mo++) {
+        var m = y+'-'+(mo<10?'0':'')+mo;
+        if (m >= '2025-07' && m <= new Date().toISOString().slice(0,7)) monate.push(m);
+      }
+    }
+    html += '<div style="background:linear-gradient(135deg,#2a2a1a,#3a3a1e);border-radius:16px;padding:20px;border:1px solid #f9a82544;margin-bottom:16px">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+    html += '<div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">🏠 Fixkosten monatlich eintragen</div>';
+    if (fixTotal > 0) {
+      html += '<div style="font-size:11px;color:#ffe082">€'+fixTotal.toFixed(2).replace('.',',') + '/Monat — ' + monate.length + ' Monate (Jul 2025 – heute)</div></div>';
+      html += '<button onclick="fixkostenImport()" style="padding:10px 20px;border-radius:10px;border:none;background:#f57f17;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">autorenew</span>Für alle Monate generieren</button>';
+    } else {
+      html += '<div style="font-size:11px;color:#ffe082">Noch keine Fixkosten in Einstellungen gesetzt</div></div>';
+      html += '<button onclick="switchTab(\'einstellungen\')" style="padding:10px 20px;border-radius:10px;border:none;background:#f57f17;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">⚙️ Einstellungen öffnen</button>';
+    }
+    html += '</div>';
+    html += '<div id="fixkosten-import-result" style="margin-top:0"></div>';
+    html += '</div>';
+  })();
+
   // ── Kassenbuch-Formular ──
   html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';
   html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">➕ Eintrag manuell erfassen</div>';
@@ -21005,6 +21090,57 @@ async function renderBuchhaltungTab() {
     html += '</tbody></table>';
   }
   html += '</div>';
+
+  // ── MwSt-Auswertung ──
+  (function() {
+    var byM = {};
+    kbAll.forEach(function(e) {
+      var m = (e.datum||'').slice(0,7); if (!m) return;
+      if (!byM[m]) byM[m] = {ein:0,aus:0,ust10:0,ust20:0,vs10:0,vs20:0};
+      var br = parseFloat(e.brutto||0), mw = parseFloat(e.mwst_betrag||0), ms = parseFloat(e.mwst_satz||0);
+      if (e.typ==='einnahme') { byM[m].ein+=br; if(ms==10) byM[m].ust10+=mw; if(ms==20) byM[m].ust20+=mw; }
+      else { byM[m].aus+=br; if(ms==10) byM[m].vs10+=mw; if(ms==20) byM[m].vs20+=mw; }
+    });
+    var rows = Object.entries(byM).sort((a,b)=>a[0].localeCompare(b[0]));
+    if (rows.length) {
+      html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px;overflow-x:auto">';
+      html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">🧾 MwSt-Auswertung pro Monat</div>';
+      html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+      html += '<thead><tr style="border-bottom:2px solid var(--border)">';
+      ['Monat','Einnahmen','Ausgaben','Saldo','USt 10%','USt 20%','Vorsteuer','Zahllast'].forEach(function(h){
+        html += '<th style="padding:6px 8px;text-align:right;color:var(--text-3);font-weight:600;white-space:nowrap">'+h+'</th>';
+      });
+      html += '</tr></thead><tbody>';
+      var totals = {ein:0,aus:0,ust10:0,ust20:0,vs:0,zl:0};
+      rows.forEach(function(r) {
+        var m=r[0],v=r[1];
+        var saldo=v.ein-v.aus, vs=v.vs10+v.vs20, zl=(v.ust10+v.ust20)-vs;
+        totals.ein+=v.ein; totals.aus+=v.aus; totals.ust10+=v.ust10; totals.ust20+=v.ust20; totals.vs+=vs; totals.zl+=zl;
+        var sc=saldo>=0?'#2e7d32':'#c62828', zc=zl>=0?'#c62828':'#2e7d32';
+        html += '<tr style="border-bottom:1px solid var(--border)">';
+        html += '<td style="padding:6px 8px;font-weight:700;color:var(--text);white-space:nowrap">'+m+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right;color:#2e7d32">€'+v.ein.toFixed(2).replace('.',',')+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right;color:#c62828">€'+v.aus.toFixed(2).replace('.',',')+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+sc+'">€'+saldo.toFixed(2).replace('.',',')+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right">€'+v.ust10.toFixed(2).replace('.',',')+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right">€'+v.ust20.toFixed(2).replace('.',',')+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right;color:#1565c0">€'+vs.toFixed(2).replace('.',',')+'</td>';
+        html += '<td style="padding:6px 8px;text-align:right;font-weight:700;color:'+zc+'">€'+zl.toFixed(2).replace('.',',')+'</td>';
+        html += '</tr>';
+      });
+      html += '<tr style="border-top:2px solid var(--border);font-weight:800;background:var(--bg)">';
+      html += '<td style="padding:8px;color:var(--text)">Gesamt</td>';
+      html += '<td style="padding:8px;text-align:right;color:#2e7d32">€'+totals.ein.toFixed(2).replace('.',',')+'</td>';
+      html += '<td style="padding:8px;text-align:right;color:#c62828">€'+totals.aus.toFixed(2).replace('.',',')+'</td>';
+      var tSaldo=totals.ein-totals.aus;
+      html += '<td style="padding:8px;text-align:right;font-weight:800;color:'+(tSaldo>=0?'#2e7d32':'#c62828')+'">€'+tSaldo.toFixed(2).replace('.',',')+'</td>';
+      html += '<td style="padding:8px;text-align:right">€'+totals.ust10.toFixed(2).replace('.',',')+'</td>';
+      html += '<td style="padding:8px;text-align:right">€'+totals.ust20.toFixed(2).replace('.',',')+'</td>';
+      html += '<td style="padding:8px;text-align:right;color:#1565c0">€'+totals.vs.toFixed(2).replace('.',',')+'</td>';
+      html += '<td style="padding:8px;text-align:right;font-weight:800;color:'+(totals.zl>=0?'#c62828':'#2e7d32')+'">€'+totals.zl.toFixed(2).replace('.',',')+'</td>';
+      html += '</tr></tbody></table></div>';
+    }
+  })();
 
   // ── Monatsabschluss PDF ──
   html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';

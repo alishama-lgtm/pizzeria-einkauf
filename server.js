@@ -2449,6 +2449,128 @@ app.post('/api/kassenbuch/import-rechnungen', async (_req, res) => {
   }
 });
 
+// ── Lohn-PDFs → Kassenbuch ────────────────────────────────────────────────────
+app.post('/api/kassenbuch/import-lohn-pdfs', async (_req, res) => {
+  try {
+    const imported = [], skipped = [];
+    const existingKb = db.prepare('SELECT beschreibung FROM kassenbuch').all().map(r => r.beschreibung);
+    let allDocs = [];
+    if (turso) {
+      const r = await turso.execute("SELECT id,name,monat,typ FROM dokumente WHERE typ IN ('zahlungsjournal','lohnzettel')");
+      allDocs = r.rows;
+    } else {
+      allDocs = db.prepare("SELECT id,name,monat,typ FROM dokumente WHERE typ IN ('zahlungsjournal','lohnzettel')").all();
+    }
+    // Nur Lohn-relevante Docs (Abrechnungsbelege, Dienstnehmerzahlungen, Zahlungsjournal)
+    const lohnDocs = allDocs.filter(d => {
+      const n = (d.name||'').toLowerCase();
+      return n.includes('abrechnungsbeleg') || n.includes('dienstnehmerzahlung') || n.includes('zahlungsjournal');
+    });
+
+    for (const doc of lohnDocs) {
+      const desc = 'Lohnzahlung ' + (doc.monat||'?') + ' — ' + doc.name;
+      if (existingKb.some(b => b.includes(doc.name) || (doc.monat && b.includes('Lohnzahlung '+doc.monat)))) {
+        skipped.push(doc.name + ' (bereits vorhanden)'); continue;
+      }
+      let betrag = null;
+      try {
+        const buf = await ladePdfBuffer(doc.id);
+        if (buf) {
+          const p = await pdfParse(buf);
+          // Suche nach Gesamtbetrag in Zahlungsjournal-Format
+          const text = p.text;
+          const muster = [
+            /(?:gesamt|summe|total|auszahlung)[:\s]*(?:eur\s*)?(\d{1,7}[,.]\d{2})/i,
+            /(\d{1,7},\d{2})\s*(?:€|eur)/i,
+          ];
+          for (const re of muster) {
+            const m = text.match(re);
+            if (m) { const v = parseFloat(m[1].replace('.','').replace(',','.')); if (v > 100 && v < 200000) { betrag = v; break; } }
+          }
+        }
+      } catch(_) {}
+      if (!betrag) { skipped.push(doc.name + ' (kein Betrag gefunden)'); continue; }
+
+      const datumStr = doc.monat ? doc.monat + '-28' : new Date().toISOString().slice(0,10);
+      const id = 'kb_lohn_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+      db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
+        .run(id, datumStr, 'ausgabe', desc, betrag, 0, 0, betrag);
+      if (turso) await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, betrag, 0, 0, betrag] }).catch(()=>{});
+      imported.push({ name: doc.name, betrag, monat: doc.monat });
+    }
+    broadcast({ type: 'sync', key: 'pizzeria_kassenbuch_update' });
+    const total = imported.reduce((s,e)=>s+e.betrag,0);
+    res.json({ ok: true, imported: imported.length, skipped: skipped.length, total, eintraege: imported, skippedList: skipped });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── Fixkosten → Kassenbuch monatlich generieren ───────────────────────────────
+app.post('/api/kassenbuch/import-fixkosten', express.json(), async (req, res) => {
+  try {
+    const { fixkosten, monate } = req.body || {};
+    if (!fixkosten || !monate || !monate.length) return res.json({ ok: false, error: 'Keine Daten' });
+    const kategorien = [
+      { key: 'miete',        label: 'Miete',        mwst: 20 },
+      { key: 'strom',        label: 'Strom',        mwst: 20 },
+      { key: 'versicherung', label: 'Versicherung', mwst: 0  },
+      { key: 'buchhaltung',  label: 'Buchhaltung (Steuerberater)', mwst: 20 },
+      { key: 'sonstige',     label: 'Sonstige Fixkosten', mwst: 20 },
+    ];
+    const existingKb = db.prepare('SELECT beschreibung FROM kassenbuch').all().map(r => r.beschreibung);
+    const imported = [], skipped = [];
+
+    for (const monat of monate) {
+      for (const kat of kategorien) {
+        const betrag = parseFloat(fixkosten[kat.key] || 0);
+        if (!betrag) continue;
+        const desc = kat.label + ' ' + monat;
+        if (existingKb.some(b => b === desc)) { skipped.push(desc); continue; }
+        const netto = kat.mwst > 0 ? parseFloat((betrag / (1 + kat.mwst/100)).toFixed(2)) : betrag;
+        const mwstBetrag = parseFloat((betrag - netto).toFixed(2));
+        const datumStr = monat + '-01';
+        const id = 'kb_fix_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+        db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
+          .run(id, datumStr, 'ausgabe', desc, netto, kat.mwst, mwstBetrag, betrag);
+        if (turso) await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, kat.mwst, mwstBetrag, betrag] }).catch(()=>{});
+        imported.push({ desc, betrag, monat });
+      }
+    }
+    broadcast({ type: 'sync', key: 'pizzeria_kassenbuch_update' });
+    res.json({ ok: true, imported: imported.length, skipped: skipped.length, total: imported.reduce((s,e)=>s+e.betrag,0) });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── MwSt-Auswertung ────────────────────────────────────────────────────────────
+app.get('/api/kassenbuch/mwst-auswertung', (req, res) => {
+  try {
+    const { jahr } = req.query;
+    const list = db.prepare('SELECT * FROM kassenbuch').all();
+    const byMonat = {};
+    list.forEach(e => {
+      const m = (e.datum||'').slice(0,7);
+      if (jahr && !m.startsWith(jahr)) return;
+      if (!byMonat[m]) byMonat[m] = { einnahmen: 0, ausgaben: 0, ust10: 0, ust20: 0, vorsteuer10: 0, vorsteuer20: 0 };
+      const brutto = parseFloat(e.brutto||0);
+      const mwst = parseFloat(e.mwst_betrag||0);
+      if (e.typ === 'einnahme') {
+        byMonat[m].einnahmen += brutto;
+        if (e.mwst_satz == 10) byMonat[m].ust10 += mwst;
+        if (e.mwst_satz == 20) byMonat[m].ust20 += mwst;
+      } else {
+        byMonat[m].ausgaben += brutto;
+        if (e.mwst_satz == 10) byMonat[m].vorsteuer10 += mwst;
+        if (e.mwst_satz == 20) byMonat[m].vorsteuer20 += mwst;
+      }
+    });
+    const monate = Object.entries(byMonat).sort((a,b)=>a[0].localeCompare(b[0])).map(([m,v]) => ({
+      monat: m, ...v,
+      zahllast: parseFloat(((v.ust10+v.ust20) - (v.vorsteuer10+v.vorsteuer20)).toFixed(2)),
+      saldo: parseFloat((v.einnahmen - v.ausgaben).toFixed(2))
+    }));
+    res.json({ ok: true, monate });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── Backup API ────────────────────────────────────────────────────────────────
 const BACKUP_DIR = path.join(__dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
