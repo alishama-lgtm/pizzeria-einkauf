@@ -215,6 +215,16 @@ const requireLocalIP = (req, res, next) => {
   res.status(403).json({ error: 'Kein Zugriff' });
 };
 
+// ── Sensible Dateien NIEMALS ausliefern (ganz oben!) ─────────────────
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  if (p === '/users.js' || p === '/.env' || p.endsWith('.db')) {
+    console.warn(`[SECURITY] Blockiert: ${req.path}`);
+    return res.status(403).type('text').send('Kein Zugriff');
+  }
+  next();
+});
+
 app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString().slice(11,19)}] ${req.method} ${req.url}`);
   next();
@@ -373,14 +383,6 @@ code{font-size:10px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#
 </body></html>`);
 });
 
-// ── Sensible Dateien NIEMALS ausliefern ───────────────────────────────
-app.use((req, res, next) => {
-  const p = req.path.toLowerCase();
-  if (p === '/users.js' || p === '/.env' || p.endsWith('.db') || p === '/pizzeria.db') {
-    return res.status(403).send('Kein Zugriff');
-  }
-  next();
-});
 
 // ── API-Routen: nur localhost + LAN ───────────────────────────────────
 app.use('/api', requireLocalIP);
