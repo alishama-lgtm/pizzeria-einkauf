@@ -234,6 +234,7 @@
 17. ⬜ Installer PowerShell (ein Klick)
 18. ⬜ Lizenz-System (Offline-Key, 1 Jahr)
 19. ⬜ PDF-Handbuch für Kunden (Deutsch)
+20. ⬜ **Mehrsprachigkeit** — Deutsch / Englisch / Niederländisch / Arabisch (i18n System)
 
 ---
 
