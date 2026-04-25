@@ -374,8 +374,12 @@ code{font-size:10px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#
 });
 
 // ── Sensible Dateien NIEMALS ausliefern ───────────────────────────────
-app.get(['/users.js', '/.env', '/pizzeria.db', '*.db'], (req, res) => {
-  res.status(403).send('Kein Zugriff');
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  if (p === '/users.js' || p === '/.env' || p.endsWith('.db') || p === '/pizzeria.db') {
+    return res.status(403).send('Kein Zugriff');
+  }
+  next();
 });
 
 // ── API-Routen: nur localhost + LAN ───────────────────────────────────
