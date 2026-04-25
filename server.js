@@ -1177,10 +1177,10 @@ app.put('/api/pdf/:id/metadaten', express.json(), async (req, res) => {
 
 // Lieferanten-Definitionen
 const LIEFERANTEN_MUSTER = {
-  umtrade:    { label: 'UM Trade (Mustafa)', fn: n => n.toLowerCase().startsWith('rechnungnr') },
-  edenred:    { label: 'Edenred',            fn: n => n.includes('rg_10045') || /^re-\d/i.test(n) },
-  a1:         { label: 'A1 Mobilfunk',       fn: n => n.includes('rechnung_383201310') },
-  svs:        { label: 'SVS',               fn: n => /^sg7/i.test(n) },
+  umtrade: { label: 'UM Trade (Lebensmittel)',        fn: n => n.toLowerCase().startsWith('rechnungnr'), mwst: 10, kategorie: 'einkauf' },
+  edenred: { label: 'Edenred (Essensgutscheine)',     fn: n => n.includes('rg_10045') || /^re-\d/i.test(n), mwst: 20, kategorie: 'sonstiges' },
+  a1:      { label: 'A1 (Telefon & Internet)',        fn: n => n.includes('rechnung_383201310'), mwst: 20, kategorie: 'betriebskosten' },
+  svs:     { label: 'SVS (Sozialversicherung)',       fn: n => /^sg7/i.test(n), mwst: 0, kategorie: 'lohn' },
 };
 
 // Produkte aus UM Trade PDF-Text extrahieren
@@ -2429,11 +2429,12 @@ app.post('/api/kassenbuch/import-rechnungen', async (_req, res) => {
         let datumStr = datum ? datum.split('.').reverse().join('-') : (doc.monat ? doc.monat + '-01' : new Date().toISOString().slice(0,10));
         if (datumStr.length < 8) datumStr = new Date().toISOString().slice(0,10);
 
-        const netto = parseFloat((betrag / 1.1).toFixed(2));
+        const mwstSatz = def.mwst ?? 10;
+        const netto = mwstSatz > 0 ? parseFloat((betrag / (1 + mwstSatz/100)).toFixed(2)) : betrag;
         const mwst  = parseFloat((betrag - netto).toFixed(2));
         const id = 'kb_imp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
         db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
-          .run(id, datumStr, 'ausgabe', desc, netto, 10, mwst, betrag);
+          .run(id, datumStr, 'ausgabe', desc, netto, mwstSatz, mwst, betrag);
         if (turso) {
           await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, 10, mwst, betrag] }).catch(()=>{});
         }
