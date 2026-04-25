@@ -2722,7 +2722,12 @@ function _syncedLocalSet(key, val) {
   const json = typeof val === 'string' ? val : JSON.stringify(val);
   try { localStorage.setItem(key, json); } catch(_) {}
   if (typeof syncManager !== 'undefined' && SYNC_KEYS && SYNC_KEYS.includes(key)) {
-    var data = typeof val === 'string' ? JSON.parse(val) : val;
+    var data;
+    if (typeof val === 'string') {
+      try { data = JSON.parse(val); } catch(_) { data = val; }
+    } else {
+      data = val;
+    }
     syncManager.send(key, data);
   }
 }
@@ -3497,12 +3502,12 @@ async function requestNotificationPermission() {
 }
 
 function scheduleNotificationCheck() {
-  // Check every hour; fire notification at ~8:00
+  if (window._notifInterval) clearInterval(window._notifInterval);
   function hourlyCheck() {
     if (new Date().getHours() === 8) checkAndNotify();
   }
   hourlyCheck();
-  setInterval(hourlyCheck, 3600000);
+  window._notifInterval = setInterval(hourlyCheck, 3600000);
 }
 
 function checkAndNotify() {
@@ -5538,7 +5543,7 @@ async function auslesenStart() {
   if (!UPLOAD_STATE.fileDataUrl) return;
   const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
   if (!hasKey) {
-    UPLOAD_STATE.error = 'Kein API Key konfiguriert. Bitte ANTHROPIC_API_KEY am Anfang der Datei eintragen.';
+    UPLOAD_STATE.error = 'Kein Claude API Key. Bitte in den Einstellungen (⚙️) speichern.';
     renderUploadTab();
     return;
   }
@@ -5937,7 +5942,7 @@ async function erkennungStart() {
   if (!HANDLIST_STATE.fileDataUrl) return;
   const hasKey = ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'HIER_API_KEY_EINFÜGEN';
   if (!hasKey) {
-    HANDLIST_STATE.error = 'Kein API Key konfiguriert. Bitte ANTHROPIC_API_KEY am Anfang der Datei eintragen.';
+    HANDLIST_STATE.error = 'Kein Claude API Key. Bitte in den Einstellungen (⚙️) speichern.';
     renderUploadTab(); return;
   }
   HANDLIST_STATE.loading = true;
@@ -6677,7 +6682,7 @@ function bizHash(s) {
 }
 
 function bizGetPwHash() {
-  return localStorage.getItem(BIZ_PW_KEY) || bizHash('ali2024');
+  return localStorage.getItem(BIZ_PW_KEY) || null;
 }
 
 function bizIsAuth() {
@@ -6938,9 +6943,23 @@ function bizLogin() {
   const input = document.getElementById('biz-pw-input');
   const err = document.getElementById('biz-pw-error');
   if (!input) return;
-  if (bizHash(input.value) === bizGetPwHash()) {
+  const storedHash = bizGetPwHash();
+  if (!storedHash) {
+    // kein Passwort gesetzt → eingegebenes Passwort als neues setzen
+    if (!input.value || input.value.length < 4) {
+      if (err) { err.textContent = 'Bitte mind. 4 Zeichen als erstes Passwort eingeben.'; err.style.display = 'block'; }
+      return;
+    }
+    _safeLocalSet(BIZ_PW_KEY, bizHash(input.value));
     bizSetAuth();
-    // update lock icon
+    const lockIcon = document.getElementById('biz-lock-icon');
+    if (lockIcon) lockIcon.textContent = 'lock_open';
+    renderBusinessTab();
+    showBizSection('biz-kassabuch');
+    return;
+  }
+  if (bizHash(input.value) === storedHash) {
+    bizSetAuth();
     const lockIcon = document.getElementById('biz-lock-icon');
     if (lockIcon) lockIcon.textContent = 'lock_open';
     renderBusinessTab();
@@ -8166,7 +8185,8 @@ function bizChangePw() {
   const cnf = document.getElementById('pw-confirm')?.value||'';
   const msg = document.getElementById('pw-change-msg');
   const show=(t,ok)=>{ if(msg){msg.textContent=t;msg.style.color=ok?'#386a20':'#ba1a1a';msg.style.display='block';} };
-  if (bizHash(cur) !== bizGetPwHash()) { show('Aktuelles Passwort falsch', false); return; }
+  const _bph1 = bizGetPwHash();
+  if (_bph1 && bizHash(cur) !== _bph1) { show('Aktuelles Passwort falsch', false); return; }
   if (nw.length < 4) { show('Neues Passwort muss mind. 4 Zeichen haben', false); return; }
   if (nw !== cnf) { show('Passwörter stimmen nicht überein', false); return; }
   _safeLocalSet(BIZ_PW_KEY, bizHash(nw));
@@ -11198,7 +11218,7 @@ async function _loadMALohnzettel() {
     const data = await r.json();
     container.innerHTML = _renderMALohnzettelHTML(data);
   } catch(e) {
-    container.innerHTML = '<div style="padding:32px;text-align:center;color:#c62828">Fehler beim Laden: ' + (e.message||'Unbekannt') + '</div>';
+    container.innerHTML = '<div style="padding:32px;text-align:center;color:#c62828">Fehler beim Laden: ' + _esc(e.message||'Unbekannt') + '</div>';
   }
 }
 
@@ -16189,8 +16209,9 @@ function settingsChangePw() {
   const cnf = (document.getElementById('s-pw-confirm')?.value||'').trim();
   const msg = document.getElementById('s-pw-msg');
   const show = (t, ok) => { if (msg) { msg.textContent = t; msg.style.color = ok ? '#386a20' : '#ba1a1a'; msg.style.display = 'block'; } };
-  if (!cur || !nw || !cnf) { show('Alle Felder ausfüllen', false); return; }
-  if (bizHash(cur) !== bizGetPwHash()) { show('Aktuelles Passwort falsch', false); return; }
+  if (!nw || !cnf) { show('Alle Felder ausfüllen', false); return; }
+  const _bph2 = bizGetPwHash();
+  if (_bph2 && (!cur || bizHash(cur) !== _bph2)) { show('Aktuelles Passwort falsch', false); return; }
   if (nw.length < 4) { show('Neues Passwort mind. 4 Zeichen', false); return; }
   if (nw !== cnf) { show('Passwörter stimmen nicht überein', false); return; }
   _safeLocalSet(BIZ_PW_KEY, bizHash(nw));
