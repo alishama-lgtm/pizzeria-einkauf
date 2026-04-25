@@ -171,9 +171,9 @@
 |---------|--------|--------|
 | Heisse-Preise lädt synchron (1-2 Min) | App hängt beim Start | ✅ Async im Hintergrund |
 | 50+ stille Fehler (leere catch-Blöcke) | Bugs unsichtbar | ✅ Alle loggen jetzt |
-| Alle PDFs auf einmal verarbeiten | Server-Crash | ⬜ Max 3 parallel |
+| Alle PDFs auf einmal verarbeiten | Server-Crash | ✅ Max 3 parallel + Lock |
 | Turso-Sync bei jedem Start | Langsamer Start | ⬜ Nur bei Änderungen |
-| Chart.js Memory Leak möglich | Browser langsam | ⬜ Alle destroy() prüfen |
+| Chart.js Memory Leak möglich | Browser langsam | ✅ Alle destroy() vorhanden |
 | index.html ~21k Zeilen | Langsames Laden | ⬜ JS-Module auslagern |
 
 ---
