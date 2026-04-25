@@ -1525,7 +1525,10 @@ app.post('/api/pdf/smart-scan', async (req, res) => {
 });
 
 // Alle PDFs auf einmal konvertieren (Turso + lokale Docs)
+let _pdfBulkRunning = false;
 app.post('/api/pdf/alle-zu-json', async (req, res) => {
+  if (_pdfBulkRunning) return res.json({ ok: false, nachricht: 'Konvertierung läuft bereits — bitte warten' });
+  _pdfBulkRunning = true;
   try {
     let docs = [];
     if (turso) {
@@ -1535,22 +1538,29 @@ app.post('/api/pdf/alle-zu-json', async (req, res) => {
       docs = db.prepare("SELECT id,name,typ,pfad FROM dokumente WHERE pfad LIKE '%.pdf'").all();
     }
     res.json({ ok: true, gesamt: docs.length, nachricht: `${docs.length} PDFs werden im Hintergrund konvertiert` });
-    for (const doc of docs) {
-      try {
-        const key = 'pdf_json_' + doc.id;
-        const already = db.prepare('SELECT key FROM app_data WHERE key=?').get(key);
-        if (already) continue;
-        const pdfBuf = await ladePdfBuffer(doc.id);
-        if (!pdfBuf) continue;
-        const pdfData = await pdfParse(pdfBuf);
-        const jsonData = { typ: doc.typ||'sonstiges', name: doc.name, text: pdfData.text, seiten: pdfData.numpages, _meta: { dok_id: doc.id, konvertiert: new Date().toISOString() } };
-        const dataStr = JSON.stringify(jsonData);
-        db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
-        tursoWriteAppData(key, dataStr);
-        console.log(`  🔄 Bulk PDF→JSON: ${doc.name}`);
-      } catch(e) { console.error('[App]', e.message); }
+
+    // Max 3 PDFs gleichzeitig verarbeiten
+    const BATCH = 3;
+    for (let i = 0; i < docs.length; i += BATCH) {
+      const batch = docs.slice(i, i + BATCH);
+      await Promise.all(batch.map(async doc => {
+        try {
+          const key = 'pdf_json_' + doc.id;
+          const already = db.prepare('SELECT key FROM app_data WHERE key=?').get(key);
+          if (already) return;
+          const pdfBuf = await ladePdfBuffer(doc.id);
+          if (!pdfBuf) return;
+          const pdfData = await pdfParse(pdfBuf);
+          const jsonData = { typ: doc.typ||'sonstiges', name: doc.name, text: pdfData.text, seiten: pdfData.numpages, _meta: { dok_id: doc.id, konvertiert: new Date().toISOString() } };
+          const dataStr = JSON.stringify(jsonData);
+          db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
+          tursoWriteAppData(key, dataStr);
+          console.log(`  🔄 Bulk PDF→JSON: ${doc.name}`);
+        } catch(e) { console.error('[PDF Bulk]', e.message); }
+      }));
     }
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { if (!res.headersSent) res.status(500).json({ error: e.message }); }
+  finally { _pdfBulkRunning = false; }
 });
 
 // ════════════════════════════════════════════════════════════════════
