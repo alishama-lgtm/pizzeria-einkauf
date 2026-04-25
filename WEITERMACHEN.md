@@ -99,7 +99,7 @@
 | Edenred (Essensgutscheine, 20% MwSt) | 14 PDFs | ??? | ✅ importiert |
 | A1 (Telefon & Internet, 20% MwSt) | 5 PDFs | ??? | ✅ importiert |
 | SVS (Sozialversicherung, 0% MwSt) | 1 PDF | ??? | ✅ importiert |
-| UM Trade Jänner 2026 | 1 fehlend | ??? | ⬜ E-Mail Backfill |
+| UM Trade Jänner 2026 | 8 Rechnungen | ~€4.100 | ✅ alle importiert |
 
 ### Einnahmen (Z-Bon Import) — Stand 2026-04-25
 | Monat | Status |
