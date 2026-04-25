@@ -82,11 +82,11 @@
 
 | # | Feature | Was genau | Status |
 |---|---------|-----------|--------|
-| 11 | **Feiertage Österreich** | AT_FEIERTAGE Konstante vorhanden → Dienstplan zeigt Feiertage farbig, keine Schicht nötig | ⬜ |
-| 12 | **Trinkgeld-Regeln** | % pro Abteilung (Küche/Service/Lieferung) in Einstellungen → Trinkgeld-Tab verteilt auto | ⬜ |
-| 13 | **Benachrichtigungs-Filter** | Toggle welche Alarme aktiv/stumm → localStorage | ⬜ |
-| 14 | **App-PIN für Mitarbeiter** | 4-stellige PIN-Tastatur auf Login-Screen (users.js hat PIN schon) | ⬜ |
-| 15 | **Bewertungs-Ziel** | Ziel-Ø setzen (z.B. 4.5★) → Fortschrittsanzeige im Dashboard | ⬜ |
+| 11 | **Feiertage Österreich** | AT-Feiertage 2025–2028, Schließtage konfigurierbar | ✅ |
+| 12 | **Trinkgeld-Regeln** | % pro Abteilung, Trinkgeld-Tab verteilt automatisch | ✅ |
+| 13 | **Benachrichtigungs-Filter** | Filter aktiv in notifAdd() — stumme Alarme werden blockiert | ✅ |
+| 14 | **App-PIN für Mitarbeiter** | 2-Schritt Login mit PIN-Numpad vollständig vorhanden | ✅ |
+| 15 | **Bewertungs-Ziel** | Ziel-Ø + Fortschrittsbalken im Bewertungen-Tab vorhanden | ✅ |
 
 ---
 
@@ -211,8 +211,8 @@
 ### 🔴 Sofort
 1. ⬜ Z-Bon PDFs hochladen (Aug 2025 – Apr 2026) — du hast sie!
 2. ⬜ Fixkosten in Einstellungen eintragen + generieren
-3. ⬜ Feature #11 — AT-Feiertage im Dienstplan
-4. ⬜ Feature #14 — App-PIN Tastatur
+3. ✅ Feature #11 — AT-Feiertage (fertig)
+4. ✅ Features #12–15 — alle fertig
 
 ### 🟡 Nächste Sessions
 5. ⬜ Features #12–15
