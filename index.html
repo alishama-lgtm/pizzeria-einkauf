@@ -3560,6 +3560,14 @@ function notifSave(list) {
 function notifAdd(type, title, body, severity, tab) {
   severity = severity || 'info';
   tab = tab || 'dashboard';
+
+  // Benachrichtigungs-Filter prüfen (psc_alarm_filter)
+  var _alarmFilter = {};
+  try { _alarmFilter = JSON.parse(localStorage.getItem('psc_alarm_filter') || '{}'); } catch(_) {}
+  // Tab → Filter-Key Mapping
+  var _filterKey = { lager:'lager', personal:'personal', preis:'preis', mhd:'mhd', rechnung:'rechnung', fehlmaterial:'lager' }[tab] || null;
+  if (_filterKey && _alarmFilter[_filterKey] === false) return; // stumm gestellt
+
   var list = notifLoad();
 
   // Deduplizierung: gleiche Meldung nicht innerhalb 1 Stunde
