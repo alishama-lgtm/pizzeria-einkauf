@@ -16569,6 +16569,7 @@ function renderDienstplanTab() {
           </div>
         </div>
         <button onclick="window.print()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">🖨️ Drucken</button>
+        <button onclick="dienstplanIcsExport()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #4285f4;background:#fff;font-size:13px;font-weight:600;color:#4285f4;cursor:pointer" title="Als .ics exportieren — importierbar in Google Calendar, Apple Calendar, Outlook">📅 Kalender .ics</button>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:7px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit">
           <button onclick="personalAbrechnungPdf()" style="padding:9px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">💰 Abrechnung PDF</button>
@@ -16611,6 +16612,75 @@ function dienstplanWoche(dir) {
   const p = document.getElementById('panel-dienstplan');
   p.dataset.weekOffset = String(parseInt(p.dataset.weekOffset||'0') + dir);
   renderDienstplanTab();
+}
+
+function dienstplanIcsExport() {
+  const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const p = document.getElementById('panel-dienstplan');
+  const offset = parseInt(p.dataset.weekOffset || '0');
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
+  monday.setHours(0,0,0,0);
+  const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const weekKey = toLocalISO(monday);
+  const weekDates = DAYS.map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+
+  let mitarbeiter = [];
+  try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter') || '[]'); } catch(e) {}
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan') || '{}'); } catch(e) {}
+
+  const icsDateStr = d => {
+    const y = d.getFullYear();
+    const mo = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}${mo}${day}`;
+  };
+
+  let lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Pizzeria San Carino//Dienstplan//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+  ];
+
+  let count = 0;
+  for (const ma of mitarbeiter) {
+    const key = ma.id || ma.name;
+    for (let i = 0; i < DAYS.length; i++) {
+      const day = DAYS[i];
+      const val = (plan[weekKey]?.[key] || {})[day] || '';
+      if (val !== 'arbeitet') continue;
+      const schicht = getSchichtForDay(weekDates[i]);
+      const [vonH, vonM] = (schicht.von || '11:00').split(':').map(Number);
+      const [bisH, bisM] = (schicht.bis || '23:00').split(':').map(Number);
+      const dateStr = icsDateStr(weekDates[i]);
+      const uid = `dp-${weekKey}-${key}-${day}@sancarino`;
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${icsDateStr(new Date())}T000000Z`,
+        `DTSTART;TZID=Europe/Vienna:${dateStr}T${String(vonH).padStart(2,'0')}${String(vonM).padStart(2,'0')}00`,
+        `DTEND;TZID=Europe/Vienna:${dateStr}T${String(bisH).padStart(2,'0')}${String(bisM).padStart(2,'0')}00`,
+        `SUMMARY:${ma.name} — Schicht`,
+        `DESCRIPTION:Pizzeria San Carino\\nMitarbeiter: ${ma.name}\\nAbteilung: ${ma.rolle||''}`,
+        'END:VEVENT'
+      );
+      count++;
+    }
+  }
+  lines.push('END:VCALENDAR');
+
+  if (count === 0) { _showToast('Keine Schichten für diese Woche eingetragen', 'info'); return; }
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dienstplan-kw${weekKey}.ics`;
+  a.click();
+  _showToast(`✅ ${count} Schichten exportiert — .ics öffnen zum Importieren`, 'success');
 }
 function dienstplanHeute() {
   const p = document.getElementById('panel-dienstplan');
