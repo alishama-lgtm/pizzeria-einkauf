@@ -17,6 +17,7 @@ import path from 'path';
 import os from 'os';
 import https from 'https';
 import { WebSocketServer } from 'ws';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { DatabaseSync } from 'node:sqlite';
 import { createClient as createTursoClient } from '@libsql/client';
@@ -687,9 +688,21 @@ function broadcast(msg) {
 
 const wss = new WebSocketServer({ noServer: true });
 
+// ── WS-Token: einmalig beim Start generiert ───────────────────────────
+const WS_TOKEN = crypto.randomBytes(24).toString('hex');
+
 function handleUpgrade(server) {
   server.on('upgrade', (request, socket, head) => {
-    if (request.url === '/ws/sync') {
+    if (request.url?.startsWith('/ws/sync')) {
+      // Token aus Query-String prüfen
+      const urlObj = new URL(request.url, 'http://localhost');
+      const token = urlObj.searchParams.get('token');
+      if (token !== WS_TOKEN) {
+        console.warn('[WS] Verbindung abgelehnt — ungültiger Token');
+        socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+        socket.destroy();
+        return;
+      }
       wss.handleUpgrade(request, socket, head, (ws) => {
         wss.emit('connection', ws, request);
       });
@@ -698,6 +711,9 @@ function handleUpgrade(server) {
     }
   });
 }
+
+// WS-Token API (nur localhost/LAN — requireLocalIP greift via /api)
+app.get('/api/ws-token', (_req, res) => res.json({ token: WS_TOKEN }));
 
 wss.on('connection', (ws, request) => {
   syncClients.add(ws);

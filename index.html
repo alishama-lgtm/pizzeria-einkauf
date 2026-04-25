@@ -2746,11 +2746,17 @@ const syncManager = {
     window.addEventListener('offline', () => this.updateStatus('offline'));
   },
 
-  connect: function() {
+  connect: async function() {
     if (!location.host) return;
     try {
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const url = protocol + '//' + location.host + '/ws/sync';
+      let token = '';
+      try {
+        const r = await fetch('/api/ws-token');
+        const d = await r.json();
+        token = d.token || '';
+      } catch(_) {}
+      const url = protocol + '//' + location.host + '/ws/sync?token=' + token;
       this.ws = new WebSocket(url);
       this.updateStatus('connecting');
 
