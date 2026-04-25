@@ -140,20 +140,20 @@
 
 | Problem | Status |
 |---------|--------|
-| Auth-Middleware: Alle `/api/*` ohne Login erreichbar | ⬜ IP-Whitelist localhost/LAN |
-| `/db-viewer` öffentlich (zeigt alle Daten) | ⬜ Route absichern |
+| Auth-Middleware: Alle `/api/*` ohne Login erreichbar | ✅ IP-Whitelist localhost/LAN |
+| `/db-viewer` öffentlich (zeigt alle Daten) | ✅ Route abgesichert |
 | WebSocket ohne Auth | ⬜ Token-Prüfung |
-| SQL String-Interpolation in `/api/admin/table/:name` | ⬜ Whitelist |
-| CORS `origin: '*'` | ⬜ nur localhost + LAN |
+| SQL String-Interpolation in `/api/admin/table/:name` | ✅ Whitelist vorhanden |
+| CORS `origin: '*'` | ✅ nur localhost + LAN |
 
 ### 🟡 MITTEL
 
 | Problem | Status |
 |---------|--------|
-| Fehler-Stack-Traces an Client | ⬜ Generische Meldung |
-| PDF-Upload ohne MIME-Prüfung | ⬜ Magic-Bytes prüfen |
-| Kein Rate-Limiting | ⬜ express-rate-limit |
-| 50+ leere `.catch(() => {})` | ⬜ console.error hinzufügen |
+| Fehler-Stack-Traces an Client | ✅ Generische Meldung + globaler Handler |
+| PDF-Upload ohne MIME-Prüfung | ✅ Magic-Bytes PDF/JPG/PNG geprüft |
+| Kein Rate-Limiting | ✅ express-rate-limit (200/15min) |
+| 50+ leere `.catch(() => {})` | ✅ Alle loggen jetzt console.error |
 
 ### 🟢 NIEDRIG
 
@@ -169,8 +169,8 @@
 
 | Problem | Risiko | Status |
 |---------|--------|--------|
-| Heisse-Preise lädt synchron (1-2 Min) | App hängt beim Start | ⬜ Async im Hintergrund |
-| 50+ stille Fehler (leere catch-Blöcke) | Bugs unsichtbar | ⬜ Alle loggen |
+| Heisse-Preise lädt synchron (1-2 Min) | App hängt beim Start | ✅ Async im Hintergrund |
+| 50+ stille Fehler (leere catch-Blöcke) | Bugs unsichtbar | ✅ Alle loggen jetzt |
 | Alle PDFs auf einmal verarbeiten | Server-Crash | ⬜ Max 3 parallel |
 | Turso-Sync bei jedem Start | Langsamer Start | ⬜ Nur bei Änderungen |
 | Chart.js Memory Leak möglich | Browser langsam | ⬜ Alle destroy() prüfen |
