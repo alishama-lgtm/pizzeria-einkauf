@@ -842,6 +842,48 @@ app.get('/api/pdf', async (_req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Lohnzettel-PDF parsen → Array von { name, brutto, netto, bv_beitrag, monat }
+function parseLohnzettelPDF(text) {
+  const ergebnisse = [];
+  const blocks = text.split(/(?=Lohn \/ Gehaltsabrechnung)/);
+  const monatMap = { 'Jänner':'01','Januar':'01','Februar':'02','März':'03','April':'04','Mai':'05','Juni':'06',
+    'Juli':'07','August':'08','September':'09','Oktober':'10','November':'11','Dezember':'12' };
+  for (const block of blocks) {
+    if (!block.includes('Ali Shama KG')) continue;
+    const nameM   = block.match(/Person:\d+[^)]*\)\s*([^\n]+)/);
+    const bruttoM = block.match(/Brutto\s+([\d.,]+)/);
+    const nettoM  = block.match(/Auszahlung\s+([\d.,]+)/);
+    const bvM     = block.match(/BV Beitrag\s+([\d.,]+)/);
+    const monatM  = block.match(/Abrechnung\s+(\w+)\s+(\d{4})/);
+    if (!nameM || !bruttoM) continue;
+    const monatStr = monatM ? `${monatM[2]}-${(monatMap[monatM[1]] || '??')}` : null;
+    ergebnisse.push({
+      name:       nameM[1].trim(),
+      brutto:     parseFloat(bruttoM[1].replace(/\./g,'').replace(',','.')),
+      netto:      nettoM  ? parseFloat(nettoM[1].replace(/\./g,'').replace(',','.')) : null,
+      bv_beitrag: bvM     ? parseFloat(bvM[1].replace(/\./g,'').replace(',','.'))   : 0,
+      monat:      monatStr,
+    });
+  }
+  return ergebnisse;
+}
+
+// Parsed Lohnzettel-Einträge in psc_lohnabrechnungen speichern (SQLite + Turso + broadcast)
+async function speichereLohnzettel(eintraege) {
+  if (!eintraege.length) return;
+  const row = db.prepare("SELECT data FROM app_data WHERE key='psc_lohnabrechnungen'").get();
+  const existing = row ? JSON.parse(row.data) : { abrechnungen: [] };
+  // Alte Einträge desselben Monats ersetzen
+  const monate = [...new Set(eintraege.map(e => e.monat))];
+  const alt = (existing.abrechnungen || []).filter(a => !monate.includes(a.monat));
+  const merged = { abrechnungen: [...alt, ...eintraege] };
+  const json = JSON.stringify(merged);
+  db.prepare("INSERT OR REPLACE INTO app_data (key, data, updated_at) VALUES ('psc_lohnabrechnungen', ?, datetime('now'))").run(json);
+  if (turso) await turso.execute({ sql: "INSERT OR REPLACE INTO app_data (key, data, updated_at) VALUES ('psc_lohnabrechnungen', ?, datetime('now'))", args: [json] });
+  broadcast({ type: 'sync', key: 'psc_lohnabrechnungen', value: json });
+  console.log(`  📋 Lohnzettel gespeichert: ${eintraege.length} MA, Monat(e): ${monate.join(', ')}`);
+}
+
 // Datei hochladen (base64 JSON) — nur Turso Cloud, kein lokales Dateisystem
 app.post('/api/pdf/upload', express.json({ limit: '50mb' }), async (req, res) => {
   try {
@@ -872,6 +914,16 @@ app.post('/api/pdf/upload', express.json({ limit: '50mb' }), async (req, res) =>
     // Lokale SQLite-Kopie der Metadaten (pfad='cloud' → kein lokales File)
     try { db.prepare(`INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,pfad,groesse) VALUES (?,?,?,?,?,?,?)`)
       .run(id, name, typ||'sonstige', monat||'', 'offen', turso ? 'cloud' : '', buf.length); } catch(_) {}
+
+    // Lohnzettel automatisch parsen
+    const nl = name.toLowerCase();
+    if (typ === 'lohnzettel' || nl.includes('abrechnungsbelege') || nl.includes('lohnzettel')) {
+      try {
+        const pdfData = await pdfParse(buf);
+        const eintraege = parseLohnzettelPDF(pdfData.text);
+        if (eintraege.length) await speichereLohnzettel(eintraege);
+      } catch(pe) { console.log('  ⚠️  Lohnzettel-Parse Fehler:', pe.message); }
+    }
 
     res.json({ ok: true, id, name, groesse: buf.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -1363,6 +1415,11 @@ app.post('/api/pdf/smart-scan', async (req, res) => {
           if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=?, typ=? WHERE id=?', args: [nm, neuerTyp, doc.id] }).catch(()=>{});
           korrigiert++;
           console.log(`  📋 Smart Scan: ${doc.name} → ${nm} [${neuerTyp}]`);
+        }
+        // Lohnzettel automatisch parsen
+        if (neuerTyp === 'lohnzettel') {
+          const eintraege = parseLohnzettelPDF(text);
+          if (eintraege.length) await speichereLohnzettel(eintraege);
         }
       } catch(_) {}
     }
@@ -2371,6 +2428,14 @@ app.post('/api/email-sync/backfill', express.json(), async (req, res) => {
             }
             console.log(`  ✅ Backfill gespeichert: ${dateiname} (${monat}, ${typ})`);
             verarbeitet++;
+            // Lohnzettel automatisch parsen
+            if (typ === 'lohnzettel') {
+              try {
+                const pdfData = await pdfParse(anhang.content);
+                const eintraege = parseLohnzettelPDF(pdfData.text);
+                if (eintraege.length) await speichereLohnzettel(eintraege);
+              } catch(_) {}
+            }
           } catch(e2) { console.error(`  ❌ Backfill Speicher-Fehler: ${e2.message}`); }
         }
       } catch(_) {}
