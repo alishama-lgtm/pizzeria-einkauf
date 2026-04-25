@@ -2981,12 +2981,29 @@ app.get('/api/admin/table/:name', (req, res) => {
         console.log('  ☁️  Turso leer → Push lokale Daten ...');
         await tursoPushAll();
       }
-      await tursoPull();
-      // syncStore mit Turso-Daten aktualisieren
+
+      // ── Turso-Pull nur wenn nötig ────────────────────────────────────
+      // Letzten Sync-Zeitpunkt aus lokaler DB lesen
+      const lastSyncRow = db.prepare("SELECT data FROM app_data WHERE key='_turso_last_sync'").get();
+      const lastSync = lastSyncRow ? Number(lastSyncRow.data) : 0;
+      const ALTER_MS = 60 * 60 * 1000; // 1 Stunde
+      const syncNoetig = (Date.now() - lastSync) > ALTER_MS;
+
+      if (syncNoetig) {
+        console.log('  ☁️  Turso Pull (letzter Sync > 1h) ...');
+        await tursoPull();
+        // Sync-Zeitpunkt speichern
+        const now = Date.now().toString();
+        db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES ('_turso_last_sync',?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(now);
+      } else {
+        console.log('  ☁️  Turso Pull übersprungen — letzter Sync vor weniger als 1h');
+      }
+
+      // syncStore mit lokalen Daten aktualisieren
       try {
         const tRows = db.prepare('SELECT key, data FROM app_data').all();
-        tRows.forEach(r => { if (SYNC_KEYS.includes(r.key)) { try { syncStore.set(r.key, { data: JSON.parse(r.data), timestamp: Date.now(), updatedBy: 'turso' }); } catch(_){} } });
-        if (tRows.length > 0) console.log(`  ☁️  syncStore: ${tRows.length} Keys aus Turso`);
+        tRows.forEach(r => { if (SYNC_KEYS.includes(r.key)) { try { syncStore.set(r.key, { data: JSON.parse(r.data), timestamp: Date.now(), updatedBy: 'local' }); } catch(e) { console.error('[App]', e.message); } } });
+        if (tRows.length > 0) console.log(`  ☁️  syncStore: ${tRows.length} Keys geladen`);
       } catch(e) { console.error('[App]', e.message); }
       // Lokale PDFs im Hintergrund zu Turso migrieren (einmalig)
       setTimeout(() => migriereLocalPdfsZuTurso(), 5000);
