@@ -215,12 +215,21 @@ const requireLocalIP = (req, res, next) => {
   res.status(403).json({ error: 'Kein Zugriff' });
 };
 
-// ── Sensible Dateien NIEMALS ausliefern (ganz oben!) ─────────────────
+// ── Sensible Dateien: .env und .db blockieren, users.js nur lokal ────
 app.use((req, res, next) => {
   const p = req.path.toLowerCase();
-  if (p === '/users.js' || p === '/.env' || p.endsWith('.db')) {
+  // .env und Datenbank-Dateien komplett sperren
+  if (p === '/.env' || p.endsWith('.db')) {
     console.warn(`[SECURITY] Blockiert: ${req.path}`);
     return res.status(403).type('text').send('Kein Zugriff');
+  }
+  // users.js nur von localhost/LAN erlauben
+  if (p === '/users.js') {
+    const ip = (req.ip || req.connection?.remoteAddress || '').replace('::ffff:','');
+    if (ip !== '::1' && ip !== '127.0.0.1' && !ip.startsWith('192.168.') && !ip.startsWith('10.') && !ip.startsWith('172.')) {
+      console.warn(`[SECURITY] users.js blockiert für IP: ${ip}`);
+      return res.status(403).type('text').send('Kein Zugriff');
+    }
   }
   next();
 });
