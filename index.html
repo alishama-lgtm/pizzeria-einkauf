@@ -2698,6 +2698,123 @@ function _safeLocalSet(key, val) {
   try { localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(_) {}
 }
 
+// ═══════════════════════════════════════════════════════════════
+// i18n — Mehrsprachigkeit (DE / EN / NL / AR)
+// ═══════════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  de: {
+    // Login
+    'login.title': 'Pizzeria San Carino', 'login.subtitle': 'Management System',
+    'login.pin': 'Schnellanmeldung', 'login.role': 'Oder Rolle wählen',
+    'login.enter': 'Anmelden',
+    // Navigation
+    'nav.einkauf': 'Einkauf', 'nav.lager': 'Lager & Waren', 'nav.betrieb': 'Betrieb',
+    'nav.team': 'Team', 'nav.analyse': 'Analyse', 'nav.business': 'Business',
+    // Allgemein
+    'btn.save': 'Speichern', 'btn.cancel': 'Abbrechen', 'btn.delete': 'Löschen',
+    'btn.edit': 'Bearbeiten', 'btn.add': 'Hinzufügen', 'btn.close': 'Schließen',
+    'btn.search': 'Suchen', 'btn.print': 'Drucken', 'btn.export': 'Exportieren',
+    'btn.import': 'Importieren', 'btn.upload': 'Hochladen', 'btn.download': 'Herunterladen',
+    // Panels
+    'panel.produkte': 'Produkte', 'panel.einkaufsliste': 'Einkaufsliste',
+    'panel.lager': 'Lager', 'panel.dienstplan': 'Dienstplan',
+    'panel.mitarbeiter': 'Mitarbeiter', 'panel.kassenbuch': 'Kassenbuch',
+    'panel.dashboard': 'Dashboard', 'panel.statistik': 'Statistik',
+    // Meldungen
+    'msg.saved': 'Gespeichert', 'msg.deleted': 'Gelöscht', 'msg.error': 'Fehler',
+    'msg.loading': 'Lädt...', 'msg.nodata': 'Keine Daten', 'msg.confirm': 'Bestätigen',
+    // Einstellungen
+    'settings.title': 'Einstellungen', 'settings.language': 'Sprache',
+    'settings.theme': 'Design', 'settings.password': 'Passwort ändern',
+  },
+  en: {
+    'login.title': 'Pizzeria San Carino', 'login.subtitle': 'Management System',
+    'login.pin': 'Quick Login', 'login.role': 'Or select role',
+    'login.enter': 'Login',
+    'nav.einkauf': 'Shopping', 'nav.lager': 'Stock & Goods', 'nav.betrieb': 'Operations',
+    'nav.team': 'Team', 'nav.analyse': 'Analytics', 'nav.business': 'Business',
+    'btn.save': 'Save', 'btn.cancel': 'Cancel', 'btn.delete': 'Delete',
+    'btn.edit': 'Edit', 'btn.add': 'Add', 'btn.close': 'Close',
+    'btn.search': 'Search', 'btn.print': 'Print', 'btn.export': 'Export',
+    'btn.import': 'Import', 'btn.upload': 'Upload', 'btn.download': 'Download',
+    'panel.produkte': 'Products', 'panel.einkaufsliste': 'Shopping List',
+    'panel.lager': 'Stock', 'panel.dienstplan': 'Shift Plan',
+    'panel.mitarbeiter': 'Employees', 'panel.kassenbuch': 'Cash Book',
+    'panel.dashboard': 'Dashboard', 'panel.statistik': 'Statistics',
+    'msg.saved': 'Saved', 'msg.deleted': 'Deleted', 'msg.error': 'Error',
+    'msg.loading': 'Loading...', 'msg.nodata': 'No data', 'msg.confirm': 'Confirm',
+    'settings.title': 'Settings', 'settings.language': 'Language',
+    'settings.theme': 'Theme', 'settings.password': 'Change Password',
+  },
+  nl: {
+    'login.title': 'Pizzeria San Carino', 'login.subtitle': 'Beheersysteem',
+    'login.pin': 'Snelle aanmelding', 'login.role': 'Of kies een rol',
+    'login.enter': 'Aanmelden',
+    'nav.einkauf': 'Inkoop', 'nav.lager': 'Voorraad', 'nav.betrieb': 'Beheer',
+    'nav.team': 'Team', 'nav.analyse': 'Analyse', 'nav.business': 'Business',
+    'btn.save': 'Opslaan', 'btn.cancel': 'Annuleren', 'btn.delete': 'Verwijderen',
+    'btn.edit': 'Bewerken', 'btn.add': 'Toevoegen', 'btn.close': 'Sluiten',
+    'btn.search': 'Zoeken', 'btn.print': 'Afdrukken', 'btn.export': 'Exporteren',
+    'btn.import': 'Importeren', 'btn.upload': 'Uploaden', 'btn.download': 'Downloaden',
+    'panel.produkte': 'Producten', 'panel.einkaufsliste': 'Boodschappenlijst',
+    'panel.lager': 'Voorraad', 'panel.dienstplan': 'Rooster',
+    'panel.mitarbeiter': 'Medewerkers', 'panel.kassenbuch': 'Kasboek',
+    'panel.dashboard': 'Dashboard', 'panel.statistik': 'Statistieken',
+    'msg.saved': 'Opgeslagen', 'msg.deleted': 'Verwijderd', 'msg.error': 'Fout',
+    'msg.loading': 'Laden...', 'msg.nodata': 'Geen gegevens', 'msg.confirm': 'Bevestigen',
+    'settings.title': 'Instellingen', 'settings.language': 'Taal',
+    'settings.theme': 'Thema', 'settings.password': 'Wachtwoord wijzigen',
+  },
+  ar: {
+    'login.title': 'بيتزيريا سان كارينو', 'login.subtitle': 'نظام الإدارة',
+    'login.pin': 'تسجيل دخول سريع', 'login.role': 'أو اختر دوراً',
+    'login.enter': 'دخول',
+    'nav.einkauf': 'تسوق', 'nav.lager': 'المخزون', 'nav.betrieb': 'العمليات',
+    'nav.team': 'الفريق', 'nav.analyse': 'التحليل', 'nav.business': 'الأعمال',
+    'btn.save': 'حفظ', 'btn.cancel': 'إلغاء', 'btn.delete': 'حذف',
+    'btn.edit': 'تعديل', 'btn.add': 'إضافة', 'btn.close': 'إغلاق',
+    'btn.search': 'بحث', 'btn.print': 'طباعة', 'btn.export': 'تصدير',
+    'btn.import': 'استيراد', 'btn.upload': 'رفع', 'btn.download': 'تنزيل',
+    'panel.produkte': 'المنتجات', 'panel.einkaufsliste': 'قائمة التسوق',
+    'panel.lager': 'المخزون', 'panel.dienstplan': 'جدول العمل',
+    'panel.mitarbeiter': 'الموظفون', 'panel.kassenbuch': 'دفتر الصندوق',
+    'panel.dashboard': 'لوحة التحكم', 'panel.statistik': 'الإحصائيات',
+    'msg.saved': 'تم الحفظ', 'msg.deleted': 'تم الحذف', 'msg.error': 'خطأ',
+    'msg.loading': 'جارٍ التحميل...', 'msg.nodata': 'لا توجد بيانات', 'msg.confirm': 'تأكيد',
+    'settings.title': 'الإعدادات', 'settings.language': 'اللغة',
+    'settings.theme': 'المظهر', 'settings.password': 'تغيير كلمة المرور',
+  }
+};
+
+// Aktuelle Sprache laden
+let _currentLang = localStorage.getItem('psc_lang') || 'de';
+
+// Übersetzungs-Funktion
+function t(key) {
+  return (TRANSLATIONS[_currentLang] || TRANSLATIONS.de)[key]
+      || TRANSLATIONS.de[key]
+      || key;
+}
+
+// Sprache wechseln
+function setLang(lang) {
+  _currentLang = lang;
+  localStorage.setItem('psc_lang', lang);
+  // RTL für Arabisch
+  document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute('lang', lang);
+  // App neu rendern
+  const activeTab = document.querySelector('[data-active-tab]')?.dataset.activeTab;
+  if (activeTab) switchTab(activeTab);
+  _showToast({ de:'🌍 Sprache geändert', en:'🌍 Language changed', nl:'🌍 Taal gewijzigd', ar:'🌍 تم تغيير اللغة' }[lang] || '🌍', 'success');
+}
+
+// RTL beim Start setzen
+if (_currentLang === 'ar') {
+  document.documentElement.setAttribute('dir', 'rtl');
+  document.documentElement.setAttribute('lang', 'ar');
+}
+
 // Sync-fähiges localStorage schreiben
 const SYNC_KEYS = [
   // Betrieb & Lager
@@ -15535,6 +15652,21 @@ function openSettings() {
           style="width:100%;padding:10px 14px;border:1.5px solid #e3beb8;border-radius:12px;font-size:13px;font-family:monospace;color:#261816;background:#fff;box-sizing:border-box;outline:none"
           onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"/>
         <p style="font-size:11px;color:#8d6562;margin:5px 0 0">Webhook-URL des N8N-Servers (z.B. http://localhost:5678)</p>
+      </div>
+
+      <!-- Sprache / Language -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:18px">🌍</span> ${t('settings.language')}
+        </label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${[['de','🇩🇪 Deutsch'],['en','🇬🇧 English'],['nl','🇳🇱 Nederlands'],['ar','🇸🇦 العربية']].map(([code, label]) =>
+            `<button onclick="setLang('${code}');document.getElementById('settings-modal').remove();openSettings()"
+              style="padding:8px 16px;border-radius:10px;border:2px solid ${_currentLang===code?'#610000':'#e3beb8'};background:${_currentLang===code?'#610000':'#fff'};color:${_currentLang===code?'#fff':'#5a403c'};font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+              ${label}
+            </button>`
+          ).join('')}
+        </div>
       </div>
 
       <!-- Gemini Sektion -->
