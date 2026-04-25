@@ -15911,6 +15911,37 @@ function openSettings() {
         })()}
       </div>
 
+      <!-- Schließtage Sektion -->
+      <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
+        <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:18px">🔒</span> Schließtage (geschlossen)
+        </label>
+        <p style="font-size:11px;color:#8d6562;margin:0 0 12px">Diese Tage werden im Dienstplan als "Geschlossen" markiert (nicht klickbar). Format: TT.MM. — gilt jedes Jahr.</p>
+        <div id="schliesstage-liste" style="margin-bottom:10px">
+          ${(function(){
+            var tage = ['24.12','31.12'];
+            try { var s = localStorage.getItem('psc_schliesstage'); if(s) tage = JSON.parse(s); } catch(e) {}
+            if (!tage.length) return '<div style="font-size:12px;color:#8d6562;font-style:italic">Keine Schließtage konfiguriert.</div>';
+            return tage.map(function(t,i){
+              return '<div id="slt-' + i + '" style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f5f5f5;border-radius:8px;margin-bottom:5px">' +
+                '<span style="font-size:18px">🔒</span>' +
+                '<span style="flex:1;font-size:13px;font-weight:700;color:#261816">' + t + ' (jedes Jahr)</span>' +
+                '<button onclick="schliestagEntfernen(' + i + ')" style="background:#fce4ec;color:#c62828;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Entfernen</button>' +
+                '</div>';
+            }).join('');
+          })()}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="text" id="slt-neu-input" placeholder="z.B. 01.01 oder 15.08"
+            maxlength="5"
+            style="padding:8px 12px;border:1.5px solid #e3beb8;border-radius:8px;font-size:13px;font-family:inherit;color:#261816;width:130px;outline:none"
+            onfocusin="this.style.borderColor='#610000'" onblur="this.style.borderColor='#e3beb8'"
+            onkeydown="if(event.key==='Enter')schliestagHinzufuegen()">
+          <button onclick="schliestagHinzufuegen()" style="padding:8px 16px;background:#610000;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ Hinzufügen</button>
+        </div>
+        <p style="font-size:10px;color:#8d6562;margin:6px 0 0">Beispiele: 24.12 = Heiligabend, 31.12 = Silvester, 01.01 = Neujahr</p>
+      </div>
+
       <!-- Passwort ändern Sektion -->
       <div style="border-top:1px solid #e3beb8;padding-top:18px;margin-bottom:20px">
         <label style="font-size:13px;font-weight:700;color:#261816;display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -15941,6 +15972,53 @@ function openSettings() {
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
   setTimeout(() => document.getElementById('settings-api-key')?.focus(), 50);
+}
+
+// ── Schließtage ──
+function _schliestageLaden() {
+  try { return JSON.parse(localStorage.getItem('psc_schliesstage') || '["24.12","31.12"]'); } catch(e) { return ['24.12','31.12']; }
+}
+function _schliesstageSpeichern(tage) {
+  localStorage.setItem('psc_schliesstage', JSON.stringify(tage));
+}
+function _schliessTageRefresh() {
+  const tage = _schliestageLaden();
+  const el = document.getElementById('schliesstage-liste');
+  if (!el) return;
+  if (!tage.length) { el.innerHTML = '<div style="font-size:12px;color:#8d6562;font-style:italic">Keine Schließtage konfiguriert.</div>'; return; }
+  el.innerHTML = tage.map((t,i) =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f5f5f5;border-radius:8px;margin-bottom:5px">
+      <span style="font-size:18px">🔒</span>
+      <span style="flex:1;font-size:13px;font-weight:700;color:#261816">${_esc(t)} (jedes Jahr)</span>
+      <button onclick="schliestagEntfernen(${i})" style="background:#fce4ec;color:#c62828;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">✕ Entfernen</button>
+    </div>`
+  ).join('');
+}
+function schliestagHinzufuegen() {
+  const inp = document.getElementById('slt-neu-input');
+  if (!inp) return;
+  let val = inp.value.trim().replace(/[^0-9.]/g,'');
+  // Format normalisieren: 01.01 oder 1.1 → 01.01
+  const parts = val.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) { _showToast('Format: TT.MM (z.B. 24.12)', 'error'); return; }
+  const tag = parts[0].padStart(2,'0'), mon = parts[1].padStart(2,'0');
+  if (+mon < 1 || +mon > 12 || +tag < 1 || +tag > 31) { _showToast('Ungültiges Datum', 'error'); return; }
+  const key = `${tag}.${mon}`;
+  const tage = _schliestageLaden();
+  if (tage.includes(key)) { _showToast('Bereits vorhanden', 'info'); return; }
+  tage.push(key);
+  tage.sort();
+  _schliesstageSpeichern(tage);
+  _schliessTageRefresh();
+  inp.value = '';
+  _showToast(`${key} als Schließtag gespeichert`, 'success');
+}
+function schliestagEntfernen(idx) {
+  const tage = _schliestageLaden();
+  tage.splice(idx, 1);
+  _schliesstageSpeichern(tage);
+  _schliessTageRefresh();
+  _showToast('Schließtag entfernt', 'success');
 }
 
 function saveApiKey() {
@@ -16399,9 +16477,12 @@ function renderDienstplanTab() {
           const key = ma.id || ma.name;
           const isoDate = toLocalISO(weekDates[di]);
           const feiertag = AT_FEIERTAGE[isoDate] || null;
-          // 24.12. und 31.12. → automatisch geschlossen (nicht klickbar)
-          const mmdd = isoDate.slice(5);
-          if (mmdd === '12-24' || mmdd === '12-31') {
+          // Konfigurierbare Schließtage → automatisch geschlossen (nicht klickbar)
+          const mmdd = isoDate.slice(5); // z.B. "12-24"
+          const schliessTage = (() => { try { return JSON.parse(localStorage.getItem('psc_schliesstage') || '["24.12","31.12"]'); } catch(e) { return ['24.12','31.12']; } })();
+          // psc_schliesstage Format: "24.12" → umrechnen in "12-24"
+          const schliessMatcher = schliessTage.map(t => { const p=t.split('.'); return p[1]+'-'+p[0]; });
+          if (schliessMatcher.includes(mmdd)) {
             return `<td style="padding:5px;border:1px solid #e3beb8;text-align:center;background:#f5f5f5">
               <div style="width:100%;padding:7px 4px;border-radius:8px;font-size:11px;font-weight:700;color:#757575;background:#eeeeee;text-align:center">
                 🔒 Geschlossen
