@@ -2313,6 +2313,88 @@ app.post('/api/kassenbuch/migrate', express.json({ limit: '10mb' }), (req, res) 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Z-Bon Import (Kassen-PDF → Kassenbuch-Einträge) ──────────────────────────
+app.post('/api/kassenbuch/import-zbon', express.json({ limit: '20mb' }), async (req, res) => {
+  try {
+    const { data } = req.body;
+    if (!data) return res.status(400).json({ error: 'data (base64) fehlt' });
+    const buf = Buffer.from(data.replace(/^data:[^;]+;base64,/, ''), 'base64');
+    const pdf = await pdfParse(buf);
+    const text = pdf.text;
+
+    // Zeitraum parsen
+    const zeitraumM = text.match(/von\s+(\d{2}\.\d{2}\.\d{4})\s+bis\s+(\d{2}\.\d{2}\.\d{4})/);
+    const von = zeitraumM ? zeitraumM[1].split('.').reverse().join('-') : null;
+    const bis = zeitraumM ? zeitraumM[2].split('.').reverse().join('-') : null;
+    const datumLabel = zeitraumM ? `${zeitraumM[1]}–${zeitraumM[2]}` : 'unbekannt';
+    const buchDatum = bis || new Date().toISOString().slice(0,10);
+
+    // MwSt-Aufschlüsselung
+    const ust10M = text.match(/10\s*%\s*USt\.?\s+([\d\s.,]+)/);
+    const netto10M = text.match(/10\s*%\s*USt\.?\s+[\d\s.,]+\s+([\d\s.,]+)/);
+    const ust20M = text.match(/20\s*%\s*USt\.?\s+([\d\s.,]+)/);
+    const netto20M = text.match(/20\s*%\s*USt\.?\s+[\d\s.,]+\s+([\d\s.,]+)/);
+
+    function parseEur(s) { return s ? parseFloat(s.replace(/\s/g,'').replace(',','.')) : 0; }
+
+    const ust10   = parseEur(ust10M?.[1]);
+    const netto10 = parseEur(netto10M?.[1]);
+    const ust20   = parseEur(ust20M?.[1]);
+    const netto20 = parseEur(netto20M?.[1]);
+    const brutto10 = Math.round((netto10 + ust10) * 100) / 100;
+    const brutto20 = Math.round((netto20 + ust20) * 100) / 100;
+
+    // Zahlungsarten
+    const barM    = text.match(/^Bar\s+([\d\s.,]+)/m);
+    const karteM  = text.match(/EC-Karte\s+([\d\s.,]+)/);
+    const onlineM = text.match(/Onlinebezahlung\s+([\d\s.,]+)/);
+    const bar    = parseEur(barM?.[1]);
+    const karte  = parseEur(karteM?.[1]);
+    const online = parseEur(onlineM?.[1]);
+
+    // Foodora / Lieferando
+    const foodM  = text.match(/Foodora\s+[\d.,]+\s*%\s+([\d\s.,]+)/);
+    const liefM  = text.match(/Lieferando\s+[\d.,]+\s*%\s+([\d\s.,]+)/);
+    const foodora    = parseEur(foodM?.[1]);
+    const lieferando = parseEur(liefM?.[1]);
+
+    const gesamt = Math.round((brutto10 + brutto20) * 100) / 100;
+
+    const eintraege = [];
+    const mkId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+    if (netto10 > 0) eintraege.push({
+      id: mkId(), datum: buchDatum, typ: 'einnahme',
+      beschreibung: `Speisen 10% MwSt — Kasse ${datumLabel}`,
+      netto: netto10, mwst_satz: 10, mwst_betrag: ust10, brutto: brutto10
+    });
+    if (netto20 > 0) eintraege.push({
+      id: mkId(), datum: buchDatum, typ: 'einnahme',
+      beschreibung: `Getränke 20% MwSt — Kasse ${datumLabel}`,
+      netto: netto20, mwst_satz: 20, mwst_betrag: ust20, brutto: brutto20
+    });
+
+    const ins = db.prepare(`INSERT OR IGNORE INTO kassenbuch
+      (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto)
+      VALUES (?,?,?,?,?,?,?,?)`);
+
+    for (const e of eintraege) {
+      ins.run(e.id, e.datum, e.typ, e.beschreibung, e.netto, e.mwst_satz, e.mwst_betrag, e.brutto);
+      tursoWriteKb(e);
+    }
+
+    // app_data sync
+    const allKb = db.prepare('SELECT * FROM kassenbuch ORDER BY datum DESC').all();
+    const kbJson = JSON.stringify(allKb);
+    db.prepare("INSERT OR REPLACE INTO app_data (key,data,updated_at) VALUES ('pizzeria_kassenbuch',?,datetime('now'))").run(kbJson);
+    tursoWriteAppData('pizzeria_kassenbuch', kbJson);
+    broadcast({ type: 'sync', key: 'pizzeria_kassenbuch', value: kbJson });
+
+    console.log(`  💰 Z-Bon importiert: ${datumLabel} → ${eintraege.length} Einträge, Gesamt €${gesamt}`);
+    res.json({ ok: true, eintraege, gesamt, von, bis, bar, karte, online, foodora, lieferando });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Backup API ────────────────────────────────────────────────────────────────
 const BACKUP_DIR = path.join(__dirname, 'backups');
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });

@@ -20744,6 +20744,47 @@ async function kassenbuchAdd() {
   _showToast((typ==='einnahme'?'Einnahme':'Ausgabe')+' gespeichert ✓', 'success');
   renderBuchhaltungTab();
 }
+async function zbonImport(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var result = document.getElementById('zbon-result');
+  if (result) result.innerHTML = '<div style="margin-top:12px;color:#a5d6a7;font-size:12px">⏳ Wird verarbeitet…</div>';
+  try {
+    var b64 = await new Promise(function(res) {
+      var r = new FileReader();
+      r.onload = function(e) { res(e.target.result); };
+      r.readAsDataURL(file);
+    });
+    var resp = await fetch('/api/kassenbuch/import-zbon', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ data: b64 })
+    });
+    var d = await resp.json();
+    if (!d.ok) throw new Error(d.error);
+    await kbSync();
+    var html = '<div style="margin-top:14px;background:#1b4d1b;border-radius:12px;padding:14px 16px">';
+    html += '<div style="font-size:12px;font-weight:700;color:#81c784;margin-bottom:10px">✅ ' + d.eintraege.length + ' Einträge importiert</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">';
+    var kacheln = [
+      {l:'Gesamt',v:'€'+d.gesamt.toFixed(2).replace('.',','),c:'#fff'},
+      {l:'Bar',v:'€'+(d.bar||0).toFixed(2).replace('.',','),c:'#a5d6a7'},
+      {l:'EC-Karte',v:'€'+(d.karte||0).toFixed(2).replace('.',','),c:'#a5d6a7'},
+      {l:'Online',v:'€'+(d.online||0).toFixed(2).replace('.',','),c:'#a5d6a7'},
+      {l:'Foodora',v:'€'+(d.foodora||0).toFixed(2).replace('.',','),c:'#ffcc80'},
+      {l:'Lieferando',v:'€'+(d.lieferando||0).toFixed(2).replace('.',','),c:'#ffcc80'},
+    ];
+    kacheln.forEach(function(k) {
+      html += '<div style="text-align:center"><div style="font-size:10px;color:#81c784;margin-bottom:2px">'+k.l+'</div><div style="font-size:14px;font-weight:800;color:'+k.c+'">'+k.v+'</div></div>';
+    });
+    html += '</div></div>';
+    if (result) result.innerHTML = html;
+    renderBuchhaltungTab();
+  } catch(e) {
+    if (result) result.innerHTML = '<div style="margin-top:12px;color:#ef9a9a;font-size:12px">❌ Fehler: '+_esc(e.message)+'</div>';
+  }
+  input.value = '';
+}
+
 function kassenbuchLoeschen(id) {
   _showConfirm('Eintrag wirklich löschen?', async function() {
     try { await fetch('/api/kassenbuch/' + id, { method:'DELETE' }); } catch(_) {}
@@ -20817,9 +20858,21 @@ async function renderBuchhaltungTab() {
   });
   html += '</div>';
 
+  // ── Z-Bon Import ──
+  html += '<div style="background:linear-gradient(135deg,#1a3a1a,#2e5c2e);border-radius:16px;padding:20px;border:1px solid #4caf5044;margin-bottom:16px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+  html += '<div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">🖨️ Z-Bon importieren</div>';
+  html += '<div style="font-size:11px;color:#a5d6a7">Kassensystem-PDF hochladen → automatisch in Kassenbuch mit MwSt-Aufteilung</div></div>';
+  html += '<div style="display:flex;gap:10px;align-items:center">';
+  html += '<input id="zbon-file-input" type="file" accept=".pdf" style="display:none" onchange="zbonImport(this)">';
+  html += '<button onclick="document.getElementById(\'zbon-file-input\').click()" style="padding:10px 20px;border-radius:10px;border:none;background:#4caf50;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">upload_file</span>Z-Bon PDF wählen</button>';
+  html += '</div></div>';
+  html += '<div id="zbon-result" style="margin-top:0"></div>';
+  html += '</div>';
+
   // ── Kassenbuch-Formular ──
   html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';
-  html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">➕ Eintrag erfassen</div>';
+  html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">➕ Eintrag manuell erfassen</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
   html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Typ</div><select id="kb-typ" onchange="kbMwstUpdate()" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)"><option value="einnahme">Einnahme</option><option value="ausgabe">Ausgabe</option></select></div>';
   html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Beschreibung</div><input id="kb-desc" type="text" placeholder="z.B. Tageseinnahme" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box"></div>';
