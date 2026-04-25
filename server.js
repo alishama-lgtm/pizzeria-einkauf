@@ -3,6 +3,7 @@ import 'dotenv/config';
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -392,6 +393,16 @@ code{font-size:10px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#
 </body></html>`);
 });
 
+
+// ── Rate-Limiting: max 200 Requests / 15 Min pro IP ───────────────────
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Zu viele Anfragen — bitte warte kurz' }
+});
+app.use('/api', limiter);
 
 // ── API-Routen: nur localhost + LAN ───────────────────────────────────
 app.use('/api', requireLocalIP);
@@ -2931,11 +2942,13 @@ app.get('/api/admin/table/:name', (req, res) => {
     res.status(err.status || 500).json({ error: 'Interner Fehler' });
   });
 
-  console.log('\n  Lade Preisdaten ...');
-  loadHeissePreise().then(() => {
+  // Server startet sofort — Heisse-Preise lädt danach im Hintergrund
   const httpServer = app.listen(PORT, '0.0.0.0', () => {
     handleUpgrade(httpServer);
     startWatcher();
+    // Heisse-Preise im Hintergrund laden (blockiert App-Start nicht mehr)
+    console.log('\n  Heisse-Preise lädt im Hintergrund (dauert 1-2 Min)...');
+    loadHeissePreise().catch(e => console.error('  Heisse-Preise Fehler:', e.message));
     const ip = getLocalIP();
     console.log('\n' + '='.repeat(56));
     console.log('   Pizzeria San Carino — Server BEREIT');
@@ -2976,6 +2989,5 @@ app.get('/api/admin/table/:name', (req, res) => {
       console.log('   3. mkcert -key-file key.pem -cert-file cert.pem localhost 127.0.0.1 DEINE-LAN-IP');
       console.log('   4. Server neu starten');
     }
-  });
   });
 })();
