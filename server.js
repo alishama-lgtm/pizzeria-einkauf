@@ -216,23 +216,25 @@ const requireLocalIP = (req, res, next) => {
   res.status(403).json({ error: 'Kein Zugriff' });
 };
 
-// ── Sensible Dateien: .env und .db blockieren, users.js nur lokal ────
+// ── Sensible Dateien: .env und .db blockieren ────────────────────────
 app.use((req, res, next) => {
   const p = req.path.toLowerCase();
-  // .env und Datenbank-Dateien komplett sperren
   if (p === '/.env' || p.endsWith('.db')) {
     console.warn(`[SECURITY] Blockiert: ${req.path}`);
     return res.status(403).type('text').send('Kein Zugriff');
   }
-  // users.js nur von localhost/LAN erlauben
-  if (p === '/users.js') {
-    const ip = (req.ip || req.connection?.remoteAddress || '').replace('::ffff:','');
-    if (ip !== '::1' && ip !== '127.0.0.1' && !ip.startsWith('192.168.') && !ip.startsWith('10.') && !ip.startsWith('172.')) {
-      console.warn(`[SECURITY] users.js blockiert für IP: ${ip}`);
-      return res.status(403).type('text').send('Kein Zugriff');
-    }
-  }
   next();
+});
+
+// ── users.js: explizite Route, nur localhost/LAN ──────────────────────
+app.get('/users.js', requireLocalIP, (req, res) => {
+  const usersFile = path.join(__dirname, 'users.js');
+  if (fs.existsSync(usersFile)) {
+    res.type('application/javascript').sendFile(usersFile);
+  } else {
+    // Fallback damit App nicht crasht
+    res.type('application/javascript').send('const PIZZERIA_USERS = [];');
+  }
 });
 
 app.use((req, _res, next) => {
