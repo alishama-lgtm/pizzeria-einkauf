@@ -1,5 +1,13 @@
 'use strict';
 import 'dotenv/config';
+
+// ── Globale Fehler-Handler ────────────────────────────────────────────
+process.on('unhandledRejection', (reason) => {
+  console.error('[UnhandledRejection]', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[UncaughtException]', err.message);
+});
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';
@@ -129,15 +137,15 @@ async function tursoPushAll() {
   if (!turso) return;
   const adRows = db.prepare('SELECT key, data, updated_at FROM app_data').all();
   for (const r of adRows) {
-    await turso.execute({ sql: "INSERT INTO app_data (key,data,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at", args: [r.key, r.data, r.updated_at || new Date().toISOString()] }).catch(()=>{});
+    await turso.execute({ sql: "INSERT INTO app_data (key,data,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at", args: [r.key, r.data, r.updated_at || new Date().toISOString()] }).catch(e => console.error('[Turso]', e.message));
   }
   const kbRows = db.prepare('SELECT * FROM kassenbuch').all();
   for (const r of kbRows) {
-    await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [r.id, r.datum, r.typ, r.beschreibung, r.netto, r.mwst_satz, r.mwst_betrag, r.brutto] }).catch(()=>{});
+    await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [r.id, r.datum, r.typ, r.beschreibung, r.netto, r.mwst_satz, r.mwst_betrag, r.brutto] }).catch(e => console.error('[Turso]', e.message));
   }
   const maRows = db.prepare('SELECT * FROM mitarbeiter').all();
   for (const r of maRows) {
-    await turso.execute({ sql: 'INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)', args: [r.id, r.name, r.rolle, r.stunden, r.lohn, r.farbe] }).catch(()=>{});
+    await turso.execute({ sql: 'INSERT OR REPLACE INTO mitarbeiter (id,name,rolle,stunden,lohn,farbe) VALUES (?,?,?,?,?,?)', args: [r.id, r.name, r.rolle, r.stunden, r.lohn, r.farbe] }).catch(e => console.error('[Turso]', e.message));
   }
   console.log(`  ☁️  Turso Push: ${adRows.length} app_data, ${kbRows.length} kassenbuch, ${maRows.length} mitarbeiter`);
 }
@@ -177,7 +185,7 @@ function tursoWriteKb(e) {
 }
 function tursoDeleteKb(id) {
   if (!turso) return;
-  turso.execute({ sql: 'DELETE FROM kassenbuch WHERE id=?', args: [id] }).catch(()=>{});
+  turso.execute({ sql: 'DELETE FROM kassenbuch WHERE id=?', args: [id] }).catch(e => console.error('[Turso]', e.message));
 }
 function tursoWriteMa(ma) {
   if (!turso) return;
@@ -186,7 +194,7 @@ function tursoWriteMa(ma) {
 }
 function tursoDeleteMa(id) {
   if (!turso) return;
-  turso.execute({ sql: 'DELETE FROM mitarbeiter WHERE id=?', args: [id] }).catch(()=>{});
+  turso.execute({ sql: 'DELETE FROM mitarbeiter WHERE id=?', args: [id] }).catch(e => console.error('[Turso]', e.message));
 }
 
 const phInsert = db.prepare(`
@@ -721,7 +729,7 @@ wss.on('connection', (ws, request) => {
               updatedBy: msg.user || 'unknown'
             });
             // SQLite + Turso persistieren
-            try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(msg.key, dataStr); } catch(_) {}
+            try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(msg.key, dataStr); } catch(e) { console.error('[App]', e.message); }
             tursoWriteAppData(msg.key, dataStr);
             const broadcast = JSON.stringify({
               action: 'remote_update',
@@ -751,7 +759,7 @@ wss.on('connection', (ws, request) => {
                   });
                   // SQLite + Turso persistieren
                   const dStr = typeof u.data === 'string' ? u.data : JSON.stringify(u.data);
-                  try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(u.key, dStr); } catch(_) {}
+                  try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(u.key, dStr); } catch(e) { console.error('[App]', e.message); }
                   tursoWriteAppData(u.key, dStr);
                 }
               }
@@ -848,7 +856,7 @@ app.post('/api/turso/bulk', express.json({ limit: '10mb' }), (req, res) => {
     const dataStr = typeof value === 'string' ? value : JSON.stringify(value);
     const ts = Date.now();
     syncStore.set(key, { data: value, timestamp: ts, updatedBy: 'browser-push' });
-    try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr); } catch(_) {}
+    try { db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr); } catch(e) { console.error('[App]', e.message); }
     tursoWriteAppData(key, dataStr);
     saved++;
   }
@@ -972,7 +980,7 @@ app.post('/api/pdf/upload', express.json({ limit: '50mb' }), async (req, res) =>
 
     // Lokale SQLite-Kopie der Metadaten (pfad='cloud' → kein lokales File)
     try { db.prepare(`INSERT OR REPLACE INTO dokumente (id,name,typ,monat,status,pfad,groesse) VALUES (?,?,?,?,?,?,?)`)
-      .run(id, name, typ||'sonstige', monat||'', 'offen', turso ? 'cloud' : '', buf.length); } catch(_) {}
+      .run(id, name, typ||'sonstige', monat||'', 'offen', turso ? 'cloud' : '', buf.length); } catch(e) { console.error('[App]', e.message); }
 
     // Lohnzettel automatisch parsen
     const nl = name.toLowerCase();
@@ -1050,7 +1058,7 @@ app.delete('/api/pdf/:id', async (req, res) => {
     const doc = db.prepare('SELECT * FROM dokumente WHERE id=?').get(req.params.id);
     if (doc) {
       if (doc.pfad && doc.pfad !== 'cloud') {
-        try { if (fs.existsSync(doc.pfad)) fs.unlinkSync(doc.pfad); } catch(_) {}
+        try { if (fs.existsSync(doc.pfad)) fs.unlinkSync(doc.pfad); } catch(e) { console.error('[App]', e.message); }
       }
       db.prepare('DELETE FROM dokumente WHERE id=?').run(req.params.id);
     }
@@ -1058,7 +1066,7 @@ app.delete('/api/pdf/:id', async (req, res) => {
       await turso.batch([
         { sql: 'DELETE FROM dokumente WHERE id=?', args: [req.params.id] },
         { sql: 'DELETE FROM dokumente_data WHERE id=?', args: [req.params.id] },
-      ], 'write').catch(()=>{});
+      ], 'write').catch(e => console.error('[Turso]', e.message));
     }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -1206,12 +1214,12 @@ app.post('/api/pdf/korrigiere-monate', async (req, res) => {
     }
   }
   if (updates.length > 0) {
-    for (const u of updates) await turso.execute(u).catch(()=>{});
+    for (const u of updates) await turso.execute(u).catch(e => console.error('[Turso]', e.message));
   }
   // Auch lokale SQLite aktualisieren
   for (const doc of r.rows) {
     const nm = extrahiereMonat(doc.name);
-    if (nm) try { db.prepare('UPDATE dokumente SET monat=? WHERE id=?').run(nm, doc.id); } catch(_) {}
+    if (nm) try { db.prepare('UPDATE dokumente SET monat=? WHERE id=?').run(nm, doc.id); } catch(e) { console.error('[App]', e.message); }
   }
   console.log(`  ☁️  Monate korrigiert: ${korrigiert}/${r.rows.length} Dokumente`);
   res.json({ ok: true, gesamt: r.rows.length, korrigiert });
@@ -1223,7 +1231,7 @@ app.put('/api/pdf/:id/metadaten', express.json(), async (req, res) => {
     const { monat, typ, status } = req.body;
     const id = req.params.id;
     db.prepare('UPDATE dokumente SET monat=COALESCE(?,monat), typ=COALESCE(?,typ), status=COALESCE(?,status) WHERE id=?').run(monat||null, typ||null, status||null, id);
-    if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=COALESCE(?,monat), typ=COALESCE(?,typ), status=COALESCE(?,status) WHERE id=?', args: [monat||null, typ||null, status||null, id] }).catch(()=>{});
+    if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=COALESCE(?,monat), typ=COALESCE(?,typ), status=COALESCE(?,status) WHERE id=?', args: [monat||null, typ||null, status||null, id] }).catch(e => console.error('[Turso]', e.message));
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1403,7 +1411,7 @@ app.post('/api/pdf/lieferant-analyse', express.json(), async (req, res) => {
         eintrag.betrag = extrahiereBetrag(parsed.text);
         eintrag.datum = extrahiereDatum(parsed.text);
       }
-    } catch(_) {}
+    } catch(e) { console.error('[App]', e.message); }
     ergebnis.push(eintrag);
   }
   // Sortierung: neueste zuerst (nach monat)
@@ -1471,7 +1479,7 @@ app.post('/api/pdf/smart-scan', async (req, res) => {
         if (neuerMonat && neuerMonat !== doc.monat || neuerTyp !== doc.typ) {
           const nm = neuerMonat || doc.monat;
           db.prepare('UPDATE dokumente SET monat=?, typ=? WHERE id=?').run(nm, neuerTyp, doc.id);
-          if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=?, typ=? WHERE id=?', args: [nm, neuerTyp, doc.id] }).catch(()=>{});
+          if (turso) await turso.execute({ sql: 'UPDATE dokumente SET monat=?, typ=? WHERE id=?', args: [nm, neuerTyp, doc.id] }).catch(e => console.error('[Turso]', e.message));
           korrigiert++;
           console.log(`  📋 Smart Scan: ${doc.name} → ${nm} [${neuerTyp}]`);
         }
@@ -1480,7 +1488,7 @@ app.post('/api/pdf/smart-scan', async (req, res) => {
           const eintraege = parseLohnzettelPDF(text);
           if (eintraege.length) await speichereLohnzettel(eintraege);
         }
-      } catch(_) {}
+      } catch(e) { console.error('[App]', e.message); }
     }
     console.log(`  ✅ Smart Scan fertig: ${korrigiert}/${zuKorrigieren.length} Dokumente korrigiert`);
   } catch(e) { console.error('Smart Scan Fehler:', e.message); }
@@ -1510,7 +1518,7 @@ app.post('/api/pdf/alle-zu-json', async (req, res) => {
         db.prepare("INSERT INTO app_data (key,data,updated_at) VALUES (?,?,datetime('now')) ON CONFLICT(key) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at").run(key, dataStr);
         tursoWriteAppData(key, dataStr);
         console.log(`  🔄 Bulk PDF→JSON: ${doc.name}`);
-      } catch(_) {}
+      } catch(e) { console.error('[App]', e.message); }
     }
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2475,7 +2483,7 @@ app.post('/api/kassenbuch/import-rechnungen', async (_req, res) => {
         try {
           const buf = await ladePdfBuffer(doc.id);
           if (buf) { const p = await pdfParse(buf); betrag = extrahiereBetrag(p.text); datum = extrahiereDatum(p.text); }
-        } catch(_) {}
+        } catch(e) { console.error('[App]', e.message); }
         if (!betrag || betrag <= 0) { skipped.push(doc.name + ' (kein Betrag)'); continue; }
 
         // Datum bestimmen
@@ -2489,7 +2497,7 @@ app.post('/api/kassenbuch/import-rechnungen', async (_req, res) => {
         db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
           .run(id, datumStr, 'ausgabe', desc, netto, mwstSatz, mwst, betrag);
         if (turso) {
-          await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, 10, mwst, betrag] }).catch(()=>{});
+          await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, 10, mwst, betrag] }).catch(e => console.error('[Turso]', e.message));
         }
         imported.push({ name: doc.name, betrag, datum: datumStr, lieferant: def.label });
       }
@@ -2542,14 +2550,14 @@ app.post('/api/kassenbuch/import-lohn-pdfs', async (_req, res) => {
             if (m) { const v = parseFloat(m[1].replace('.','').replace(',','.')); if (v > 100 && v < 200000) { betrag = v; break; } }
           }
         }
-      } catch(_) {}
+      } catch(e) { console.error('[App]', e.message); }
       if (!betrag) { skipped.push(doc.name + ' (kein Betrag gefunden)'); continue; }
 
       const datumStr = doc.monat ? doc.monat + '-28' : new Date().toISOString().slice(0,10);
       const id = 'kb_lohn_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
       db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
         .run(id, datumStr, 'ausgabe', desc, betrag, 0, 0, betrag);
-      if (turso) await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, betrag, 0, 0, betrag] }).catch(()=>{});
+      if (turso) await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, betrag, 0, 0, betrag] }).catch(e => console.error('[Turso]', e.message));
       imported.push({ name: doc.name, betrag, monat: doc.monat });
     }
     broadcast({ type: 'sync', key: 'pizzeria_kassenbuch_update' });
@@ -2585,7 +2593,7 @@ app.post('/api/kassenbuch/import-fixkosten', express.json(), async (req, res) =>
         const id = 'kb_fix_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
         db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
           .run(id, datumStr, 'ausgabe', desc, netto, kat.mwst, mwstBetrag, betrag);
-        if (turso) await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, kat.mwst, mwstBetrag, betrag] }).catch(()=>{});
+        if (turso) await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, kat.mwst, mwstBetrag, betrag] }).catch(e => console.error('[Turso]', e.message));
         imported.push({ desc, betrag, monat });
       }
     }
@@ -2735,8 +2743,8 @@ app.post('/api/email-sync/backfill', express.json(), async (req, res) => {
               .run(id, dateiname, typ, monat, 'offen', anhang.content.length);
             db.prepare("INSERT OR IGNORE INTO dokumente_data (id,data) VALUES (?,?)").run(id, b64);
             if (turso) {
-              await turso.execute({ sql: 'INSERT OR IGNORE INTO dokumente (id,name,typ,monat,status,groesse,erstellt) VALUES (?,?,?,?,?,?,datetime("now"))', args: [id, dateiname, typ, monat, 'offen', anhang.content.length] }).catch(()=>{});
-              await turso.execute({ sql: 'INSERT OR IGNORE INTO dokumente_data (id,data) VALUES (?,?)', args: [id, b64] }).catch(()=>{});
+              await turso.execute({ sql: 'INSERT OR IGNORE INTO dokumente (id,name,typ,monat,status,groesse,erstellt) VALUES (?,?,?,?,?,?,datetime("now"))', args: [id, dateiname, typ, monat, 'offen', anhang.content.length] }).catch(e => console.error('[Turso]', e.message));
+              await turso.execute({ sql: 'INSERT OR IGNORE INTO dokumente_data (id,data) VALUES (?,?)', args: [id, b64] }).catch(e => console.error('[Turso]', e.message));
             }
             console.log(`  ✅ Backfill gespeichert: ${dateiname} (${monat}, ${typ})`);
             verarbeitet++;
@@ -2746,11 +2754,11 @@ app.post('/api/email-sync/backfill', express.json(), async (req, res) => {
                 const pdfData = await pdfParse(anhang.content);
                 const eintraege = parseLohnzettelPDF(pdfData.text);
                 if (eintraege.length) await speichereLohnzettel(eintraege);
-              } catch(_) {}
+              } catch(e) { console.error('[App]', e.message); }
             }
           } catch(e2) { console.error(`  ❌ Backfill Speicher-Fehler: ${e2.message}`); }
         }
-      } catch(_) {}
+      } catch(e) { console.error('[App]', e.message); }
     }
     console.log(`  ✅ Backfill fertig: ${verarbeitet} PDFs importiert`);
     await client.logout();
@@ -2771,7 +2779,7 @@ try {
           timestamp: Date.now(),
           updatedBy: 'server-start'
         });
-      } catch(_) {}
+      } catch(e) { console.error('[App]', e.message); }
     }
   }
   if (rows.length > 0) console.log(`  syncStore: ${rows.length} Keys aus DB geladen`);
@@ -2932,7 +2940,7 @@ app.get('/api/admin/table/:name', (req, res) => {
         const tRows = db.prepare('SELECT key, data FROM app_data').all();
         tRows.forEach(r => { if (SYNC_KEYS.includes(r.key)) { try { syncStore.set(r.key, { data: JSON.parse(r.data), timestamp: Date.now(), updatedBy: 'turso' }); } catch(_){} } });
         if (tRows.length > 0) console.log(`  ☁️  syncStore: ${tRows.length} Keys aus Turso`);
-      } catch(_) {}
+      } catch(e) { console.error('[App]', e.message); }
       // Lokale PDFs im Hintergrund zu Turso migrieren (einmalig)
       setTimeout(() => migriereLocalPdfsZuTurso(), 5000);
     } catch(e) { console.error('  Turso Fehler (Server startet trotzdem):', e.message); }
