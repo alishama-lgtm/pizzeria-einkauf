@@ -13690,8 +13690,12 @@ function renderDashboardTab() {
 
     // ── BEREICH 2: Alerts (nur wenn vorhanden) ──
     const alerts = [];
+    // Benachrichtigungs-Filter aus Einstellungen
+    var _alarmFilter = {};
+    try { _alarmFilter = JSON.parse(localStorage.getItem('psc_alarm_filter')||'{}'); } catch(_) {}
+    const _alarmAktiv = id => _alarmFilter[id] !== false;
     // Personalkosten-Alarm
-    if (isAdminOrManager && umsatzMonat > 0) {
+    if (_alarmAktiv('personal') && isAdminOrManager && umsatzMonat > 0) {
       try {
         const personal = bizGetPersonal ? bizGetPersonal() : [];
         const personalMonatVal = personal.reduce((s,p)=>s+(+p.stunden||0)*(+p.lohn||0)*4.33,0);
@@ -13700,12 +13704,12 @@ function renderDashboardTab() {
         if (personalPct > alarmGrenze) alerts.push({icon:'🔴', text:`Personalkosten <strong>${personalPct}%</strong> des Umsatzes — Grenze: ${alarmGrenze}%`, tab:'business'});
       } catch(_) {}
     }
-    if (fmOpen > 0)            alerts.push({icon:'🔴', text:`Fehlmaterial offen: <strong>${fmOpen} Artikel</strong>`,                      tab:'fehlmaterial'});
-    if (lagerKritisch > 0)     alerts.push({icon:'🔴', text:`${lagerKritisch} Artikel brauchen Nachbestellung`, tab:'lager', expandable:true, artikelListe:lagerKritischArtikel});
-    if (preisAlarm > 0)        alerts.push({icon:'🔴', text:`Preisalarm: <strong>${preisAlarm} Produkte</strong> über Zielpreis`,             tab:'preisalarm'});
-    if (aufgabenHeute.length)  alerts.push({icon:'🟡', text:`Aufgaben fällig heute: <strong>${aufgabenHeute.length} Aufgaben</strong>`,       tab:'aufgaben', expandable:true, artikelListe:aufgabenHeute, nameField:'titel'});
-    if (mhdAbgelaufen > 0)     alerts.push({icon:'🔴', text:`MHD: <strong>${mhdAbgelaufen} Produkte abgelaufen</strong> — sofort entfernen!`, tab:'mhd'});
-    if (mhdBald > 0)           alerts.push({icon:'🟡', text:`MHD: <strong>${mhdBald} Produkte</strong> laufen in ≤3 Tagen ab`,                tab:'mhd'});
+    if (fmOpen > 0)                                  alerts.push({icon:'🔴', text:`Fehlmaterial offen: <strong>${fmOpen} Artikel</strong>`,                      tab:'fehlmaterial'});
+    if (_alarmAktiv('lager') && lagerKritisch > 0)   alerts.push({icon:'🔴', text:`${lagerKritisch} Artikel brauchen Nachbestellung`, tab:'lager', expandable:true, artikelListe:lagerKritischArtikel});
+    if (_alarmAktiv('preis') && preisAlarm > 0)      alerts.push({icon:'🔴', text:`Preisalarm: <strong>${preisAlarm} Produkte</strong> über Zielpreis`,             tab:'preisalarm'});
+    if (aufgabenHeute.length)                        alerts.push({icon:'🟡', text:`Aufgaben fällig heute: <strong>${aufgabenHeute.length} Aufgaben</strong>`,       tab:'aufgaben', expandable:true, artikelListe:aufgabenHeute, nameField:'titel'});
+    if (_alarmAktiv('mhd') && mhdAbgelaufen > 0)     alerts.push({icon:'🔴', text:`MHD: <strong>${mhdAbgelaufen} Produkte abgelaufen</strong> — sofort entfernen!`, tab:'mhd'});
+    if (_alarmAktiv('mhd') && mhdBald > 0)           alerts.push({icon:'🟡', text:`MHD: <strong>${mhdBald} Produkte</strong> laufen in ≤3 Tagen ab`,                tab:'mhd'});
 
     if (alerts.length > 0) {
       html += `<div style="background:#ffebee;border:1.5px solid #ef9a9a;border-radius:16px;padding:16px 20px;margin-bottom:20px">
@@ -15860,16 +15864,18 @@ function openSettings() {
             { id:'service',   label:'🍽️ Service',   key:'service' },
             { id:'lieferung', label:'🚗 Lieferung', key:'lieferung' },
           ];
+          var summe = (regeln.kueche||0) + (regeln.service||0) + (regeln.lieferung||0);
           return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' +
             abt.map(function(a){
               return '<div style="background:#f8f4f4;border-radius:8px;padding:10px;text-align:center">' +
                 '<div style="font-size:12px;font-weight:600;color:#261816;margin-bottom:6px">' + a.label + '</div>' +
                 '<div style="display:flex;align-items:center;gap:4px;justify-content:center">' +
-                '<input type="number" id="tg-regel-' + a.id + '" min="0" max="100" value="' + (regeln[a.key]||0) + '" ' +
+                '<input type="number" id="tg-regel-' + a.id + '" min="0" max="100" value="' + (regeln[a.key]||0) + '" oninput="tgRegelSummeUpdate()" ' +
                 'style="width:55px;padding:6px;border:1.5px solid #e3beb8;border-radius:6px;font-size:15px;font-weight:700;text-align:center;font-family:inherit">' +
                 '<span style="font-size:13px;color:#5a403c">%</span></div></div>';
             }).join('') + '</div>' +
-            '<p style="font-size:11px;color:#8d6562;margin:8px 0 0">Summe sollte 100% ergeben. Wird im Trinkgeld-Tab für automatische Aufteilung verwendet.</p>';
+            '<div id="tg-regel-summe" style="margin-top:8px;padding:6px 10px;border-radius:6px;font-size:12px;font-weight:700;background:' + (summe===100?'#f0fdf4':'#fff8e1') + ';color:' + (summe===100?'#16a34a':'#b45309') + '">Σ Summe: ' + summe + '% ' + (summe===100?'✓ Perfekt':'⚠️ Sollte 100% sein') + '</div>' +
+            '<p style="font-size:11px;color:#8d6562;margin:4px 0 0">Wird im Trinkgeld-Tab bei "Nach Abteilung %" verwendet.</p>';
         })()}
       </div>
 
@@ -16237,6 +16243,12 @@ function showCloudflareTunnelInfo() {
 // ═══════════════════════════════════════════════════════════════
 // Österreichische Feiertage (fixes Datum + beweglich bis 2030)
 const AT_FEIERTAGE = {
+  '2025-01-01':'Neujahr','2025-01-06':'Heilige Drei Könige',
+  '2025-04-21':'Ostermontag','2025-05-01':'Staatsfeiertag',
+  '2025-05-29':'Christi Himmelfahrt','2025-06-09':'Pfingstmontag',
+  '2025-06-19':'Fronleichnam','2025-08-15':'Mariä Himmelfahrt',
+  '2025-10-26':'Nationalfeiertag','2025-11-01':'Allerheiligen',
+  '2025-12-08':'Mariä Empfängnis','2025-12-25':'Weihnachten','2025-12-26':'Stefanitag',
   '2026-01-01':'Neujahr','2026-01-06':'Heilige Drei Könige',
   '2026-04-06':'Ostermontag','2026-05-01':'Staatsfeiertag',
   '2026-05-14':'Christi Himmelfahrt','2026-05-25':'Pfingstmontag',
@@ -16248,7 +16260,25 @@ const AT_FEIERTAGE = {
   '2027-05-06':'Christi Himmelfahrt','2027-05-17':'Pfingstmontag',
   '2027-05-27':'Fronleichnam','2027-08-15':'Mariä Himmelfahrt',
   '2027-10-26':'Nationalfeiertag','2027-11-01':'Allerheiligen',
-  '2027-12-08':'Mariä Empfängnis','2027-12-25':'Weihnachten','2027-12-26':'Stefanitag'
+  '2027-12-08':'Mariä Empfängnis','2027-12-25':'Weihnachten','2027-12-26':'Stefanitag',
+  '2028-01-01':'Neujahr','2028-01-06':'Heilige Drei Könige',
+  '2028-04-17':'Ostermontag','2028-05-01':'Staatsfeiertag',
+  '2028-05-25':'Christi Himmelfahrt','2028-06-05':'Pfingstmontag',
+  '2028-06-15':'Fronleichnam','2028-08-15':'Mariä Himmelfahrt',
+  '2028-10-26':'Nationalfeiertag','2028-11-01':'Allerheiligen',
+  '2028-12-08':'Mariä Empfängnis','2028-12-25':'Weihnachten','2028-12-26':'Stefanitag',
+  '2029-01-01':'Neujahr','2029-01-06':'Heilige Drei Könige',
+  '2029-04-02':'Ostermontag','2029-05-01':'Staatsfeiertag',
+  '2029-05-10':'Christi Himmelfahrt','2029-05-21':'Pfingstmontag',
+  '2029-05-31':'Fronleichnam','2029-08-15':'Mariä Himmelfahrt',
+  '2029-10-26':'Nationalfeiertag','2029-11-01':'Allerheiligen',
+  '2029-12-08':'Mariä Empfängnis','2029-12-25':'Weihnachten','2029-12-26':'Stefanitag',
+  '2030-01-01':'Neujahr','2030-01-06':'Heilige Drei Könige',
+  '2030-04-22':'Ostermontag','2030-05-01':'Staatsfeiertag',
+  '2030-05-30':'Christi Himmelfahrt','2030-06-10':'Pfingstmontag',
+  '2030-06-20':'Fronleichnam','2030-08-15':'Mariä Himmelfahrt',
+  '2030-10-26':'Nationalfeiertag','2030-11-01':'Allerheiligen',
+  '2030-12-08':'Mariä Empfängnis','2030-12-25':'Weihnachten','2030-12-26':'Stefanitag'
 };
 function getSchichtForDay(dateObj) {
   let sz = null;
@@ -16308,6 +16338,24 @@ function renderDienstplanTab() {
     return Math.ceil((((d-new Date(Date.UTC(d.getUTCFullYear(),0,1)))/86400000)+1)/7);
   })();
 
+  // Feiertage der aktuellen Woche als Map Day→Name aufbauen
+  const weekFeiertage = {};
+  DAYS.forEach((day, i) => {
+    const iso = weekDates[i].toISOString().slice(0,10);
+    const ft = AT_FEIERTAGE[iso];
+    if (ft) weekFeiertage[day] = ft;
+  });
+
+  // Feiertags-Banner wenn diese Woche Feiertage enthält
+  const feiertageListe = Object.entries(weekFeiertage);
+  const feiertagsBanner = feiertageListe.length ? `
+    <div style="background:#fff8e1;border:1.5px solid #f59e0b;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:18px">🎉</span>
+      <span style="font-size:13px;font-weight:700;color:#92400e">Feiertage diese Woche:</span>
+      ${feiertageListe.map(([day,name]) => `<span style="background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:600;color:#92400e">${day} — ${name}</span>`).join('')}
+      <button onclick="dienstplanAlleFreiDieseWoche('${weekKey}')" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:#f59e0b;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🎉 Alle Feiertage → Frei</button>
+    </div>` : '';
+
   const dayHeaders = `<th style="padding:8px;font-size:13px;font-weight:700;color:#8B0000;border:1px solid #e3beb8;text-align:left;background:#fff8f6;min-width:120px">Mitarbeiter</th>`
     + DAYS.map((day,i) => {
       const dateObj   = weekDates[i];
@@ -16321,7 +16369,9 @@ function renderDienstplanTab() {
         <div style="color:${textColor}">${day}</div>
         <div style="font-weight:400;color:#9e6b62;font-size:11px">${fmt(dateObj)}</div>
         ${feiertag ? `<div style="font-size:9px;color:#b45309;font-weight:700;margin-top:2px">🎉 ${feiertag}</div>` : ''}
-        ${schicht.ruhetag ? `<div style="font-size:9px;color:#9e9e9e;font-weight:600;margin-top:2px">Ruhetag</div>` : `<div style="font-size:9px;color:#9e6b62;margin-top:2px">🕐 ${schicht.label}</div>`}
+        ${feiertag ? `<button onclick="dienstplanAlleFreiAnFeiertag('${weekKey}','${day}')" style="margin-top:4px;padding:3px 6px;border-radius:5px;border:none;background:#f59e0b;color:#fff;font-size:9px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Alle frei</button>` : ''}
+        ${!feiertag && schicht.ruhetag ? `<div style="font-size:9px;color:#9e9e9e;font-weight:600;margin-top:2px">Ruhetag</div>` : ''}
+        ${!feiertag ? `<div style="font-size:9px;color:#9e6b62;margin-top:2px">🕐 ${schicht.label}</div>` : ''}
       </th>`;
     }).join('');
 
@@ -16342,12 +16392,17 @@ function renderDienstplanTab() {
           const val = (plan[weekKey][key]||{})[day] || '';
           const arbeitet = val === 'arbeitet';
           const frei = val === 'frei';
-          return `<td style="padding:5px;border:1px solid #e3beb8;text-align:center">
-            <button onclick="dienstplanToggle('${weekKey}','${key}','${day}')"
+          const istFeiertag = weekFeiertage[day] || null;
+          // Auf Feiertagen gelber Hintergrund, Toggle-Reihenfolge: — → frei → arbeitet
+          const tdBg = istFeiertag ? 'background:#fffde7' : '';
+          const btnBg = arbeitet ? '#e8f5e9' : frei ? '#fce4ec' : istFeiertag ? '#fef9c3' : '#f5f5f5';
+          const btnColor = arbeitet ? '#2e7d32' : frei ? '#c62828' : istFeiertag ? '#a16207' : '#9e9e9e';
+          const btnLabel = arbeitet ? '✅ Arbeitet' : frei ? '❌ Frei' : istFeiertag ? '🎉 —' : '— —';
+          return `<td style="padding:5px;border:1px solid #e3beb8;text-align:center;${tdBg}">
+            <button onclick="dienstplanToggleFT('${weekKey}','${key}','${day}',${istFeiertag?'true':'false'})"
               style="width:100%;padding:7px 4px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;
-              background:${arbeitet?'#e8f5e9':frei?'#fce4ec':'#f5f5f5'};
-              color:${arbeitet?'#2e7d32':frei?'#c62828':'#9e9e9e'}">
-              ${arbeitet?'✅ Arbeitet':frei?'❌ Frei':'— —'}
+              background:${btnBg};color:${btnColor}">
+              ${btnLabel}
             </button>
           </td>`;
         }).join('');
@@ -16411,6 +16466,9 @@ function renderDienstplanTab() {
         <span style="font-size:12px;color:#9e6b62">— Klicke auf einen Tag um Anwesenheit zu setzen</span>
       </div>
 
+      <!-- Feiertags-Banner -->
+      ${feiertagsBanner}
+
       <!-- Abteilungs-Sektionen -->
       ${sektionen}
     </div>`;
@@ -16434,6 +16492,66 @@ function dienstplanToggle(weekKey, maId, day) {
   if (next) plan[weekKey][maId][day] = next;
   else delete plan[weekKey][maId][day];
   localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  renderDienstplanTab();
+}
+// Toggle für Feiertage: — → frei → arbeitet → — (umgekehrt, da Feiertag = Standard frei)
+function dienstplanToggleFT(weekKey, maId, day, istFeiertag) {
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  if (!plan[weekKey]) plan[weekKey] = {};
+  if (!plan[weekKey][maId]) plan[weekKey][maId] = {};
+  const curr = plan[weekKey][maId][day] || '';
+  let next;
+  if (istFeiertag) {
+    next = curr === '' ? 'frei' : curr === 'frei' ? 'arbeitet' : '';
+  } else {
+    next = curr === '' ? 'arbeitet' : curr === 'arbeitet' ? 'frei' : '';
+  }
+  if (next) plan[weekKey][maId][day] = next;
+  else delete plan[weekKey][maId][day];
+  localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  renderDienstplanTab();
+}
+// Alle Mitarbeiter an einem Feiertag auf "frei" setzen (nur wenn noch nicht eingetragen)
+function dienstplanAlleFreiAnFeiertag(weekKey, day) {
+  let mitarbeiter = [];
+  try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(e) {}
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  if (!plan[weekKey]) plan[weekKey] = {};
+  let count = 0;
+  for (const ma of mitarbeiter) {
+    const key = ma.id || ma.name;
+    if (!plan[weekKey][key]) plan[weekKey][key] = {};
+    if (!plan[weekKey][key][day]) { plan[weekKey][key][day] = 'frei'; count++; }
+  }
+  localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  _showToast(count + ' Mitarbeiter als Frei gesetzt', 'success');
+  renderDienstplanTab();
+}
+// Alle Mitarbeiter an allen Feiertagen dieser Woche auf "frei" setzen
+function dienstplanAlleFreiDieseWoche(weekKey) {
+  let mitarbeiter = [];
+  try { mitarbeiter = JSON.parse(localStorage.getItem('pizzeria_mitarbeiter')||'[]'); } catch(e) {}
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  if (!plan[weekKey]) plan[weekKey] = {};
+  const DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  // Feiertage der Woche berechnen
+  const monday = new Date(weekKey + 'T00:00:00');
+  let count = 0;
+  DAYS.forEach((day, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const iso = d.toISOString().slice(0,10);
+    if (!AT_FEIERTAGE[iso]) return;
+    for (const ma of mitarbeiter) {
+      const key = ma.id || ma.name;
+      if (!plan[weekKey][key]) plan[weekKey][key] = {};
+      if (!plan[weekKey][key][day]) { plan[weekKey][key][day] = 'frei'; count++; }
+    }
+  });
+  localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+  _showToast(count + ' Einträge als Frei gesetzt', 'success');
   renderDienstplanTab();
 }
 function dienstplanWoche(dir) {
@@ -21855,9 +21973,26 @@ function renderTrinkgeldTab() {
     </div>`;
   }).join('');
 
+  // Aktuelle Trinkgeld-Regeln lesen
+  var tgRegelnAktuell = { kueche:30, service:40, lieferung:30 };
+  try { var s2 = localStorage.getItem('psc_trinkgeld_regeln'); if(s2) tgRegelnAktuell = JSON.parse(s2); } catch(_) {}
+  const tgSumme = (tgRegelnAktuell.kueche||0) + (tgRegelnAktuell.service||0) + (tgRegelnAktuell.lieferung||0);
+  const tgSummeOk = tgSumme === 100;
+
   panel.innerHTML = `
   <div style="max-width:680px;margin:0 auto;padding:16px">
     <div style="font-size:22px;font-weight:800;color:#261816;margin-bottom:16px">💰 Trinkgeld-Split</div>
+
+    <!-- Aktuelle Abteilungs-Regeln -->
+    <div style="background:${tgSummeOk?'#f0fdf4':'#fff8e1'};border:1.5px solid ${tgSummeOk?'#86efac':'#f59e0b'};border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:15px">📊</span>
+      <span style="font-size:13px;font-weight:700;color:#261816">Abteilung-Split:</span>
+      <span style="background:#fff;border:1px solid #e3beb8;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#e65100">👨‍🍳 Küche: ${tgRegelnAktuell.kueche||0}%</span>
+      <span style="background:#fff;border:1px solid #e3beb8;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#2e7d32">🍽️ Service: ${tgRegelnAktuell.service||0}%</span>
+      <span style="background:#fff;border:1px solid #e3beb8;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;color:#1565c0">🚗 Lieferung: ${tgRegelnAktuell.lieferung||0}%</span>
+      <span style="font-size:12px;font-weight:700;color:${tgSummeOk?'#16a34a':'#b45309'}">Σ ${tgSumme}% ${tgSummeOk?'✓':'⚠️ ≠ 100%'}</span>
+      <button onclick="openSettingsModal()" style="margin-left:auto;padding:5px 12px;border-radius:8px;border:1.5px solid #e3beb8;background:#fff;font-size:11px;font-weight:700;color:#610000;cursor:pointer;font-family:inherit">⚙️ Regeln ändern</button>
+    </div>
 
     <div style="background:#fff;border:1.5px solid #e3beb8;border-radius:14px;padding:18px;margin-bottom:18px">
       <div style="font-weight:700;color:#261816;margin-bottom:14px;font-size:15px">Heute aufteilen — ${fmtD(heute)}</div>
@@ -21896,6 +22031,18 @@ function renderTrinkgeldTab() {
   </div>`;
 }
 
+// Live-Summe der Trinkgeld-Regeln im Einstellungs-Modal aktualisieren
+function tgRegelSummeUpdate() {
+  var summe = ['kueche','service','lieferung'].reduce(function(s,id) {
+    return s + (parseInt(document.getElementById('tg-regel-'+id)?.value||'0')||0);
+  }, 0);
+  var el = document.getElementById('tg-regel-summe');
+  if (!el) return;
+  var ok = summe === 100;
+  el.style.background = ok ? '#f0fdf4' : '#fff8e1';
+  el.style.color = ok ? '#16a34a' : '#b45309';
+  el.textContent = 'Σ Summe: ' + summe + '% ' + (ok ? '✓ Perfekt' : '⚠️ Sollte 100% sein');
+}
 function tgGetAuswahl() {
   const checked = [...document.querySelectorAll('.tg-ma-cb:checked')];
   return checked.map(cb => {

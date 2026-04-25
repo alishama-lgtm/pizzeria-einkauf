@@ -18,6 +18,38 @@ node server.js   # → http://localhost:3000
 
 ---
 
+## Session 19 (2026-04-25) — Was gebaut wurde ✅
+
+### Features 11–13 implementiert
+
+#### Feature 11: AT-Feiertage im Dienstplan automatisch
+- **AT_FEIERTAGE** auf 2025–2030 erweitert (war nur 2026–2027)
+- **Feiertags-Banner**: Gelbe Info-Box oben im Dienstplan wenn diese Woche Feiertage enthält
+- **"Alle frei"-Button** pro Feiertag-Spaltenheader (setzt nur leere Einträge auf frei)
+- **"Alle Feiertage → Frei"-Button**: Alle Mitarbeiter an allen Feiertagen der Woche auf frei
+- **Mitarbeiterzellen**: Gelber Hintergrund + 🎉 auf Feiertagen
+- **Toggle-Reihenfolge** auf Feiertagen umgekehrt: — → frei → arbeitet (nicht arbeitet → frei)
+- Neue Funktionen: `dienstplanToggleFT()`, `dienstplanAlleFreiAnFeiertag()`, `dienstplanAlleFreiDieseWoche()`
+
+#### Feature 12: Trinkgeld-Regeln (% pro Abteilung)
+- **Aktuelle Regeln** als Info-Box im Trinkgeld-Tab: zeigt Küche/Service/Lieferung % + Summe
+- **Live-Summe** im Einstellungs-Modal: zeigt Σ-Anzeige mit ✓ grün / ⚠️ gelb wenn ≠ 100%
+- **"Regeln ändern"** Link direkt im Trinkgeld-Tab → öffnet Einstellungen
+- Neue Funktion: `tgRegelSummeUpdate()`
+
+#### Feature 13: Benachrichtigungs-Filter
+- **Filter wird jetzt wirklich angewendet**: `psc_alarm_filter` wird im Dashboard konsultiert
+- Lager-Alarm, Preis-Alarm, MHD-Alarm, Personal-Alarm: wenn deaktiviert → nicht im Dashboard
+- Fehlmaterial und Aufgaben immer sichtbar (sicherheitsrelevant)
+
+### Offen für nächste Session
+- Feature 14: **App-PIN für Mitarbeiter** — 4-stellige PIN statt Passwort (users.js hat schon PIN-Feld)
+- Feature 15: **Bewertungs-Ziel** — Ziel-Ø setzen, Fortschritt anzeigen
+- UM Trade Jänner 2026 noch fehlend → E-Mail Backfill mit "RechnungNr" + Datum 01.01.–01.02.2026
+- Claude API Key testen → bessere Produktextraktion aus UM Trade PDFs
+
+---
+
 ## Session 18 (2026-04-24) — Was gebaut wurde ✅
 
 ### Lieferanten-Einkaufsübersicht verbessert
@@ -30,12 +62,6 @@ node server.js   # → http://localhost:3000
 - **Sortierung**: Neueste Rechnung zuerst (nach Monat)
 - Server: `extrahiereDatum(text)` — liest Rechnungsdatum aus PDF-Text (Regex für AT-Format)
 - Server: `lieferant-analyse` gibt jetzt auch `datum`, `erstellt`, `status` zurück
-
-### Offen für morgen
-- Features 11–15 (Feiertage AT, Trinkgeld-Regeln, Benachrichtigungs-Filter, App-PIN, Bewertungs-Ziel)
-- UM Trade Jänner 2026 noch fehlend → E-Mail Backfill mit "RechnungNr" + Datum 01.01.–01.02.2026
-- Claude API Key testen → bessere Produktextraktion aus UM Trade PDFs
-- Weitere Buchhaltung-Verbesserungen
 
 ---
 
@@ -102,13 +128,13 @@ node server.js   # → http://localhost:3000
 
 ---
 
-## Als nächstes: Features 11–15
+## Als nächstes: Features 14–15
 
 | # | Feature | Status |
 |---|---------|--------|
-| 11 | **Feiertage Österreich** — AT-Feiertage im Dienstplan automatisch | ⬜ (AT_FEIERTAGE Konstante schon vorhanden) |
-| 12 | **Trinkgeld-Regeln** — feste Aufteilung % pro Abteilung | ⬜ |
-| 13 | **Benachrichtigungs-Filter** — welche Alarme aktiv/stumm | ⬜ |
+| 11 | **Feiertage Österreich** — AT-Feiertage im Dienstplan automatisch | ✅ (Session 19) |
+| 12 | **Trinkgeld-Regeln** — feste Aufteilung % pro Abteilung | ✅ (Session 19) |
+| 13 | **Benachrichtigungs-Filter** — welche Alarme aktiv/stumm | ✅ (Session 19) |
 | 14 | **App-PIN für Mitarbeiter** — 4-stellige PIN statt Passwort | ⬜ (users.js hat schon PIN-Feld) |
 | 15 | **Bewertungs-Ziel** — Ziel-Ø setzen, Fortschritt anzeigen | ⬜ |
 
