@@ -1,5 +1,5 @@
 # Pizzeria San Carino — MASTER PLAN & SESSION LOG
-# Letztes Update: 2026-04-25 | Session 19
+# Letztes Update: 2026-04-26 | Session 20
 
 ---
 
@@ -202,39 +202,36 @@
 | 17b | 2026-04-23 | Buchhaltung PDF-Verwaltung, Monate-Korrektur |
 | 17c | 2026-04-23 | Lieferanten-Einkaufsübersicht, UM Trade Analyse |
 | 18 | 2026-04-24 | Datum-Extraktion, Kategorien-Header, Sortierung |
-| 19 | 2026-04-25 | Port-Fix (restart.ps1), Buchhaltung komplett, Sicherheits-Patches, MwSt-Korrekturen (A1=Telefon, Edenred=Bankomat) |
+| 19 | 2026-04-25 | Port-Fix (restart.ps1), Buchhaltung komplett, Sicherheits-Patches, MwSt-Korrekturen |
+| 20 | 2026-04-26 | Rate-Limiting, Heisse-Preise async, WebSocket-Auth, PDF MIME-Check, Catch-Blöcke, ICS-Export, Turso-Sync optimiert, Kassenbuch-Validierung, i18n DE/EN/NL/AR, Setup-Wizard, White-Label |
 
 ---
 
-## 🎯 PRIORISIERTE REIHENFOLGE
+## 🎯 AKTUELLE PHASE — Testen & Eigennutzung
 
-### 🔴 Sofort
-1. ⬜ Z-Bon PDFs hochladen (Aug 2025 – Apr 2026) — du hast sie!
-2. ⬜ Fixkosten in Einstellungen eintragen + generieren
-3. ✅ Feature #11 — AT-Feiertage (fertig)
-4. ✅ Features #12–15 — alle fertig
+### ✅ Phase 1 abgeschlossen — App ist fertig für den täglichen Betrieb
 
-### 🟡 Nächste Sessions
-5. ⬜ Features #12–15
-6. ⬜ Sicherheits-Patches (Auth-Middleware, CORS, db-viewer)
-7. ⬜ UM Trade Jänner 2026 — E-Mail Backfill
-8. ⬜ Stille Fehler beheben (catch-Blöcke)
+### 🔴 Jetzt tun (du)
+1. ⬜ **Testwoche/Testmonat starten** — App täglich nutzen
+2. ⬜ Z-Bon PDFs hochladen (Aug 2025 – Apr 2026)
+3. ⬜ Fixkosten in Einstellungen eintragen + generieren
+4. ⬜ Notion API Key in Einstellungen eintragen (für Fehlmaterial-Sync)
+5. ⬜ Bugs/Probleme beim Testen notieren → nächste Session beheben
 
-### 🟢 Stabilisierung
-9. ⬜ HANDBUCH.md Sektionen 4–8
-10. ⬜ Heisse-Preise async laden
-11. ⬜ Rate-Limiting
-12. ⬜ Mobile PWA (HTTPS, Service Worker)
-13. ⬜ Notion-Sync (Tagesbericht, Fehlmaterial)
-14. ⬜ Google Calendar → Dienstplan Sync
+### 🟡 Nach der Testwoche
+6. ⬜ Gefundene Bugs beheben
+7. ⬜ HTTPS mkcert einrichten (für iPhone PWA)
+8. ⬜ Lohnzettel März 2026 nachbuchen
 
-### 🔵 Verkaufsvorbereitung (Phase 3)
-15. ⬜ Setup-Wizard (Restaurantname, Logo, Adresse)
-16. ⬜ White-Label (anpassbare Farben, Logo)
-17. ⬜ Installer PowerShell (ein Klick)
-18. ⬜ Lizenz-System (Offline-Key, 1 Jahr)
-19. ⬜ PDF-Handbuch für Kunden (Deutsch)
-20. ⬜ **Mehrsprachigkeit** — Deutsch / Englisch / Niederländisch / Arabisch (i18n System)
+### 🔵 Phase 2 — Verkaufsvorbereitung (NACH erfolgreichem Test)
+> **Erst starten wenn App stabil im Betrieb läuft!**
+
+9. ⬜ Installer PowerShell (ein Klick — anderes Restaurant kann App installieren)
+10. ⬜ Lizenz-System (einfacher Aktivierungscode, kein Ablaufdatum)
+11. ⬜ PDF-Handbuch für Kunden (Deutsch)
+12. ⬜ Verkaufsstrategie: Preis, Zielgruppe, WhatsApp-Support
+
+> **Installer & Lizenz sind gespeichert — werden in Phase 2 gebaut.**
 
 ---
 
