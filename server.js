@@ -959,6 +959,20 @@ app.post('/api/pdf/upload', express.json({ limit: '50mb' }), async (req, res) =>
     const base64 = data.replace(/^data:[^;]+;base64,/, '');
     const buf = Buffer.from(base64, 'base64');
 
+    // ── MIME / Magic-Bytes Prüfung ────────────────────────────────────
+    const ext = name.split('.').pop().toLowerCase();
+    const allowedExt = ['pdf', 'jpg', 'jpeg', 'png', 'xlsx', 'csv'];
+    if (!allowedExt.includes(ext)) return res.status(400).json({ error: 'Dateityp nicht erlaubt' });
+    if (ext === 'pdf' && buf.slice(0, 4).toString() !== '%PDF') {
+      return res.status(400).json({ error: 'Ungültige PDF-Datei' });
+    }
+    if ((ext === 'jpg' || ext === 'jpeg') && !(buf[0] === 0xFF && buf[1] === 0xD8)) {
+      return res.status(400).json({ error: 'Ungültige JPG-Datei' });
+    }
+    if (ext === 'png' && buf.slice(0, 4).toString('hex') !== '89504e47') {
+      return res.status(400).json({ error: 'Ungültige PNG-Datei' });
+    }
+
     if (turso) {
       // Nur in Turso Cloud speichern
       await turso.batch([
