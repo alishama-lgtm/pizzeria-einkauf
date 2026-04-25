@@ -619,6 +619,11 @@ const SYNC_KEYS = [
 const syncStore = new Map();
 const syncClients = new Set();
 
+function broadcast(msg) {
+  const payload = typeof msg === 'string' ? msg : JSON.stringify(msg);
+  for (const c of syncClients) { if (c.readyState === 1) c.send(payload); }
+}
+
 const wss = new WebSocketServer({ noServer: true });
 
 function handleUpgrade(server) {
@@ -880,7 +885,8 @@ async function speichereLohnzettel(eintraege) {
   const json = JSON.stringify(merged);
   db.prepare("INSERT OR REPLACE INTO app_data (key, data, updated_at) VALUES ('psc_lohnabrechnungen', ?, datetime('now'))").run(json);
   if (turso) await turso.execute({ sql: "INSERT OR REPLACE INTO app_data (key, data, updated_at) VALUES ('psc_lohnabrechnungen', ?, datetime('now'))", args: [json] });
-  broadcast({ type: 'sync', key: 'psc_lohnabrechnungen', value: json });
+  const lzMsg = JSON.stringify({ type: 'sync', key: 'psc_lohnabrechnungen', value: json });
+  for (const c of syncClients) { if (c.readyState === 1) c.send(lzMsg); }
   console.log(`  📋 Lohnzettel gespeichert: ${eintraege.length} MA, Monat(e): ${monate.join(', ')}`);
 }
 
@@ -2329,32 +2335,29 @@ app.post('/api/kassenbuch/import-zbon', express.json({ limit: '20mb' }), async (
     const datumLabel = zeitraumM ? `${zeitraumM[1]}–${zeitraumM[2]}` : 'unbekannt';
     const buchDatum = bis || new Date().toISOString().slice(0,10);
 
-    // MwSt-Aufschlüsselung
-    const ust10M = text.match(/10\s*%\s*USt\.?\s+([\d\s.,]+)/);
-    const netto10M = text.match(/10\s*%\s*USt\.?\s+[\d\s.,]+\s+([\d\s.,]+)/);
-    const ust20M = text.match(/20\s*%\s*USt\.?\s+([\d\s.,]+)/);
-    const netto20M = text.match(/20\s*%\s*USt\.?\s+[\d\s.,]+\s+([\d\s.,]+)/);
-
     function parseEur(s) { return s ? parseFloat(s.replace(/\s/g,'').replace(',','.')) : 0; }
 
-    const ust10   = parseEur(ust10M?.[1]);
-    const netto10 = parseEur(netto10M?.[1]);
-    const ust20   = parseEur(ust20M?.[1]);
-    const netto20 = parseEur(netto20M?.[1]);
+    // MwSt-Aufschlüsselung — Format: "10 % USt.1451,9014518,98"
+    const m10 = text.match(/10\s*%\s*USt\.(\d[\d\s]*,\d{2})(\d[\d\s]*,\d{2})/);
+    const m20 = text.match(/20\s*%\s*USt\.(\d[\d\s]*,\d{2})(\d[\d\s]*,\d{2})/);
+    const ust10   = parseEur(m10?.[1]);
+    const netto10 = parseEur(m10?.[2]);
+    const ust20   = parseEur(m20?.[1]);
+    const netto20 = parseEur(m20?.[2]);
     const brutto10 = Math.round((netto10 + ust10) * 100) / 100;
     const brutto20 = Math.round((netto20 + ust20) * 100) / 100;
 
-    // Zahlungsarten
-    const barM    = text.match(/^Bar\s+([\d\s.,]+)/m);
-    const karteM  = text.match(/EC-Karte\s+([\d\s.,]+)/);
-    const onlineM = text.match(/Onlinebezahlung\s+([\d\s.,]+)/);
+    // Zahlungsarten — Format: "Bar9 626,76"
+    const barM    = text.match(/\nBar(\d[\d\s]*,\d{2})/);
+    const karteM  = text.match(/EC-Karte(\d[\d\s]*,\d{2})/);
+    const onlineM = text.match(/Onlinebezahlung(\d[\d\s]*,\d{2})/);
     const bar    = parseEur(barM?.[1]);
     const karte  = parseEur(karteM?.[1]);
     const online = parseEur(onlineM?.[1]);
 
-    // Foodora / Lieferando
-    const foodM  = text.match(/Foodora\s+[\d.,]+\s*%\s+([\d\s.,]+)/);
-    const liefM  = text.match(/Lieferando\s+[\d.,]+\s*%\s+([\d\s.,]+)/);
+    // Foodora / Lieferando — Format: "Foodora60,71 %3 597,45"
+    const foodM  = text.match(/Foodora[\d.,\s]+%(\d[\d\s]*,\d{2})/);
+    const liefM  = text.match(/Lieferando[\d.,\s]+%(\d[\d\s]*,\d{2})/);
     const foodora    = parseEur(foodM?.[1]);
     const lieferando = parseEur(liefM?.[1]);
 
@@ -2388,11 +2391,62 @@ app.post('/api/kassenbuch/import-zbon', express.json({ limit: '20mb' }), async (
     const kbJson = JSON.stringify(allKb);
     db.prepare("INSERT OR REPLACE INTO app_data (key,data,updated_at) VALUES ('pizzeria_kassenbuch',?,datetime('now'))").run(kbJson);
     tursoWriteAppData('pizzeria_kassenbuch', kbJson);
-    broadcast({ type: 'sync', key: 'pizzeria_kassenbuch', value: kbJson });
+    const zbonMsg = JSON.stringify({ type: 'sync', key: 'pizzeria_kassenbuch', value: kbJson });
+    for (const c of syncClients) { if (c.readyState === 1) c.send(zbonMsg); }
 
     console.log(`  💰 Z-Bon importiert: ${datumLabel} → ${eintraege.length} Einträge, Gesamt €${gesamt}`);
     res.json({ ok: true, eintraege, gesamt, von, bis, bar, karte, online, foodora, lieferando });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Rechnungen → Kassenbuch Auto-Import ───────────────────────────────────────
+app.post('/api/kassenbuch/import-rechnungen', async (_req, res) => {
+  try {
+    const imported = [], skipped = [];
+    const existingKb = db.prepare('SELECT beschreibung FROM kassenbuch').all().map(r => r.beschreibung);
+
+    for (const [key, def] of Object.entries(LIEFERANTEN_MUSTER)) {
+      let allDocs = [];
+      if (turso) {
+        const r = await turso.execute('SELECT id,name,monat,typ FROM dokumente');
+        allDocs = r.rows;
+      } else {
+        allDocs = db.prepare('SELECT id,name,monat,typ FROM dokumente').all();
+      }
+      const docs = allDocs.filter(d => def.fn((d.name||'').toLowerCase()) && (d.typ||'rechnung') === 'rechnung');
+
+      for (const doc of docs) {
+        const desc = def.label + ' — ' + doc.name;
+        if (existingKb.some(b => b.includes(doc.name))) { skipped.push(doc.name); continue; }
+        let betrag = null, datum = null;
+        try {
+          const buf = await ladePdfBuffer(doc.id);
+          if (buf) { const p = await pdfParse(buf); betrag = extrahiereBetrag(p.text); datum = extrahiereDatum(p.text); }
+        } catch(_) {}
+        if (!betrag || betrag <= 0) { skipped.push(doc.name + ' (kein Betrag)'); continue; }
+
+        // Datum bestimmen
+        let datumStr = datum ? datum.split('.').reverse().join('-') : (doc.monat ? doc.monat + '-01' : new Date().toISOString().slice(0,10));
+        if (datumStr.length < 8) datumStr = new Date().toISOString().slice(0,10);
+
+        const netto = parseFloat((betrag / 1.1).toFixed(2));
+        const mwst  = parseFloat((betrag - netto).toFixed(2));
+        const id = 'kb_imp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+        db.prepare('INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)')
+          .run(id, datumStr, 'ausgabe', desc, netto, 10, mwst, betrag);
+        if (turso) {
+          await turso.execute({ sql: 'INSERT OR IGNORE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)', args: [id, datumStr, 'ausgabe', desc, netto, 10, mwst, betrag] }).catch(()=>{});
+        }
+        imported.push({ name: doc.name, betrag, datum: datumStr, lieferant: def.label });
+      }
+    }
+
+    const total = imported.reduce((s,e) => s + e.betrag, 0);
+    broadcast({ type: 'sync', key: 'pizzeria_kassenbuch_update' });
+    res.json({ ok: true, imported: imported.length, skipped: skipped.length, total, eintraege: imported });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // ── Backup API ────────────────────────────────────────────────────────────────

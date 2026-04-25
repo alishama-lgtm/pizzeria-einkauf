@@ -20766,44 +20766,68 @@ async function kassenbuchAdd() {
   renderBuchhaltungTab();
 }
 async function zbonImport(input) {
-  var file = input.files[0];
-  if (!file) return;
+  var files = Array.from(input.files || []);
+  if (!files.length) return;
   var result = document.getElementById('zbon-result');
-  if (result) result.innerHTML = '<div style="margin-top:12px;color:#a5d6a7;font-size:12px">⏳ Wird verarbeitet…</div>';
+  var totalGesamt = 0, totalEintraege = 0, errors = [], ok = [];
+
+  for (var fi = 0; fi < files.length; fi++) {
+    var file = files[fi];
+    if (result) result.innerHTML = '<div style="margin-top:12px;color:#a5d6a7;font-size:12px">⏳ ' + (fi+1) + '/' + files.length + ' — ' + _esc(file.name) + '</div>';
+    try {
+      var b64 = await new Promise(function(res) {
+        var r = new FileReader();
+        r.onload = function(e) { res(e.target.result); };
+        r.readAsDataURL(file);
+      });
+      var resp = await fetch('/api/kassenbuch/import-zbon', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ data: b64, name: file.name })
+      });
+      var d = await resp.json();
+      if (!d.ok) { errors.push(file.name + ': ' + (d.error||'Fehler')); continue; }
+      totalGesamt += d.gesamt || 0;
+      totalEintraege += (d.eintraege||[]).length;
+      ok.push({ name: file.name, gesamt: d.gesamt });
+    } catch(e) { errors.push(file.name + ': ' + e.message); }
+  }
+
+  await kbSync();
+  var html = '<div style="margin-top:14px;background:#1b4d1b;border-radius:12px;padding:14px 16px">';
+  html += '<div style="font-size:12px;font-weight:700;color:#81c784;margin-bottom:10px">✅ ' + ok.length + ' Z-Bons importiert · ' + totalEintraege + ' Kassenbuch-Einträge · Gesamt: €' + totalGesamt.toFixed(2).replace('.',',') + '</div>';
+  if (ok.length) {
+    html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">';
+    ok.forEach(function(o){ html += '<div style="font-size:11px;color:#a5d6a7">✓ ' + _esc(o.name) + ' — €' + (o.gesamt||0).toFixed(2).replace('.',',') + '</div>'; });
+    html += '</div>';
+  }
+  if (errors.length) {
+    html += '<div style="margin-top:6px">';
+    errors.forEach(function(e){ html += '<div style="font-size:11px;color:#ef9a9a">⚠ ' + _esc(e) + '</div>'; });
+    html += '</div>';
+  }
+  html += '</div>';
+  if (result) result.innerHTML = html;
+  renderBuchhaltungTab();
+  input.value = '';
+}
+
+async function rechnungenImport() {
+  var result = document.getElementById('rechnung-import-result');
+  if (result) result.innerHTML = '<div style="margin-top:12px;color:#90caf9;font-size:12px">⏳ Wird importiert…</div>';
   try {
-    var b64 = await new Promise(function(res) {
-      var r = new FileReader();
-      r.onload = function(e) { res(e.target.result); };
-      r.readAsDataURL(file);
-    });
-    var resp = await fetch('/api/kassenbuch/import-zbon', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ data: b64 })
-    });
+    var resp = await fetch('/api/kassenbuch/import-rechnungen', { method: 'POST' });
     var d = await resp.json();
     if (!d.ok) throw new Error(d.error);
     await kbSync();
-    var html = '<div style="margin-top:14px;background:#1b4d1b;border-radius:12px;padding:14px 16px">';
-    html += '<div style="font-size:12px;font-weight:700;color:#81c784;margin-bottom:10px">✅ ' + d.eintraege.length + ' Einträge importiert</div>';
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px">';
-    var kacheln = [
-      {l:'Gesamt',v:'€'+d.gesamt.toFixed(2).replace('.',','),c:'#fff'},
-      {l:'Bar',v:'€'+(d.bar||0).toFixed(2).replace('.',','),c:'#a5d6a7'},
-      {l:'EC-Karte',v:'€'+(d.karte||0).toFixed(2).replace('.',','),c:'#a5d6a7'},
-      {l:'Online',v:'€'+(d.online||0).toFixed(2).replace('.',','),c:'#a5d6a7'},
-      {l:'Foodora',v:'€'+(d.foodora||0).toFixed(2).replace('.',','),c:'#ffcc80'},
-      {l:'Lieferando',v:'€'+(d.lieferando||0).toFixed(2).replace('.',','),c:'#ffcc80'},
-    ];
-    kacheln.forEach(function(k) {
-      html += '<div style="text-align:center"><div style="font-size:10px;color:#81c784;margin-bottom:2px">'+k.l+'</div><div style="font-size:14px;font-weight:800;color:'+k.c+'">'+k.v+'</div></div>';
-    });
-    html += '</div></div>';
+    var html = '<div style="margin-top:14px;background:#0d2a4a;border-radius:12px;padding:14px 16px">';
+    html += '<div style="font-size:12px;font-weight:700;color:#64b5f6;margin-bottom:8px">✅ ' + d.imported + ' Einträge importiert, ' + d.skipped + ' übersprungen</div>';
+    html += '<div style="font-size:13px;font-weight:800;color:#fff">Gesamt: €' + (d.total||0).toFixed(2).replace('.',',') + '</div>';
+    html += '</div>';
     if (result) result.innerHTML = html;
     renderBuchhaltungTab();
   } catch(e) {
-    if (result) result.innerHTML = '<div style="margin-top:12px;color:#ef9a9a;font-size:12px">❌ Fehler: '+_esc(e.message)+'</div>';
+    if (result) result.innerHTML = '<div style="margin-top:12px;color:#ef9a9a;font-size:12px">❌ ' + _esc(e.message) + '</div>';
   }
-  input.value = '';
 }
 
 function kassenbuchLoeschen(id) {
@@ -20885,10 +20909,20 @@ async function renderBuchhaltungTab() {
   html += '<div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">🖨️ Z-Bon importieren</div>';
   html += '<div style="font-size:11px;color:#a5d6a7">Kassensystem-PDF hochladen → automatisch in Kassenbuch mit MwSt-Aufteilung</div></div>';
   html += '<div style="display:flex;gap:10px;align-items:center">';
-  html += '<input id="zbon-file-input" type="file" accept=".pdf" style="display:none" onchange="zbonImport(this)">';
-  html += '<button onclick="document.getElementById(\'zbon-file-input\').click()" style="padding:10px 20px;border-radius:10px;border:none;background:#4caf50;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">upload_file</span>Z-Bon PDF wählen</button>';
+  html += '<input id="zbon-file-input" type="file" accept=".pdf" multiple style="display:none" onchange="zbonImport(this)">';
+  html += '<button onclick="document.getElementById(\'zbon-file-input\').click()" style="padding:10px 20px;border-radius:10px;border:none;background:#4caf50;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">upload_file</span>Z-Bons wählen (mehrere möglich)</button>';
   html += '</div></div>';
   html += '<div id="zbon-result" style="margin-top:0"></div>';
+  html += '</div>';
+
+  // ── Rechnungen Auto-Import ──
+  html += '<div style="background:linear-gradient(135deg,#1a2a3a,#1e3a5c);border-radius:16px;padding:20px;border:1px solid #42a5f544;margin-bottom:16px">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">';
+  html += '<div><div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">📄 Lieferanten-Rechnungen importieren</div>';
+  html += '<div style="font-size:11px;color:#90caf9">UM Trade, Edenred, A1, SVS → automatisch als Ausgaben ins Kassenbuch</div></div>';
+  html += '<button onclick="rechnungenImport()" style="padding:10px 20px;border-radius:10px;border:none;background:#1976d2;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px"><span class="material-symbols-outlined" style="font-size:16px">sync</span>Jetzt importieren</button>';
+  html += '</div>';
+  html += '<div id="rechnung-import-result" style="margin-top:0"></div>';
   html += '</div>';
 
   // ── Kassenbuch-Formular ──
