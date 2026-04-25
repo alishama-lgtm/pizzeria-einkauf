@@ -7252,6 +7252,11 @@ function bizSaveKassaEntry() {
   const bar = parseFloat(document.getElementById('kassa-bar')?.value)||0;
   const karte = parseFloat(document.getElementById('kassa-karte')?.value)||0;
   const sa = parseFloat(document.getElementById('kassa-speise')?.value)||80;
+  // Zahlvalidierung
+  if (isNaN(bar) || bar < 0 || bar > 99999) return notifAdd('kassa','Ungültiger Betrag','Bar-Betrag muss zwischen 0 und 99.999 € liegen','warning','dashboard');
+  if (isNaN(karte) || karte < 0 || karte > 99999) return notifAdd('kassa','Ungültiger Betrag','Karten-Betrag muss zwischen 0 und 99.999 € liegen','warning','dashboard');
+  if (sa < 0 || sa > 100) return notifAdd('kassa','Ungültiger Wert','Speise-Anteil muss zwischen 0 und 100 % liegen','warning','dashboard');
+  if (bar === 0 && karte === 0) return notifAdd('kassa','Leerer Eintrag','Bitte mindestens einen Betrag eingeben','warning','dashboard');
   const today = bizToday();
   let kassa = bizGetKassa();
   kassa = kassa.filter(e => e.date !== today);

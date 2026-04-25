@@ -2374,11 +2374,18 @@ app.post('/api/kassenbuch', express.json(), (req, res) => {
   try {
     const e = req.body;
     if (!e || !e.typ || !e.beschreibung) return res.status(400).json({ error: 'Fehlende Felder' });
+    if (!['einnahme','ausgabe'].includes(e.typ)) return res.status(400).json({ error: 'typ muss einnahme oder ausgabe sein' });
+    const brutto = parseFloat(e.brutto)||0;
+    if (brutto < 0 || brutto > 999999) return res.status(400).json({ error: 'Betrag ungültig (0–999.999 €)' });
+    const mwst = parseFloat(e.mwst_satz)||0;
+    if (![0,10,20].includes(mwst)) return res.status(400).json({ error: 'MwSt muss 0, 10 oder 20 % sein' });
+    // Datum-Format prüfen (YYYY-MM-DD oder ISO)
+    if (e.datum && !/^\d{4}-\d{2}-\d{2}/.test(e.datum)) return res.status(400).json({ error: 'Datum-Format ungültig (YYYY-MM-DD)' });
     const id = e.id || Date.now().toString(36) + Math.random().toString(36).slice(2,5);
     const kbEntry = {
-      id, datum: e.datum || new Date().toISOString(), typ: e.typ, beschreibung: e.beschreibung,
-      netto: parseFloat(e.netto)||0, mwst_satz: parseFloat(e.mwst_satz)||0,
-      mwst_betrag: parseFloat(e.mwst_betrag)||0, brutto: parseFloat(e.brutto)||0
+      id, datum: e.datum || new Date().toISOString(), typ: e.typ, beschreibung: String(e.beschreibung).slice(0,500),
+      netto: parseFloat(e.netto)||0, mwst_satz: mwst,
+      mwst_betrag: parseFloat(e.mwst_betrag)||0, brutto
     };
     db.prepare(`INSERT OR REPLACE INTO kassenbuch (id,datum,typ,beschreibung,netto,mwst_satz,mwst_betrag,brutto) VALUES (?,?,?,?,?,?,?,?)`)
       .run(kbEntry.id, kbEntry.datum, kbEntry.typ, kbEntry.beschreibung, kbEntry.netto, kbEntry.mwst_satz, kbEntry.mwst_betrag, kbEntry.brutto);
