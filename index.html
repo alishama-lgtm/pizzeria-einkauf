@@ -16352,7 +16352,10 @@ function renderDienstplanTab() {
     return todaySchicht.ruhetag ? 'Ruhetag' : todaySchicht.label + ' Uhr';
   })();
 
-  const weekKey = monday.toISOString().slice(0,10);
+  // Timezone-sicheres ISO-Datum (kein UTC-Versatz)
+  const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+  const weekKey = toLocalISO(monday);
   if (!plan[weekKey]) plan[weekKey] = {};
 
   const weekDates = DAYS.map((_, i) => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
@@ -16367,7 +16370,7 @@ function renderDienstplanTab() {
     + DAYS.map((day,i) => {
       const dateObj   = weekDates[i];
       const isToday   = dateObj.toDateString() === new Date().toDateString();
-      const isoDate   = dateObj.toISOString().slice(0,10);
+      const isoDate   = toLocalISO(dateObj);
       const feiertag  = AT_FEIERTAGE[isoDate] || null;
       const schicht   = getSchichtForDay(dateObj);
       const bgColor   = feiertag ? '#fff8e1' : schicht.ruhetag ? '#f5f5f5' : isToday ? '#fff0ee' : '#fff8f6';
@@ -16394,7 +16397,7 @@ function renderDienstplanTab() {
       const maRows = group.map(ma => {
         const cells = DAYS.map((day, di) => {
           const key = ma.id || ma.name;
-          const isoDate = weekDates[di].toISOString().slice(0,10);
+          const isoDate = toLocalISO(weekDates[di]);
           const feiertag = AT_FEIERTAGE[isoDate] || null;
           // Feiertag → kein Toggle-Button, nur Anzeige
           if (feiertag) {
