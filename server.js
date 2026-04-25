@@ -198,7 +198,23 @@ console.log('  SQLite Preishistorie bereit →', path.join(__dirname, 'pizzeria.
 const HP_CACHE_FILE = path.join(__dirname, 'hp-cache.json');
 const HP_CACHE_AGE  = 24 * 60 * 60 * 1000; // 24 Stunden
 
-app.use(cors({ origin: '*' }));
+// ── CORS: nur localhost + LAN ─────────────────────────────────────────
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // same-origin / direkt
+    if (/^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)(:\d+)?/.test(origin)) return cb(null, true);
+    cb(new Error('CORS nicht erlaubt'));
+  }
+}));
+
+// ── IP-Whitelist: nur localhost + LAN auf /api ────────────────────────
+const requireLocalIP = (req, res, next) => {
+  const ip = (req.ip || req.connection?.remoteAddress || '').replace('::ffff:','');
+  if (ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) return next();
+  console.warn(`[SECURITY] Zugriff verweigert von IP: ${ip} → ${req.url}`);
+  res.status(403).json({ error: 'Kein Zugriff' });
+};
+
 app.use((req, _res, next) => {
   console.log(`[${new Date().toISOString().slice(11,19)}] ${req.method} ${req.url}`);
   next();
@@ -356,6 +372,15 @@ code{font-size:10px;background:#f3ebe9;padding:1px 5px;border-radius:4px;color:#
 </div>
 </body></html>`);
 });
+
+// ── Sensible Dateien NIEMALS ausliefern ───────────────────────────────
+app.get(['/users.js', '/.env', '/pizzeria.db', '*.db'], (req, res) => {
+  res.status(403).send('Kein Zugriff');
+});
+
+// ── API-Routen: nur localhost + LAN ───────────────────────────────────
+app.use('/api', requireLocalIP);
+app.use('/db-viewer', requireLocalIP);
 
 // Statische Dateien ausliefern (index.html, js/, css/, sw.js etc.)
 app.use(express.static(__dirname, { index: 'index.html' }));
@@ -2884,6 +2909,13 @@ app.get('/api/admin/table/:name', (req, res) => {
       setTimeout(() => migriereLocalPdfsZuTurso(), 5000);
     } catch(e) { console.error('  Turso Fehler (Server startet trotzdem):', e.message); }
   }
+  // ── Globaler Error-Handler (keine Stack-Traces an Client) ────────────
+  app.use((err, req, res, _next) => {
+    console.error(`[API Error] ${req.method} ${req.url}:`, err.message || err);
+    if (res.headersSent) return;
+    res.status(err.status || 500).json({ error: 'Interner Fehler' });
+  });
+
   console.log('\n  Lade Preisdaten ...');
   loadHeissePreise().then(() => {
   const httpServer = app.listen(PORT, '0.0.0.0', () => {
