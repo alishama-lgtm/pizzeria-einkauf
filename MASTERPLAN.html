@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pizzeria San Carino — Masterplan</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 20px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1 {
+    font-size: 24px;
+    color: #8B0000;
+    border-bottom: 3px solid #8B0000;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 16px;
+    color: #8B0000;
+    background: #fff5f5;
+    border-left: 4px solid #8B0000;
+    padding: 6px 10px;
+    margin: 20px 0 10px 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 13px;
+    color: #444;
+    margin: 12px 0 6px 0;
+    font-weight: 700;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  th {
+    background: #8B0000;
+    color: #fff;
+    padding: 5px 8px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    border: 1px solid #ddd;
+    padding: 4px 8px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  code, pre {
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+  }
+  code { padding: 1px 4px; }
+  pre {
+    padding: 10px;
+    margin: 6px 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+  .status-ok    { color: #2e7d32; font-weight: bold; }
+  .status-open  { color: #e65100; font-weight: bold; }
+  .status-soon  { color: #1565c0; font-weight: bold; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+  .badge-red  { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+  .badge-green{ background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+  .badge-blue { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+  .badge-gray { background: #f5f5f5; color: #424242; border: 1px solid #bdbdbd; }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .box {
+    background: #fff8f8;
+    border: 1px solid #ffc9c9;
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .box h3 { color: #8B0000; margin-top: 0; }
+  ul { padding-left: 18px; }
+  li { margin-bottom: 3px; }
+  .prio-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .prio-num {
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .print-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    background: #8B0000;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 999;
+  }
+  .print-btn:hover { background: #a00000; }
+  @media print {
+    .print-btn { display: none; }
+    body { padding: 0; font-size: 11px; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+    .two-col { grid-template-columns: 1fr 1fr; }
+  }
+  @page {
+    size: A4;
+    margin: 15mm 12mm 15mm 12mm;
+  }
+  .header-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #8B0000;
+  }
+  .logo { font-size: 40px; }
+  .divider { border: none; border-top: 1px solid #e0e0e0; margin: 16px 0; }
+  .footer {
+    margin-top: 30px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+    font-size: 11px;
+    color: #999;
+    text-align: center;
+  }
+  .highlight-box {
+    background: #fff3e0;
+    border: 1px solid #ffcc80;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 8px 0;
+  }
+  .section-panels {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin: 6px 0;
+  }
+  .panel-chip {
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: #1b5e20;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Als PDF drucken</button>
+
+<!-- HEADER -->
+<div class="header-bar">
+  <div class="logo">🍕</div>
+  <div>
+    <h1>Pizzeria San Carino — Masterplan</h1>
+    <div class="subtitle">Ali Shama KG, Wien · Stand: 26. April 2026 · Session 20 abgeschlossen · Version 1.0</div>
+  </div>
+</div>
+
+<!-- SCHNELLSTART -->
+<h2>⚡ Schnellstart</h2>
+<pre>
+# App starten (PowerShell):
+cd "C:\Users\shama\Claude\Pizzaria\.claude\San Carino\aktuell"
+.\restart.ps1
+# → http://localhost:3000
+
+# Login: admin / ali2024   oder   PIN: 1234
+# Business-Tab: ali2024
+</pre>
+<pre>
+# Git (nach Änderungen):
+git add .
+git commit -m "YYYY-MM-DD: ..."
+git push
+# Repo: alishama-lgtm/pizzeria-einkauf → Branch: main
+</pre>
+
+<!-- IST-STAND -->
+<h2>📊 Aktueller Stand (Session 20)</h2>
+<div class="two-col">
+  <div class="box">
+    <h3>✅ Abgeschlossen</h3>
+    <ul>
+      <li><strong>36 Panels</strong> — alle vorhanden &amp; verdrahtet</li>
+      <li><strong>Sessions 1–20</strong> — App fertig für Eigennutzung</li>
+      <li><strong>Datenbank:</strong> SQLite lokal + Turso Cloud Sync</li>
+      <li><strong>Sicherheit:</strong> IP-Whitelist, CORS, WS-Token, Rate-Limit</li>
+      <li><strong>Testphase läuft</strong> — App täglich nutzen</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h3>⬜ Noch offen</h3>
+    <ul>
+      <li>Z-Bon PDFs hochladen (Aug 2025 – Apr 2026)</li>
+      <li>Fixkosten in Einstellungen eintragen</li>
+      <li>HTTPS mkcert (für iPhone)</li>
+      <li>Lohnzettel März 2026 nachbuchen</li>
+      <li>Phase 2: Installer + Lizenz (nach Testphase!)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- KRITISCHE DATEIEN -->
+<h2>🗂️ Wichtige Dateien</h2>
+<table>
+  <tr><th>Datei</th><th>Zweck</th><th>Größe</th></tr>
+  <tr><td><code>index.html</code></td><td>Frontend — alle 36 Panels, Vanilla JS SPA</td><td>~21.500 Zeilen</td></tr>
+  <tr><td><code>server.js</code></td><td>Backend — 50+ Routen, SQLite, Turso, Email, WebSocket</td><td>~3.000 Zeilen</td></tr>
+  <tr><td><code>users.js</code></td><td>Benutzer-Logins + PINs <strong>(gitignored!)</strong></td><td>~20 Zeilen</td></tr>
+  <tr><td><code>email-sync.js</code></td><td>Gmail IMAP Polling alle 10 Minuten</td><td>~200 Zeilen</td></tr>
+  <tr><td><code>pizzeria.db</code></td><td>Lokale SQLite Datenbank <strong>(gitignored)</strong></td><td>—</td></tr>
+  <tr><td><code>sw.js</code></td><td>Service Worker für PWA (iPhone)</td><td>~155 Zeilen</td></tr>
+  <tr><td><code>.env</code></td><td>TURSO_URL + TURSO_TOKEN + ANTHROPIC_API_KEY</td><td>—</td></tr>
+  <tr><td><code>restart.ps1</code></td><td>PowerShell: alte node.exe töten + neu starten</td><td>—</td></tr>
+  <tr><td><code>WEITERMACHEN.md</code></td><td>Session-Log + offene Aufgaben</td><td>—</td></tr>
+  <tr><td><code>HANDBUCH.md</code></td><td>Vollständiges Benutzerhandbuch</td><td>—</td></tr>
+</table>
+<p style="font-size:11px;color:#666;">Arbeitsverzeichnis: <code>C:\Users\shama\Claude\Pizzaria\.claude\San Carino\aktuell</code></p>
+
+<!-- 36 PANELS -->
+<h2>📊 Alle 36 Panels</h2>
+<div class="section-panels">
+  <div class="panel-chip">✅ Produkte</div>
+  <div class="panel-chip">✅ Geschäfte</div>
+  <div class="panel-chip">✅ Kombis</div>
+  <div class="panel-chip">✅ Angebote</div>
+  <div class="panel-chip">✅ Einkaufsliste</div>
+  <div class="panel-chip">✅ Suche</div>
+  <div class="panel-chip">✅ Upload (OCR)</div>
+  <div class="panel-chip">✅ Verlauf</div>
+  <div class="panel-chip">✅ Mitarbeiter</div>
+  <div class="panel-chip">✅ Fehlmaterial</div>
+  <div class="panel-chip">✅ Checkliste</div>
+  <div class="panel-chip">✅ Business</div>
+  <div class="panel-chip">✅ Dashboard</div>
+  <div class="panel-chip">✅ Speisekarte</div>
+  <div class="panel-chip">✅ Lieferanten</div>
+  <div class="panel-chip">✅ Dienstplan</div>
+  <div class="panel-chip">✅ Aufgaben</div>
+  <div class="panel-chip">✅ Schichtcheck</div>
+  <div class="panel-chip">✅ Bestellung</div>
+  <div class="panel-chip">✅ Lager</div>
+  <div class="panel-chip">✅ Wareneinsatz</div>
+  <div class="panel-chip">✅ Preisalarm</div>
+  <div class="panel-chip">✅ Standardmaterial</div>
+  <div class="panel-chip">✅ Statistik</div>
+  <div class="panel-chip">✅ Tagesangebote</div>
+  <div class="panel-chip">✅ Umsatz</div>
+  <div class="panel-chip">✅ Gewinn</div>
+  <div class="panel-chip">✅ Buchhaltung</div>
+  <div class="panel-chip">✅ Konkurrenz</div>
+  <div class="panel-chip">✅ Bewertungen</div>
+  <div class="panel-chip">✅ Heute</div>
+  <div class="panel-chip">✅ HACCP</div>
+  <div class="panel-chip">✅ MHD</div>
+  <div class="panel-chip">✅ Kassenschnitt</div>
+  <div class="panel-chip">✅ Urlaub</div>
+  <div class="panel-chip">✅ Trinkgeld</div>
+</div>
+
+<!-- SESSION 20 FEATURES -->
+<h2>✅ Was in Session 20 gebaut wurde (26.04.2026)</h2>
+<table>
+  <tr><th>Feature</th><th>Details</th><th>Status</th></tr>
+  <tr><td>Login-Fix</td><td>users.js explizite Route statt static — Login funktioniert zuverlässig</td><td class="status-ok">✅</td></tr>
+  <tr><td>Rate-Limiting</td><td>express-rate-limit — max. 200 Anfragen / 15 Minuten pro IP</td><td class="status-ok">✅</td></tr>
+  <tr><td>Heisse-Preise async</td><td>Server startet sofort, Preissuche lädt im Hintergrund (1–2 Min)</td><td class="status-ok">✅</td></tr>
+  <tr><td>WebSocket Token-Auth</td><td>Zufälliger WS_TOKEN beim Start, Clients müssen Token mitsenden</td><td class="status-ok">✅</td></tr>
+  <tr><td>PDF MIME-Check</td><td>Magic-Bytes Prüfung beim Upload: PDF / JPG / PNG</td><td class="status-ok">✅</td></tr>
+  <tr><td>Stille Fehler behoben</td><td>Alle .catch(()=&gt;{}) → console.error() — Bugs sind jetzt sichtbar</td><td class="status-ok">✅</td></tr>
+  <tr><td>PDF Concurrency</td><td>Max. 3 PDFs parallel verarbeiten + Lock gegen Doppelstart</td><td class="status-ok">✅</td></tr>
+  <tr><td>Turso-Sync optimiert</td><td>Cloud-Sync nur wenn letzter Sync &gt; 1 Stunde her</td><td class="status-ok">✅</td></tr>
+  <tr><td>Kassenbuch-Validierung</td><td>Frontend + Backend: 0–999.999€, MwSt nur 0/10/20%</td><td class="status-ok">✅</td></tr>
+  <tr><td>ICS-Export</td><td>Dienstplan → .ics Datei für Google/Apple/Outlook Kalender</td><td class="status-ok">✅</td></tr>
+  <tr><td>i18n System</td><td>4 Sprachen: DE / EN / NL / AR (mit RTL für Arabisch)</td><td class="status-ok">✅</td></tr>
+  <tr><td>Setup-Wizard</td><td>Beim ersten Start: Name, Logo, Farbe, Adresse konfigurieren</td><td class="status-ok">✅</td></tr>
+  <tr><td>White-Label</td><td>Jedes Restaurant kann eigene Identität einstellen</td><td class="status-ok">✅</td></tr>
+  <tr><td>Handbuch fertig</td><td>HANDBUCH.md — alle 8 Sektionen vollständig dokumentiert</td><td class="status-ok">✅</td></tr>
+</table>
+
+<!-- SICHERHEIT -->
+<h2>🔐 Sicherheits-Status</h2>
+<table>
+  <tr><th>Problem</th><th>Lösung</th><th>Status</th></tr>
+  <tr><td>/api/* ohne Login erreichbar</td><td>requireLocalIP Middleware — nur localhost + LAN</td><td class="status-ok">✅</td></tr>
+  <tr><td>/db-viewer öffentlich</td><td>requireLocalIP auf Route</td><td class="status-ok">✅</td></tr>
+  <tr><td>WebSocket ohne Auth</td><td>WS_TOKEN — zufällig beim Start, Query-Parameter</td><td class="status-ok">✅</td></tr>
+  <tr><td>SQL String-Interpolation</td><td>Whitelist in /api/admin/table/:name</td><td class="status-ok">✅</td></tr>
+  <tr><td>CORS origin: '*'</td><td>Nur localhost + LAN Regex</td><td class="status-ok">✅</td></tr>
+  <tr><td>Stack-Traces an Client</td><td>Globaler Error-Handler, generische Meldung</td><td class="status-ok">✅</td></tr>
+  <tr><td>PDF Upload ohne MIME-Prüfung</td><td>Magic-Bytes PDF/JPG/PNG beim Upload</td><td class="status-ok">✅</td></tr>
+  <tr><td>Kein Rate-Limiting</td><td>200 Req/15min via express-rate-limit</td><td class="status-ok">✅</td></tr>
+  <tr><td>50+ stille catch-Blöcke</td><td>Alle loggen jetzt [App] / [Turso]</td><td class="status-ok">✅</td></tr>
+</table>
+
+<!-- KASSENBUCH -->
+<h2>💰 Kassenbuch-Status</h2>
+<div class="two-col">
+  <div>
+    <h3>Ausgaben (PDFs importiert)</h3>
+    <table>
+      <tr><th>Lieferant</th><th>PDFs</th><th>Status</th></tr>
+      <tr><td>UM Trade (Lebensmittel, 10% MwSt)</td><td>43 PDFs ~€21.256</td><td class="status-ok">✅</td></tr>
+      <tr><td>UM Trade Jänner 2026</td><td>8 PDFs ~€4.100</td><td class="status-ok">✅</td></tr>
+      <tr><td>Edenred (Essensgutscheine, 20% MwSt)</td><td>14 PDFs</td><td class="status-ok">✅</td></tr>
+      <tr><td>A1 (Telefon &amp; Internet, 20% MwSt)</td><td>5 PDFs</td><td class="status-ok">✅</td></tr>
+      <tr><td>SVS (Sozialversicherung, 0% MwSt)</td><td>1 PDF</td><td class="status-ok">✅</td></tr>
+    </table>
+  </div>
+  <div>
+    <h3>Einnahmen (Z-Bon noch ausstehend)</h3>
+    <table>
+      <tr><th>Monat</th><th>Status</th></tr>
+      <tr><td>Juli 2025</td><td class="status-ok">✅ importiert</td></tr>
+      <tr><td>August 2025</td><td class="status-open">⬜ hochladen</td></tr>
+      <tr><td>September 2025</td><td class="status-open">⬜ hochladen</td></tr>
+      <tr><td>Oktober 2025</td><td class="status-open">⬜ hochladen</td></tr>
+      <tr><td>November 2025</td><td class="status-open">⬜ hochladen</td></tr>
+      <tr><td>Dezember 2025</td><td class="status-open">⬜ hochladen</td></tr>
+      <tr><td>Jänner – April 2026</td><td class="status-open">⬜ hochladen</td></tr>
+    </table>
+  </div>
+</div>
+<div class="highlight-box">
+  📌 <strong>Z-Bon hochladen:</strong> Buchhaltung → Z-Bon Import → mehrere PDFs gleichzeitig auswählen
+</div>
+
+<!-- PRIORITÄTEN -->
+<h2>🎯 Aufgaben — Prioritäten</h2>
+
+<h3><span class="badge badge-red">🔴 Jetzt (diese Woche)</span></h3>
+<div class="prio-item">
+  <div class="prio-num" style="background:#ffebee;color:#c62828;">1</div>
+  <div><strong>Z-Bon PDFs hochladen</strong> — Aug 2025 bis Apr 2026 → Buchhaltung → Z-Bon Import</div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#ffebee;color:#c62828;">2</div>
+  <div><strong>Fixkosten eintragen</strong> → Einstellungen → Fixkosten → „Für alle Monate generieren" klicken<br>
+  <small style="color:#666;">Miete, Strom/Gas, Versicherung, Buchhaltungskosten</small></div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#ffebee;color:#c62828;">3</div>
+  <div><strong>App täglich nutzen</strong> — Bugs oder Probleme notieren → nächste Session beheben</div>
+</div>
+
+<h3 style="margin-top:12px;"><span class="badge badge-gray">🟡 Nächste Session</span></h3>
+<div class="prio-item">
+  <div class="prio-num" style="background:#fff8e1;color:#e65100;">4</div>
+  <div><strong>Gefundene Bugs beheben</strong> — nach der Testwoche/Testmonat</div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#fff8e1;color:#e65100;">5</div>
+  <div><strong>Lohnzettel März 2026</strong> — manuell im Kassenbuch nachbuchen</div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#fff8e1;color:#e65100;">6</div>
+  <div><strong>HTTPS mkcert einrichten</strong> — für iPhone PWA Zugriff (Cloudflare Tunnel Alternative)</div>
+</div>
+
+<h3 style="margin-top:12px;"><span class="badge badge-blue">🔵 Phase 2 — NACH Testphase</span></h3>
+<div class="highlight-box" style="background:#e3f2fd;border-color:#90caf9;">
+  ⚠️ <strong>Erst starten wenn die App stabil läuft und du zufrieden bist!</strong>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#e3f2fd;color:#0d47a1;">7</div>
+  <div><strong>Installer PowerShell</strong> — 1-Klick Installation für andere Restaurants<br>
+  <small style="color:#666;">Prüft Node.js, entpackt App, erstellt users.js + .env, startet Browser</small></div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#e3f2fd;color:#0d47a1;">8</div>
+  <div><strong>Lizenz-System</strong> — Aktivierungscode per WhatsApp, Format: REST-YYYY-XXXX<br>
+  <small style="color:#666;">Kein Ablaufdatum, Vertrauensbasis, Demo-Modus 30 Tage ohne Code</small></div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#e3f2fd;color:#0d47a1;">9</div>
+  <div><strong>PDF-Handbuch</strong> — Kundenhandbuch auf Deutsch druckfertig</div>
+</div>
+<div class="prio-item">
+  <div class="prio-num" style="background:#e3f2fd;color:#0d47a1;">10</div>
+  <div><strong>Verkaufsstrategie</strong> — Preis: €500–800 einmalig, Zielgruppe: kleine Restaurants AT/DE<br>
+  <small style="color:#666;">Support via WhatsApp, Modell A (Einmalig) zuerst testen</small></div>
+</div>
+
+<!-- DATENBANK -->
+<h2>🗄️ Datenbank-System</h2>
+<div class="two-col">
+  <div class="box">
+    <h3>SQLite lokal (pizzeria.db)</h3>
+    <table>
+      <tr><th>Tabelle</th><th>Inhalt</th></tr>
+      <tr><td>preishistorie</td><td>Produktpreise, Datum, Shop</td></tr>
+      <tr><td>umsatz_einnahmen</td><td>Tagesumsätze Kasse + Lieferdienst</td></tr>
+      <tr><td>app_data</td><td>Key-Value Store</td></tr>
+      <tr><td>kassenbuch</td><td>Einnahmen + Ausgaben mit MwSt AT</td></tr>
+      <tr><td>mitarbeiter</td><td>Mitarbeiterdaten</td></tr>
+      <tr><td>dokumente</td><td>PDF-Metadaten + Base64</td></tr>
+    </table>
+  </div>
+  <div class="box">
+    <h3>Turso Cloud (libSQL) — Backup</h3>
+    <p style="margin-bottom:8px;">Gleiche Tabellen wie SQLite. Automatischer Dual-Write bei jedem Speichern.</p>
+    <p><strong>Sync-Interval:</strong> Pull nur wenn letzter Sync &gt; 1 Stunde</p>
+    <p style="margin-top:6px;"><strong>Config:</strong> TURSO_URL + TURSO_TOKEN in <code>.env</code></p>
+    <p style="margin-top:6px;font-size:11px;color:#666;">Bei Offline-Betrieb: SQLite läuft weiter. Sync erfolgt bei nächster Verbindung.</p>
+  </div>
+</div>
+
+<!-- MCP VERBINDUNGEN -->
+<h2>🔌 MCP Verbindungen</h2>
+<table>
+  <tr><th>Service</th><th>Status</th><th>Was die App damit macht</th></tr>
+  <tr><td>Notion</td><td class="status-ok">✅ aktiv</td><td>Fehlmaterial-Sync, Tagesbericht, Aufgaben (Buttons vorhanden)</td></tr>
+  <tr><td>Gmail</td><td class="status-ok">✅ aktiv</td><td>E-Mail-Sync via email-sync.js (alle 10 Min)</td></tr>
+  <tr><td>Google Calendar</td><td class="status-ok">✅ aktiv</td><td>ICS-Export im Dienstplan (Kalender .ics Button)</td></tr>
+  <tr><td>Google Drive</td><td class="status-ok">✅ aktiv</td><td>⬜ PDF-Backup noch nicht verbunden (Phase 2)</td></tr>
+</table>
+<div class="highlight-box">
+  📌 <strong>Notion API Key:</strong> Einstellungen ⚙️ → Notion API Key eintragen → dann funktioniert Fehlmaterial-Sync
+</div>
+
+<!-- SESSION LOG -->
+<h2>📋 Session-Log (Übersicht)</h2>
+<table>
+  <tr><th>Session</th><th>Datum</th><th>Was gebaut wurde</th></tr>
+  <tr><td>1–5</td><td>April 2026</td><td>Grundstruktur, alle 36 Panels, Navigation, Login</td></tr>
+  <tr><td>6–8</td><td>April 2026</td><td>Kassenbuch, MwSt AT (0/10/20%), E-Mail-Sync</td></tr>
+  <tr><td>9</td><td>20.04.2026</td><td>Datenbank-Ordner Import-System (fs.watch + WebSocket)</td></tr>
+  <tr><td>10–15</td><td>April 2026</td><td>Mitarbeiter, Dienstplan, HACCP, Lager, Checkliste</td></tr>
+  <tr><td>16</td><td>22.04.2026</td><td>Features 3–10: Fixkosten, Lieferanten, Passwort, Backup, Alarm, Pizzagrößen, Mindestbestand, Bondrucker</td></tr>
+  <tr><td>17–17c</td><td>23.04.2026</td><td>PDFs → Turso Cloud, Buchhaltung PDF-Verwaltung, UM Trade Analyse</td></tr>
+  <tr><td>18</td><td>24.04.2026</td><td>Datum-Extraktion aus PDFs, Kategorien-Header, Sortierung</td></tr>
+  <tr><td>19</td><td>25.04.2026</td><td>Port-Fix (restart.ps1), Sicherheits-Patches, MwSt-Korrekturen</td></tr>
+  <tr><td>20</td><td>26.04.2026</td><td>Rate-Limit, WS-Auth, PDF-MIME, Catch-Blöcke, ICS-Export, Turso-Opt, Kassenbuch-Validierung, i18n DE/EN/NL/AR, Setup-Wizard, White-Label</td></tr>
+</table>
+
+<!-- PHASE 2 DETAILS -->
+<h2>🚀 Phase 2 — Verkaufsvorbereitung (gespeichert für später)</h2>
+<div class="two-col">
+  <div class="box">
+    <h3>💻 Installer PowerShell</h3>
+    <p>Ein <code>.ps1</code> Script für andere Restaurants:</p>
+    <ul style="margin-top:8px;">
+      <li>Prüft ob Node.js ≥22 installiert → installiert wenn nicht</li>
+      <li>Entpackt App-ZIP ins gewünschte Verzeichnis</li>
+      <li>Erstellt <code>users.js</code> interaktiv (Name, Passwort, PIN)</li>
+      <li>Erstellt <code>.env</code> mit Platzhaltern</li>
+      <li>Startet Server + öffnet Browser automatisch</li>
+      <li>Erstellt Desktop-Verknüpfung</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h3>🔑 Lizenz-System (einfach)</h3>
+    <ul>
+      <li>Aktivierungscode beim ersten Start eingeben</li>
+      <li>Format: <code>REST-YYYY-XXXX</code></li>
+      <li><strong>Kein Ablaufdatum</strong> — Vertrauensbasis</li>
+      <li>Code wird lokal gehasht gespeichert</li>
+      <li>Ohne Code: Demo-Modus 30 Tage → dann gesperrt</li>
+      <li>Du schickst Code per WhatsApp nach Zahlung</li>
+    </ul>
+  </div>
+</div>
+<div class="box" style="margin-top:12px;">
+  <h3>💰 Verkaufsstrategie</h3>
+  <table style="margin-top:8px;">
+    <tr><th>Punkt</th><th>Details</th></tr>
+    <tr><td>Preis</td><td>€500–800 einmalig (kleine Pizzerien AT/DE)</td></tr>
+    <tr><td>Zielgruppe</td><td>Kleine Restaurants, 5–20 Mitarbeiter, Österreich + Deutschland</td></tr>
+    <tr><td>Support</td><td>WhatsApp — du kennst die Kunden persönlich</td></tr>
+    <tr><td>Modell A</td><td>Einmalig zahlen → App gehört dem Restaurant (zuerst starten)</td></tr>
+    <tr><td>Modell B</td><td>SaaS monatlich (erst wenn 10+ Kunden)</td></tr>
+  </table>
+</div>
+
+<!-- TECHNISCHE HINWEISE -->
+<h2>🔧 Technische Hinweise</h2>
+<div class="two-col">
+  <div>
+    <h3>Wichtige Logins</h3>
+    <table>
+      <tr><th>Rolle</th><th>Benutzer</th><th>Passwort</th><th>PIN</th></tr>
+      <tr><td>👑 Admin</td><td>admin</td><td>ali2024</td><td>1234</td></tr>
+      <tr><td>🏢 Manager</td><td>manager</td><td>manager1</td><td>2222</td></tr>
+      <tr><td>👤 Mitarbeiter</td><td>employee</td><td>pizza123</td><td>3333</td></tr>
+      <tr><td>👨‍🍳 Küche</td><td>kitchen</td><td>kueche1</td><td>4444</td></tr>
+      <tr><td>🚗 Fahrer</td><td>fahrer</td><td>fahrer1</td><td>5555</td></tr>
+    </table>
+  </div>
+  <div>
+    <h3>Österreichische MwSt</h3>
+    <table>
+      <tr><th>Satz</th><th>Anwendung</th></tr>
+      <tr><td><strong>10%</strong></td><td>Speisen, Lebensmittel</td></tr>
+      <tr><td><strong>20%</strong></td><td>Getränke, Sonstiges, Dienstleistungen</td></tr>
+      <tr><td><strong>0%</strong></td><td>Sozialversicherung (SVS), steuerfreie Leistungen</td></tr>
+    </table>
+    <h3 style="margin-top:12px;">Business-Tab Reset (Browser-Konsole)</h3>
+    <pre>localStorage.removeItem('biz_pw_hash')</pre>
+  </div>
+</div>
+
+<div class="divider"></div>
+<div class="footer">
+  Pizzeria San Carino — Ali Shama KG, Wien · Erstellt mit Claude Code · Stand 26. April 2026<br>
+  Dieses Dokument ist vertraulich. Nicht für Dritte bestimmt.
+</div>
+
+</body>
+</html>

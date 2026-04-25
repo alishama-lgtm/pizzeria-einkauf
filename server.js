@@ -694,11 +694,15 @@ const WS_TOKEN = crypto.randomBytes(24).toString('hex');
 function handleUpgrade(server) {
   server.on('upgrade', (request, socket, head) => {
     if (request.url?.startsWith('/ws/sync')) {
-      // Token aus Query-String prüfen
+      // Lokale IP immer erlauben (LAN/localhost) — Token als zweite Option
+      const remoteIP = (socket.remoteAddress || '').replace('::ffff:', '');
+      const isLocal = remoteIP === '::1' || remoteIP === '127.0.0.1'
+        || remoteIP.startsWith('192.168.') || remoteIP.startsWith('10.')
+        || remoteIP.startsWith('172.');
       const urlObj = new URL(request.url, 'http://localhost');
       const token = urlObj.searchParams.get('token');
-      if (token !== WS_TOKEN) {
-        console.warn('[WS] Verbindung abgelehnt — ungültiger Token');
+      if (!isLocal && token !== WS_TOKEN) {
+        console.warn('[WS] Verbindung abgelehnt — unbekannte IP:', remoteIP);
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;

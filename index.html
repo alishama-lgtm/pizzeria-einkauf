@@ -3001,9 +3001,9 @@ const syncManager = {
       let token = '';
       try {
         const r = await fetch('/api/ws-token');
-        const d = await r.json();
-        token = d.token || '';
-      } catch(_) {}
+        if (r.ok) { const d = await r.json(); token = d.token || ''; }
+        else { console.warn('[WS] Token-Fetch Status:', r.status); }
+      } catch(e) { console.warn('[WS] Token-Fetch fehlgeschlagen:', e.message); }
       const url = protocol + '//' + location.host + '/ws/sync?token=' + token;
       this.ws = new WebSocket(url);
       this.updateStatus('connecting');
