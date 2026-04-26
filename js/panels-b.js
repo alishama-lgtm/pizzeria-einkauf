@@ -5582,9 +5582,21 @@ function _buildEinkaufslisteHTML() {
   html += '<option value="penny">Penny</option>';
   html += '</select>';
 
-  // Button
+  // Button Hinzufügen
   html += '<button onclick="elQuickAdd()" style="padding:11px 20px;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap">';
   html += '<span class="material-symbols-outlined" style="font-size:18px">add</span>Hinzufügen</button>';
+
+  // Button Barcode-Scanner
+  html += '<button onclick="elBarcodeScanner()" title="Barcode scannen" style="padding:11px 14px;background:#fff;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;color:#610000;font-weight:700;white-space:nowrap">';
+  html += '<span class="material-symbols-outlined" style="font-size:18px">qr_code_scanner</span>Scannen</button>';
+
+  // Button Foto / KI-Analyse
+  html += '<button onclick="elFotoScan()" title="Foto analysieren (KI)" style="padding:11px 14px;background:#fff;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;color:#610000;font-weight:700;white-space:nowrap">';
+  html += '<span class="material-symbols-outlined" style="font-size:18px">photo_camera</span>Foto</button>';
+
+  // Button Import
+  html += '<button onclick="elImportModal()" title="Liste importieren" style="padding:11px 14px;background:#fff;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:13px;color:#610000;font-weight:700;white-space:nowrap">';
+  html += '<span class="material-symbols-outlined" style="font-size:18px">upload_file</span>Import</button>';
 
   html += '</div>';
   html += '</div>';
@@ -5823,6 +5835,549 @@ function elUpdateBadge() {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// EINKAUFSLISTE — BARCODE SCANNER + FOTO-ANALYSE + IMPORT
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Kaufort-Präferenzen (merkt sich pro Produkt das bevorzugte Geschäft) ──
+function elKaufortSpeichern(name, shopId) {
+  try {
+    var prefs = JSON.parse(localStorage.getItem('psc_el_kaufort') || '{}');
+    prefs[(name || '').toLowerCase()] = shopId;
+    localStorage.setItem('psc_el_kaufort', JSON.stringify(prefs));
+  } catch(_) {}
+}
+function elKaufortLaden(name) {
+  try {
+    var prefs = JSON.parse(localStorage.getItem('psc_el_kaufort') || '{}');
+    return prefs[(name || '').toLowerCase()] || '';
+  } catch(_) { return ''; }
+}
+
+// ── Vorschau-Modal nach KI-Analyse ──
+function _elShowImportPreview(items, source) {
+  var existing = document.getElementById('el-import-preview');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'el-import-preview';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+
+  var rows = items.map(function(item, idx) {
+    var shopOptions = '<option value="">Kein Geschäft</option>';
+    shopOptions += SHOPS.map(function(s){ return '<option value="' + s.id + '">' + s.name + '</option>'; }).join('');
+    shopOptions += '<option value="hofer">Hofer</option><option value="penny">Penny</option>';
+    return '<tr style="border-bottom:1px solid #f0e8e6">' +
+      '<td style="padding:8px 6px;font-size:14px;color:#261816">' + _esc(item.name) + '</td>' +
+      '<td style="padding:8px 6px;font-size:13px;color:#8d6562;white-space:nowrap">' + (item.menge || 1) + ' ' + _esc(item.einheit || 'Stk') + '</td>' +
+      '<td style="padding:8px 6px"><select id="el-prev-shop-' + idx + '" style="padding:5px 6px;border:1px solid #e3beb8;border-radius:6px;font-size:12px;max-width:110px">' + shopOptions + '</select></td>' +
+      '<td style="padding:8px 6px;text-align:center"><input type="checkbox" id="el-prev-chk-' + idx + '" checked style="width:16px;height:16px;accent-color:#610000"></td>' +
+      '</tr>';
+  }).join('');
+
+  overlay.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.3)">' +
+    '<div style="padding:18px 20px;border-bottom:1px solid #f0e8e6;position:sticky;top:0;background:#fff;z-index:1">' +
+      '<h3 style="margin:0;font-size:16px;color:#261816">🎯 ' + items.length + ' Artikel erkannt (' + _esc(source) + ')</h3>' +
+      '<p style="margin:4px 0 0;font-size:12px;color:#8d6562">Bitte prüfen, Geschäft zuweisen, dann hinzufügen</p>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse">' +
+      '<thead><tr style="background:#faf4f3">' +
+        '<th style="padding:8px 6px;text-align:left;font-size:11px;color:#8d6562;font-weight:700">ARTIKEL</th>' +
+        '<th style="padding:8px 6px;text-align:left;font-size:11px;color:#8d6562;font-weight:700">MENGE</th>' +
+        '<th style="padding:8px 6px;text-align:left;font-size:11px;color:#8d6562;font-weight:700">GESCHÄFT</th>' +
+        '<th style="padding:8px 6px;text-align:center;font-size:11px;color:#8d6562;font-weight:700">✓</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+    '<div style="padding:14px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f0e8e6;position:sticky;bottom:0;background:#fff">' +
+      '<button onclick="document.getElementById(\'el-import-preview\').remove()" style="padding:10px 18px;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-size:14px">Abbrechen</button>' +
+      '<button onclick="_elImportPreviewApply(' + items.length + ')" style="padding:10px 18px;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">✅ Hinzufügen</button>' +
+    '</div>' +
+  '</div>';
+
+  document.body.appendChild(overlay);
+  window._elPreviewItems = items;
+
+  // Gespeicherte Kaufort-Präferenzen vorauswählen
+  items.forEach(function(item, idx) {
+    var saved = elKaufortLaden(item.name);
+    if (saved) {
+      var sel = document.getElementById('el-prev-shop-' + idx);
+      if (sel) sel.value = saved;
+    }
+  });
+}
+
+function _elImportPreviewApply(count) {
+  var items = window._elPreviewItems || [];
+  var added = 0;
+  items.forEach(function(item, idx) {
+    var chk = document.getElementById('el-prev-chk-' + idx);
+    if (!chk || !chk.checked) return;
+    var shopId = (document.getElementById('el-prev-shop-' + idx) || {}).value || '';
+    var shopObj = SHOPS.find(function(s){ return s.id === shopId; });
+    var shopName = shopObj ? shopObj.name : (shopId === 'hofer' ? 'Hofer' : shopId === 'penny' ? 'Penny' : '');
+    if (shopId) elKaufortSpeichern(item.name, shopId);
+    elAddItem({
+      name: item.name,
+      menge: item.menge || 1,
+      einheit: item.einheit || 'Stk',
+      kategorie: item.kategorie || '',
+      shop: shopName,
+      shopId: shopId,
+      shopColor: shopObj ? shopObj.color : '#8d6562',
+      source: 'ki-analyse'
+    });
+    added++;
+  });
+  var prev = document.getElementById('el-import-preview');
+  if (prev) prev.remove();
+  _showToast('✅ ' + added + ' Artikel hinzugefügt', 'success');
+  if (typeof elUpdateBadge === 'function') elUpdateBadge();
+  renderEinkaufslisteTab();
+}
+
+// ── BARCODE SCANNER ──────────────────────────────────────────────────────────
+var _elQrScanner = null;
+
+function elBarcodeScanner() {
+  _elLoadQrLib().then(function() {
+    _elOpenScannerModal();
+  }).catch(function() {
+    _showToast('Barcode-Scanner konnte nicht geladen werden', 'error');
+  });
+}
+
+function _elLoadQrLib() {
+  return new Promise(function(resolve, reject) {
+    if (window.Html5Qrcode) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function _elOpenScannerModal() {
+  var existing = document.getElementById('el-scanner-overlay');
+  if (existing) existing.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'el-scanner-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  overlay.innerHTML =
+    '<div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px">' +
+      '<span style="font-size:24px">📊</span> Barcode scannen' +
+    '</div>' +
+    '<div style="color:#ccc;font-size:13px;margin-bottom:16px;text-align:center">Kamera auf den Barcode des Produkts richten</div>' +
+    '<div id="el-qr-reader" style="width:300px;max-width:90vw;border-radius:12px;overflow:hidden;border:3px solid #610000"></div>' +
+    '<div id="el-qr-status" style="color:#aaa;font-size:13px;margin-top:14px;text-align:center">Kamera wird gestartet…</div>' +
+    '<button onclick="_elCloseScannerModal()" style="margin-top:24px;padding:12px 32px;background:#610000;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">✕ Abbrechen</button>';
+  document.body.appendChild(overlay);
+
+  _elQrScanner = new Html5Qrcode('el-qr-reader');
+  _elQrScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 250, height: 120 } },
+    function(barcode) {
+      // Barcode erkannt
+      _elCloseScannerModal();
+      _elLookupBarcode(barcode);
+    },
+    function() { /* Einzelne Frames ohne Barcode — ignorieren */ }
+  ).then(function() {
+    var st = document.getElementById('el-qr-status');
+    if (st) st.textContent = 'Barcode auf Produkt halten…';
+  }).catch(function(err) {
+    var st = document.getElementById('el-qr-status');
+    if (st) st.textContent = 'Kamerafehler: ' + (err.message || err);
+  });
+}
+
+function _elCloseScannerModal() {
+  if (_elQrScanner) {
+    _elQrScanner.stop().catch(function(){});
+    _elQrScanner = null;
+  }
+  var overlay = document.getElementById('el-scanner-overlay');
+  if (overlay) overlay.remove();
+}
+
+function _elLookupBarcode(barcode) {
+  _showToast('🔍 Produkt wird gesucht…', 'info');
+  fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status !== 1) {
+        // Nicht gefunden — trotzdem in Formular eintragen
+        var nEl = document.getElementById('el-name');
+        if (nEl) { nEl.value = 'Barcode: ' + barcode; nEl.focus(); }
+        _showToast('Produkt nicht in Datenbank — bitte manuell eingeben', 'info');
+        return;
+      }
+      var p = data.product;
+      var name = p.product_name_de || p.product_name_fr || p.product_name || 'Unbekannt';
+      name = name.trim();
+
+      // Menge & Einheit aus "quantity" Feld parsen (z.B. "500 g", "1 L", "6 x 1.5 L")
+      var menge = 1, einheit = 'Stk';
+      var qty = (p.quantity || '').trim();
+      var qm = qty.match(/^(\d+[\d.,]*)\s*(kg|g|l|ml|cl|liter|stk|pack|stück)/i);
+      if (qm) {
+        var num = parseFloat(qm[1].replace(',', '.'));
+        var u = qm[2].toLowerCase();
+        if (u === 'g' && num >= 1000) { menge = +(num/1000).toFixed(2); einheit = 'kg'; }
+        else if (u === 'g') { menge = num; einheit = 'Stk'; }
+        else if (u === 'ml' && num >= 1000) { menge = +(num/1000).toFixed(2); einheit = 'Liter'; }
+        else if (u === 'ml') { menge = num; einheit = 'Stk'; }
+        else if (u === 'l' || u === 'liter' || u === 'cl') { menge = num; einheit = 'Liter'; }
+        else if (u === 'kg') { menge = num; einheit = 'kg'; }
+        else { menge = 1; einheit = 'Stk'; }
+      }
+
+      // Kategorie aus tags ableiten
+      var cats = (p.categories_tags || []).concat(p.categories ? [p.categories] : []).join(',').toLowerCase();
+      var kat = 'Lebensmittel';
+      if (cats.includes('dairies') || cats.includes('milch') || cats.includes('cheese') || cats.includes('kaese') || cats.includes('yogurt')) kat = 'Milchprodukte';
+      else if (cats.includes('meats') || cats.includes('fleisch') || cats.includes('wurst') || cats.includes('charcuterie')) kat = 'Fleisch & Wurst';
+      else if (cats.includes('beverages') || cats.includes('drinks') || cats.includes('getraenke') || cats.includes('juices') || cats.includes('waters')) kat = 'Getränke';
+      else if (cats.includes('frozen') || cats.includes('tiefkuehl') || cats.includes('surgele')) kat = 'Tiefkühl';
+      else if (cats.includes('vegetables') || cats.includes('fruits') || cats.includes('gemuese') || cats.includes('obst')) kat = 'Gemüse & Obst';
+      else if (cats.includes('pastas') || cats.includes('cereals') || cats.includes('flour') || cats.includes('mehl') || cats.includes('rice')) kat = 'Trockenwaren';
+      else if (cats.includes('cleaning') || cats.includes('reinigung')) kat = 'Reinigung';
+
+      // Formularfelder befüllen
+      var nameEl  = document.getElementById('el-name');
+      var mengeEl = document.getElementById('el-menge');
+      var einEl   = document.getElementById('el-einheit');
+      var katEl   = document.getElementById('el-kat');
+      if (nameEl)  nameEl.value = name;
+      if (mengeEl) mengeEl.value = menge;
+      if (einEl) {
+        for (var i = 0; i < einEl.options.length; i++) {
+          if (einEl.options[i].text === einheit || einEl.options[i].value === einheit) { einEl.selectedIndex = i; break; }
+        }
+      }
+      if (katEl) {
+        for (var j = 0; j < katEl.options.length; j++) {
+          if (katEl.options[j].text === kat || katEl.options[j].value === kat) { katEl.selectedIndex = j; break; }
+        }
+      }
+
+      // Gespeicherte Kaufort-Präferenz vorauswählen
+      var savedShop = elKaufortLaden(name);
+      if (savedShop) {
+        var shopEl = document.getElementById('el-shop');
+        if (shopEl) shopEl.value = savedShop;
+      }
+
+      _showToast('✅ ' + name + ' erkannt!', 'success');
+      if (nameEl) nameEl.focus();
+    })
+    .catch(function() {
+      _showToast('Verbindungsfehler bei Produktsuche', 'error');
+    });
+}
+
+// ── FOTO-ANALYSE (KI / Anthropic Vision) ────────────────────────────────────
+function elFotoScan() {
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.capture = 'environment';
+  inp.style.display = 'none';
+  inp.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) { document.body.removeChild(inp); return; }
+    if (file.size > 5 * 1024 * 1024) { _showToast('Bild zu groß (max 5 MB)', 'error'); document.body.removeChild(inp); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      _elAnalyzeImage(ev.target.result.split(',')[1], file.type || 'image/jpeg');
+    };
+    reader.readAsDataURL(file);
+    document.body.removeChild(inp);
+  };
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+async function _elAnalyzeImage(base64, mime) {
+  if (!ANTHROPIC_API_KEY) { _showToast('Kein API-Key — Einstellungen ⚙️ öffnen', 'error'); return; }
+  _showToast('🔍 KI analysiert Bild…', 'info');
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } },
+            { type: 'text', text: 'Du analysierst ein Bild für eine Pizzeria-Einkaufsliste in Wien.\nErkenne ALLE Produkte, Mengen, Einheiten.\nAntworte NUR mit JSON-Array, KEINE Erklärungen:\n[{"name":"Mehl","menge":5,"einheit":"kg","kategorie":"Trockenwaren"}]\nEinheiten: Stk, kg, Liter, Dose, Bund, Päck., Pack, Sack\nKategorien: Lebensmittel, Gemüse & Obst, Fleisch & Wurst, Milchprodukte, Getränke, Tiefkühl, Trockenwaren, Reinigung, Sonstiges' }
+          ]
+        }]
+      })
+    });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    var text = (data.content && data.content[0]) ? data.content[0].text : '';
+    var match = text.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('Keine Artikel erkannt');
+    var items = JSON.parse(match[0]);
+    if (!items.length) { _showToast('Keine Artikel im Bild erkannt', 'info'); return; }
+    _elShowImportPreview(items, 'Foto-Analyse');
+  } catch(err) {
+    var msg = (err.message || '').toLowerCase();
+    if (msg.includes('credit') || msg.includes('balance')) {
+      _showToast('💳 Credits leer — console.anthropic.com/settings/plans', 'error');
+    } else {
+      _showToast('KI-Fehler: ' + (err.message || ''), 'error');
+    }
+  }
+}
+
+// ── IMPORT MODAL (PDF / Excel / Text) ───────────────────────────────────────
+function elImportModal() {
+  var existing = document.getElementById('el-import-modal');
+  if (existing) { existing.remove(); return; }
+  var overlay = document.createElement('div');
+  overlay.id = 'el-import-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  var btnStyle = 'padding:14px 16px;background:#faf4f3;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;font-family:inherit;text-align:left;display:flex;align-items:center;gap:12px;width:100%';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:16px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.3)">' +
+      '<div style="padding:18px 20px;border-bottom:1px solid #f0e8e6">' +
+        '<h3 style="margin:0;font-size:16px;color:#261816">📥 Liste importieren</h3>' +
+        '<p style="margin:4px 0 0;font-size:12px;color:#8d6562">Wähle eine Import-Methode</p>' +
+      '</div>' +
+      '<div style="padding:14px;display:flex;flex-direction:column;gap:8px">' +
+        '<button onclick="_elImportFoto()" style="' + btnStyle + '">' +
+          '<span style="font-size:26px">📷</span>' +
+          '<div><div style="font-weight:700;color:#261816;font-size:14px">Foto / Handschrift</div>' +
+               '<div style="font-size:12px;color:#8d6562">KI erkennt Produkte aus Foto</div></div>' +
+        '</button>' +
+        '<button onclick="_elImportPDF()" style="' + btnStyle + '">' +
+          '<span style="font-size:26px">📄</span>' +
+          '<div><div style="font-weight:700;color:#261816;font-size:14px">PDF-Datei</div>' +
+               '<div style="font-size:12px;color:#8d6562">KI liest Produkte aus PDF</div></div>' +
+        '</button>' +
+        '<button onclick="_elImportExcel()" style="' + btnStyle + '">' +
+          '<span style="font-size:26px">📊</span>' +
+          '<div><div style="font-weight:700;color:#261816;font-size:14px">Excel / CSV</div>' +
+               '<div style="font-size:12px;color:#8d6562">.xlsx, .xls, .csv Dateien</div></div>' +
+        '</button>' +
+        '<button onclick="_elImportText()" style="' + btnStyle + '">' +
+          '<span style="font-size:26px">📝</span>' +
+          '<div><div style="font-weight:700;color:#261816;font-size:14px">Text einfügen</div>' +
+               '<div style="font-size:12px;color:#8d6562">z.B. "5kg Mehl, 2 Mozzarella"</div></div>' +
+        '</button>' +
+      '</div>' +
+      '<div style="padding:12px 16px;border-top:1px solid #f0e8e6;text-align:right">' +
+        '<button onclick="document.getElementById(\'el-import-modal\').remove()" style="padding:10px 20px;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-family:inherit">Abbrechen</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function _elImportFoto() {
+  var m = document.getElementById('el-import-modal');
+  if (m) m.remove();
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.style.display = 'none';
+  inp.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) { document.body.removeChild(inp); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) { _elAnalyzeImage(ev.target.result.split(',')[1], file.type || 'image/jpeg'); };
+    reader.readAsDataURL(file);
+    document.body.removeChild(inp);
+  };
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+function _elImportPDF() {
+  var m = document.getElementById('el-import-modal');
+  if (m) m.remove();
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/pdf';
+  inp.style.display = 'none';
+  inp.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) { document.body.removeChild(inp); return; }
+    if (file.size > 20 * 1024 * 1024) { _showToast('PDF zu groß (max 20 MB)', 'error'); document.body.removeChild(inp); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) { _elAnalyzePDF(ev.target.result.split(',')[1]); };
+    reader.readAsDataURL(file);
+    document.body.removeChild(inp);
+  };
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+async function _elAnalyzePDF(base64) {
+  if (!ANTHROPIC_API_KEY) { _showToast('Kein API-Key — Einstellungen öffnen', 'error'); return; }
+  _showToast('📄 KI liest PDF…', 'info');
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 2048,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+            { type: 'text', text: 'Extrahiere alle Produkte/Artikel aus diesem Dokument als JSON-Array:\n[{"name":"...","menge":1,"einheit":"Stk","kategorie":"Lebensmittel"}]\nNur das Array, keine Erklärungen.' }
+          ]
+        }]
+      })
+    });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    var text = (data.content && data.content[0]) ? data.content[0].text : '';
+    var match = text.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('Keine Artikel erkannt');
+    var items = JSON.parse(match[0]);
+    if (items.length) _elShowImportPreview(items, 'PDF-Import');
+    else _showToast('Keine Artikel im PDF gefunden', 'info');
+  } catch(err) {
+    _showToast('PDF-Fehler: ' + (err.message || ''), 'error');
+  }
+}
+
+function _elImportExcel() {
+  var m = document.getElementById('el-import-modal');
+  if (m) m.remove();
+  if (!window.XLSX) {
+    _showToast('Excel-Bibliothek wird geladen…', 'info');
+    var s = document.createElement('script');
+    s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    s.onload = function() { _elImportExcelPick(); };
+    s.onerror = function() { _showToast('Excel-Bibliothek nicht geladen', 'error'); };
+    document.head.appendChild(s);
+  } else {
+    _elImportExcelPick();
+  }
+}
+
+function _elImportExcelPick() {
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.xlsx,.xls,.csv';
+  inp.style.display = 'none';
+  inp.onchange = function(e) {
+    var file = e.target.files[0];
+    if (!file) { document.body.removeChild(inp); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var wb = XLSX.read(ev.target.result, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        var items = [];
+        rows.forEach(function(row) {
+          var name = String(row[0] || '').trim();
+          if (!name || name.toLowerCase() === 'artikel' || name.toLowerCase() === 'produkt' || name.toLowerCase() === 'name') return;
+          items.push({
+            name: name,
+            menge: parseFloat(String(row[1] || '1').replace(',', '.')) || 1,
+            einheit: String(row[2] || 'Stk').trim(),
+            kategorie: String(row[3] || 'Lebensmittel').trim()
+          });
+        });
+        if (items.length) _elShowImportPreview(items, 'Excel-Import');
+        else _showToast('Keine Zeilen in Datei gefunden', 'info');
+      } catch(err) {
+        _showToast('Excel-Fehler: ' + (err.message || ''), 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    document.body.removeChild(inp);
+  };
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+function _elImportText() {
+  var m = document.getElementById('el-import-modal');
+  if (m) m.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'el-text-import';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9997;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:16px;max-width:440px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.3)">' +
+      '<div style="padding:18px 20px;border-bottom:1px solid #f0e8e6">' +
+        '<h3 style="margin:0;font-size:16px;color:#261816">📝 Liste als Text einfügen</h3>' +
+        '<p style="margin:4px 0 0;font-size:12px;color:#8d6562">z.B.: "5kg Mehl, 2 Mozzarella, 10 Liter Öl"</p>' +
+      '</div>' +
+      '<div style="padding:16px">' +
+        '<textarea id="el-text-input" rows="6" placeholder="Artikel eingeben, einer pro Zeile oder mit Komma getrennt…" style="width:100%;padding:12px;border:1.5px solid #e3beb8;border-radius:10px;font-family:inherit;font-size:14px;resize:vertical;box-sizing:border-box;outline:none"></textarea>' +
+      '</div>' +
+      '<div style="padding:12px 16px;border-top:1px solid #f0e8e6;display:flex;gap:8px;justify-content:flex-end">' +
+        '<button onclick="document.getElementById(\'el-text-import\').remove()" style="padding:10px 18px;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-family:inherit">Abbrechen</button>' +
+        '<button onclick="_elAnalyzeText()" style="padding:10px 18px;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700">🔍 KI analysieren</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function(){ var t = document.getElementById('el-text-input'); if(t) t.focus(); }, 80);
+}
+
+async function _elAnalyzeText() {
+  var text = (document.getElementById('el-text-input') || {}).value || '';
+  if (!text.trim()) { _showToast('Bitte Text eingeben', 'error'); return; }
+  if (!ANTHROPIC_API_KEY) { _showToast('Kein API-Key — Einstellungen öffnen', 'error'); return; }
+  var ov = document.getElementById('el-text-import');
+  if (ov) ov.remove();
+  _showToast('🔍 KI analysiert…', 'info');
+  try {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: 'Extrahiere Produkte aus diesem Text als JSON-Array:\n\n' + text + '\n\nFormat: [{"name":"Mehl","menge":5,"einheit":"kg","kategorie":"Trockenwaren"}]\nEinheiten: Stk, kg, Liter, Dose, Bund, Päck., Pack, Sack\nNur das Array.'
+        }]
+      })
+    });
+    var data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    var t2 = (data.content && data.content[0]) ? data.content[0].text : '';
+    var match = t2.match(/\[[\s\S]*?\]/);
+    if (!match) throw new Error('Keine Artikel erkannt');
+    var items = JSON.parse(match[0]);
+    if (items.length) _elShowImportPreview(items, 'Text-Import');
+    else _showToast('Keine Artikel erkannt', 'info');
+  } catch(err) {
+    _showToast('Fehler: ' + (err.message || ''), 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 function aufgUpdateBadge() {
   const el = document.getElementById('aufg-mob-badge');
   if (!el) return;
