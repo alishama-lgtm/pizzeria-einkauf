@@ -1,5 +1,5 @@
 # Pizzeria San Carino — MASTER PLAN & SESSION LOG
-# Letztes Update: 2026-04-26 | Session 20
+# Letztes Update: 2026-04-26 | Session 21
 
 ---
 
@@ -204,6 +204,7 @@
 | 18 | 2026-04-24 | Datum-Extraktion, Kategorien-Header, Sortierung |
 | 19 | 2026-04-25 | Port-Fix (restart.ps1), Buchhaltung komplett, Sicherheits-Patches, MwSt-Korrekturen |
 | 20 | 2026-04-26 | Rate-Limiting, Heisse-Preise async, WebSocket-Auth, PDF MIME-Check, Catch-Blöcke, ICS-Export, Turso-Sync optimiert, Kassenbuch-Validierung, i18n DE/EN/NL/AR, Setup-Wizard, White-Label |
+| 21 | 2026-04-26 | index.html aufgeteilt (22.986 → 574 Zeilen), CSS+JS in js/panels-a/b/c/d.js, Rollen-Berechtigungen konfigurierbar im Business-Tab, Lieferando/Wolt/Mjam im Umsatz-Tab |
 
 ---
 
