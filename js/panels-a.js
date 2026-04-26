@@ -4384,6 +4384,7 @@ function renderBusinessTab() {
       ['biz-cockpit','donut_large','Gewinn-Cockpit'],
       ['biz-report','summarize','Monatsbericht'],
       ['biz-settings','settings','Einstellungen'],
+      ['biz-rollen','manage_accounts','Rollen'],
     ].map(([id,icon,label]) => `
       <button id="btn-${id}" onclick="showBizSection('${id}')" class="ws-btn ws-btn-secondary ws-btn-sm"
         style="display:flex;align-items:center;gap:6px;transition:all .15s">
@@ -4405,6 +4406,9 @@ function renderBusinessTab() {
 
   <!-- EINSTELLUNGEN -->
   <div id="biz-settings" class="biz-section" style="display:none">${renderBizSettings()}</div>
+
+  <!-- ROLLEN & BERECHTIGUNGEN -->
+  <div id="biz-rollen" class="biz-section" style="display:none">${renderBizRollen()}</div>
 
 </div>`;
 

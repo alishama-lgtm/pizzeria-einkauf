@@ -223,7 +223,8 @@ function quickLogin(u) {
 }
 function toggleLoginPw() {}  // nicht mehr benötigt
 
-const ROLE_TABS = {
+// Standard-Berechtigungen (Fallback wenn nichts konfiguriert)
+const ROLE_TABS_DEFAULT = {
   admin:    ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','mitarbeiter','fehlmaterial','checkliste','produkte','geschaefte','lieferanten','speisekarte','business','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt','urlaub','trinkgeld'],
   manager:  ['heute','dashboard','kombis','angebote','einkaufsliste','suche','upload','verlauf','fehlmaterial','checkliste','lieferanten','speisekarte','dienstplan','aufgaben','schichtcheck','bestellung','lager','wareneinsatz','preisalarm','standardmaterial','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen','haccp','mhd','kassenschnitt','urlaub','trinkgeld'],
   employee: ['heute','dashboard','fehlmaterial','checkliste','speisekarte','aufgaben','schichtcheck','bestellung','haccp','mhd','urlaub'],
@@ -232,6 +233,23 @@ const ROLE_TABS = {
   service:  ['heute','fehlmaterial','checkliste','speisekarte','schichtcheck','aufgaben','urlaub'],
   reinigung:['heute','checkliste','schichtcheck','urlaub'],
 };
+
+// Alias für Rückwärtskompatibilität
+const ROLE_TABS = ROLE_TABS_DEFAULT;
+
+// Konfigurierbare Berechtigungen — liest aus localStorage, fällt auf Standard zurück
+function getRoleTabs() {
+  try {
+    const stored = localStorage.getItem('psc_role_perms');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Admin sieht immer alles — kann nicht eingeschränkt werden
+      parsed.admin = ROLE_TABS_DEFAULT.admin;
+      return parsed;
+    }
+  } catch(_) {}
+  return { ...ROLE_TABS_DEFAULT };
+}
 
 const ROLE_COLORS = {
   admin:    'background:#fff0ee;color:#8B0000;border-color:#e3beb8',
@@ -293,8 +311,8 @@ function showApp() {
   var dbBtn = document.getElementById('db-browser-btn');
   if (dbBtn) dbBtn.style.display = (currentUser.role === 'admin') ? 'flex' : 'none';
 
-  // Tabs je nach Rolle anzeigen/verstecken
-  const allowed = ROLE_TABS[currentUser.role] || [];
+  // Tabs je nach Rolle anzeigen/verstecken (konfigurierbar via Business-Tab)
+  const allowed = getRoleTabs()[currentUser.role] || [];
   document.querySelectorAll('#staff-tab-bar [data-nav-tab]').forEach(b => {
     b.style.display = allowed.includes(b.dataset.navTab) ? '' : 'none';
   });

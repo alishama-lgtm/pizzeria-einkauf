@@ -578,6 +578,171 @@ function bizClearAll() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ROLLEN & BERECHTIGUNGEN — Konfigurierbare Tab-Sichtbarkeit
+// ═══════════════════════════════════════════════════════════════
+
+const ROLLE_LABELS = {
+  manager:   '🏢 Manager',
+  employee:  '👤 Mitarbeiter',
+  kitchen:   '👨‍🍳 Küche',
+  fahrer:    '🚗 Fahrer',
+  service:   '🍽️ Service',
+  reinigung: '🧹 Reinigung',
+};
+
+const TAB_LABELS = {
+  heute:'📅 Heute', dashboard:'📊 Dashboard', kombis:'🧮 Kombis',
+  angebote:'🏷️ Angebote', einkaufsliste:'🛒 Einkaufsliste', suche:'🔍 Suche',
+  upload:'📤 Upload', verlauf:'📋 Verlauf', mitarbeiter:'👥 Mitarbeiter',
+  fehlmaterial:'⚠️ Fehlmaterial', checkliste:'✅ Checkliste', business:'💼 Business',
+  speisekarte:'🍕 Speisekarte', lieferanten:'🚚 Lieferanten', dienstplan:'📆 Dienstplan',
+  aufgaben:'📝 Aufgaben', schichtcheck:'🎯 Schichtcheck', bestellung:'📦 Bestellung',
+  lager:'🏪 Lager', wareneinsatz:'⚖️ Wareneinsatz', preisalarm:'🔔 Preisalarm',
+  standardmaterial:'📋 Standard', statistik:'📈 Statistik', tagesangebote:'⭐ Tagesangebote',
+  umsatz:'💰 Umsatz', gewinn:'📊 Gewinn', buchhaltung:'🧾 Buchhaltung',
+  konkurrenz:'🏆 Konkurrenz', bewertungen:'⭐ Bewertungen', haccp:'🌡️ HACCP',
+  mhd:'📅 MHD', kassenschnitt:'💵 Kassenschnitt', urlaub:'🏖️ Urlaub',
+  trinkgeld:'💰 Trinkgeld', produkte:'📦 Produkte', geschaefte:'🏪 Geschäfte',
+};
+
+let _bizRolleAktiv = 'manager';
+
+function renderBizRollen() {
+  const allTabs = Object.keys(TAB_LABELS);
+  const rollen = Object.keys(ROLLE_LABELS);
+  const perms = getRoleTabs();
+
+  return `
+<h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#261816;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+  <span class="material-symbols-outlined" style="color:#8B0000">manage_accounts</span>Rollen & Berechtigungen
+</h2>
+<p style="font-size:13px;color:#5a403c;margin-bottom:20px;line-height:1.5">
+  Lege fest, welche Bereiche jede Rolle sehen darf. Admin sieht immer alles und kann nicht eingeschränkt werden.
+</p>
+
+<!-- Info: Admin -->
+<div style="background:#fff0ee;border:1.5px solid #e3beb8;border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+  <span class="material-symbols-outlined" style="color:#8B0000;font-size:20px">shield</span>
+  <span style="font-size:13px;color:#5a403c;font-weight:600">
+    <strong style="color:#8B0000">👑 Admin</strong> sieht immer alle 36 Bereiche — nicht einschränkbar.
+  </span>
+</div>
+
+<!-- Rollen-Auswahl -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+  ${rollen.map(r => `
+    <button onclick="bizRolleWechseln('${r}')" id="btn-rolle-${r}"
+      style="padding:8px 16px;border-radius:10px;border:1.5px solid ${_bizRolleAktiv===r?'#8B0000':'#e3beb8'};
+             background:${_bizRolleAktiv===r?'#8B0000':'#fff'};color:${_bizRolleAktiv===r?'#fff':'#5a403c'};
+             font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s">
+      ${ROLLE_LABELS[r]}
+    </button>`).join('')}
+</div>
+
+<!-- Berechtigungs-Grid -->
+<div class="ws-card" style="margin-bottom:16px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+    <div style="font-weight:700;font-size:15px;color:#261816;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">checklist</span>
+      Sichtbare Bereiche für: <span id="rolle-name-label" style="color:#8B0000">${ROLLE_LABELS[_bizRolleAktiv]}</span>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button onclick="bizRolleAlleAn()" style="padding:6px 12px;border-radius:8px;border:1.5px solid #2e7d32;background:#e8f5e9;color:#2e7d32;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+        Alle ✓
+      </button>
+      <button onclick="bizRolleAlleAus()" style="padding:6px 12px;border-radius:8px;border:1.5px solid #c62828;background:#ffdad6;color:#c62828;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+        Alle ✗
+      </button>
+      <button onclick="bizRolleReset()" style="padding:6px 12px;border-radius:8px;border:1.5px solid #0277bd;background:#e1f5fe;color:#0277bd;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">
+        Standard
+      </button>
+    </div>
+  </div>
+  <div id="rollen-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px">
+    ${allTabs.map(tab => {
+      const checked = (perms[_bizRolleAktiv]||[]).includes(tab);
+      return `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1.5px solid ${checked?'#e3beb8':'#f0f0f0'};background:${checked?'#fff0ee':'#fafafa'};cursor:pointer;font-size:13px;font-weight:500;color:#261816;transition:all .1s;user-select:none">
+        <input type="checkbox" data-tab-perm="${tab}" ${checked?'checked':''} onchange="bizPermChanged(this)"
+          style="width:16px;height:16px;accent-color:#8B0000;cursor:pointer;flex-shrink:0">
+        <span>${TAB_LABELS[tab]||tab}</span>
+      </label>`;
+    }).join('')}
+  </div>
+</div>
+
+<!-- Speichern -->
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+  <button onclick="bizSaveRolePerms()"
+    style="padding:12px 28px;border-radius:12px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px">
+    <span class="material-symbols-outlined" style="font-size:18px">save</span>Berechtigungen speichern
+  </button>
+  <button onclick="bizResetAllRolePerms()"
+    style="padding:12px 20px;border-radius:12px;border:1.5px solid #c62828;background:#ffdad6;color:#c62828;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+    Alle auf Standard zurücksetzen
+  </button>
+</div>`;
+}
+
+function bizRolleWechseln(rolle) {
+  _bizRolleAktiv = rolle;
+  const section = document.getElementById('biz-rollen');
+  if (section) section.innerHTML = renderBizRollen();
+}
+
+function bizPermChanged(cb) {
+  const tab = cb.dataset.tabPerm;
+  const label = cb.closest('label');
+  if (label) {
+    label.style.borderColor = cb.checked ? '#e3beb8' : '#f0f0f0';
+    label.style.background  = cb.checked ? '#fff0ee' : '#fafafa';
+  }
+}
+
+function bizRolleAlleAn() {
+  document.querySelectorAll('#rollen-grid input[type=checkbox]').forEach(cb => {
+    cb.checked = true; bizPermChanged(cb);
+  });
+}
+
+function bizRolleAlleAus() {
+  document.querySelectorAll('#rollen-grid input[type=checkbox]').forEach(cb => {
+    cb.checked = false; bizPermChanged(cb);
+  });
+}
+
+function bizRolleReset() {
+  const defaults = (ROLE_TABS_DEFAULT[_bizRolleAktiv] || []);
+  document.querySelectorAll('#rollen-grid input[type=checkbox]').forEach(cb => {
+    cb.checked = defaults.includes(cb.dataset.tabPerm);
+    bizPermChanged(cb);
+  });
+}
+
+function bizSaveRolePerms() {
+  // Aktuell angezeigte Checkboxen lesen
+  const checked = [];
+  document.querySelectorAll('#rollen-grid input[type=checkbox]').forEach(cb => {
+    if (cb.checked) checked.push(cb.dataset.tabPerm);
+  });
+
+  // Aus localStorage laden (alle Rollen), diese Rolle ersetzen
+  let perms = getRoleTabs();
+  perms[_bizRolleAktiv] = checked;
+  // Admin immer komplett
+  perms.admin = ROLE_TABS_DEFAULT.admin;
+
+  localStorage.setItem('psc_role_perms', JSON.stringify(perms));
+  bizShowToast('✅ Berechtigungen für ' + (ROLLE_LABELS[_bizRolleAktiv]||_bizRolleAktiv) + ' gespeichert!');
+}
+
+function bizResetAllRolePerms() {
+  localStorage.removeItem('psc_role_perms');
+  bizShowToast('🔄 Alle Rollen auf Standard zurückgesetzt');
+  const section = document.getElementById('biz-rollen');
+  if (section) section.innerHTML = renderBizRollen();
+}
+
+// ═══════════════════════════════════════════════════════════════
 // BUSINESS TOAST
 // ═══════════════════════════════════════════════════════════════
 
