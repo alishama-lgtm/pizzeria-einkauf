@@ -2119,3 +2119,81 @@
     #_confirm-ok     { background:#8B0000; color:#fff; }
     #_confirm-cancel:hover { background:#e2e8f0; }
     #_confirm-ok:hover     { background:#6b0000; }
+
+    /* ════ PANEL RESPONSIVE LAYOUTS ════ */
+    /* Universelles 2-Spalten-Grid: Liste links, Formular rechts */
+    .psc-2col {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+    .psc-sticky { position: sticky; top: 20px; }
+
+    /* Tablet (≤1100px oder Zoom ≥130%): Formular unter Liste */
+    @media (max-width: 1100px) {
+      .psc-2col {
+        grid-template-columns: 1fr !important;
+      }
+      .psc-sticky {
+        position: static !important;
+        top: auto !important;
+      }
+    }
+
+    /* Filter-Reihe — auf kleinen Screens umbrechen */
+    .psc-filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    @media (max-width: 700px) {
+      .psc-filter-row select  { flex: 1 1 45%; min-width: 130px; }
+      .psc-grp-btns           { margin-left: 0 !important; width: 100%; display: flex; justify-content: flex-start; }
+    }
+
+    /* Action-Buttons im Header — kompakter auf kleinen Screens */
+    .psc-hdr-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    @media (max-width: 700px) {
+      .psc-hdr-actions button .btn-label { display: none; }
+      .psc-hdr-actions button { padding: 8px 10px !important; }
+    }
+
+    /* Einkaufsliste Quick-Add: Felder umbrechen */
+    .psc-el-form {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    .psc-el-form input, .psc-el-form select {
+      min-width: 80px;
+      box-sizing: border-box;
+    }
+    @media (max-width: 640px) {
+      .psc-el-form input[id="el-name"] { flex: 1 1 100% !important; }
+      .psc-el-form button              { flex: 1 1 100% !important; justify-content: center; }
+    }
+
+    /* Max-Breite für sehr große Bildschirme */
+    #app-main {
+      max-width: 1440px;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+    @media (max-width: 1024px) {
+      #app-main { max-width: 100% !important; }
+    }
+
+    /* ════ TABLET OPTIMIERUNG (768px–1100px) ════ */
+    @media (min-width: 768px) and (max-width: 1100px) {
+      #app-main { padding: 16px 20px 30px !important; }
+      .psc-2col { gap: 0; }
+      .psc-2col > div:last-child {
+        margin-top: 20px;
+        border-top: 1.5px solid #e3beb8;
+        padding-top: 20px;
+      }
+    }

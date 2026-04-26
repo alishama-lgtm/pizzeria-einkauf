@@ -4195,15 +4195,15 @@ function renderBestellungTab() {
   p.innerHTML = `
     ${_pageHdr('shopping_cart_checkout','Bestellliste',
       offenCount + ' zu bestellen' + (dringlichCount ? ' &nbsp;<span style="color:#c62828;font-weight:700">🔴 ' + dringlichCount + ' dringend</span>' : ''),
-      `<div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button onclick="bestBarcodeScanner()" style="${bG}" title="Barcode scannen"><span class="material-symbols-outlined" style="font-size:16px">qr_code_scanner</span>Scannen</button>
-        <button onclick="bestellungAusLager()" style="${bG}" title="Lager-Artikel unter Mindestbestand"><span class="material-symbols-outlined" style="font-size:16px">inventory_2</span>Aus Lager</button>
-        <button onclick="bestellungPrint()" style="${bG}"><span class="material-symbols-outlined" style="font-size:16px">print</span>Drucken</button>
-        ${offenCount > 0 ? `<button onclick="bestellungErledigtLoeschen()" style="${bG};color:#c62828;border-color:#fca5a5"><span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>Erledigte</button>` : ''}
+      `<div class="psc-hdr-actions">
+        <button onclick="bestBarcodeScanner()" style="${bG}" title="Barcode scannen"><span class="material-symbols-outlined" style="font-size:16px">qr_code_scanner</span><span class="btn-label">Scannen</span></button>
+        <button onclick="bestellungAusLager()" style="${bG}" title="Lager-Artikel unter Mindestbestand"><span class="material-symbols-outlined" style="font-size:16px">inventory_2</span><span class="btn-label">Aus Lager</span></button>
+        <button onclick="bestellungPrint()" style="${bG}"><span class="material-symbols-outlined" style="font-size:16px">print</span><span class="btn-label">Drucken</span></button>
+        ${offenCount > 0 ? `<button onclick="bestellungErledigtLoeschen()" style="${bG};color:#c62828;border-color:#fca5a5"><span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span><span class="btn-label">Erledigte</span></button>` : ''}
       </div>`
     )}
 
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+    <div class="psc-filter-row">
       <select onchange="bestellungFilter('kat',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
         <option value="">📦 Alle Kategorien</option>
         ${KATS.map(k=>`<option value="${k}" ${filterKat===k?'selected':''}>${k}</option>`).join('')}
@@ -4222,9 +4222,9 @@ function renderBestellungTab() {
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr min(320px,40%);gap:20px;align-items:start">
+    <div class="psc-2col">
       <div style="min-width:0">${rows}</div>
-      <div style="background:#fff;border-radius:16px;padding:20px;border:1.5px solid #e3beb8;position:sticky;top:20px">
+      <div class="psc-sticky" style="background:#fff;border-radius:16px;padding:20px;border:1.5px solid #e3beb8">
         <div style="font-weight:800;font-size:15px;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:7px">
           <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">add_shopping_cart</span>Artikel hinzufügen
         </div>

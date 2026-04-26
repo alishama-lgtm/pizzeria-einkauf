@@ -5546,7 +5546,7 @@ function _buildEinkaufslisteHTML() {
   html += '<div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:24px;box-shadow:0 2px 8px rgba(0,0,0,.05)">';
   html += '<h3 style="font-size:14px;font-weight:800;color:#261816;margin:0 0 14px;display:flex;align-items:center;gap:7px">';
   html += '<span class="material-symbols-outlined" style="font-size:18px;color:#610000">add_shopping_cart</span>Artikel hinzufügen</h3>';
-  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch">';
+  html += '<div class="psc-el-form">';
 
   // Name
   html += '<input id="el-name" type="text" placeholder="Produktname …" autocomplete="off"';
