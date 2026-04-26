@@ -4105,94 +4105,174 @@ function schichtCheckToggle(typ, index) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 2 — BESTELLLISTE
+// PHASE 2 — BESTELLLISTE (verbessert)
 // ═══════════════════════════════════════════════════════════════
 function renderBestellungTab() {
   const p = document.getElementById('panel-bestellung');
   let artikel = [];
   try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
 
-  const KATS = ['Küche','Bar','Reinigung','Sonstiges'];
-  const KAT_STYLE = { 'Küche':'#fff3e0;#e65100', 'Bar':'#e3f2fd;#0d47a1', 'Reinigung':'#e8f5e9;#2e7d32', 'Sonstiges':'#f3e5f5;#6a1b9a' };
+  const KATS       = ['Küche','Tiefkühl','Trockenwaren','Fleisch & Wurst','Getränke','Reinigung','Bar','Sonstiges'];
+  const LIEFERANTEN = ['Metro','UM Trade','Etsan','Billa','Lidl','Spar','Hofer','Sonstiger'];
+  const EINHEITEN  = ['kg','g','Liter','ml','Stück','Packung','Flasche','Karton','Sack','Dose'];
+  const KAT_COLORS = {
+    'Küche':          ['#fff3e0','#e65100'],
+    'Tiefkühl':       ['#e3f2fd','#0d47a1'],
+    'Trockenwaren':   ['#fef9c3','#92400e'],
+    'Fleisch & Wurst':['#fce4ec','#c62828'],
+    'Getränke':       ['#e0f2fe','#0369a1'],
+    'Reinigung':      ['#e8f5e9','#2e7d32'],
+    'Bar':            ['#ede9fe','#5b21b6'],
+    'Sonstiges':      ['#f3e5f5','#6a1b9a']
+  };
 
-  const filterKat = p.dataset.filterKat||'';
-  const filterStatus = p.dataset.filterStatus2||'';
+  const filterKat    = p.dataset.filterKat    || '';
+  const filterLief   = p.dataset.filterLief   || '';
+  const filterStatus = p.dataset.filterStatus2 || '';
+  const grpMode      = p.dataset.grpMode      || 'alle'; // 'alle'|'lieferant'|'kategorie'
 
   const visible = artikel.filter(a => {
-    if (filterKat && a.kategorie !== filterKat) return false;
-    if (filterStatus==='offen' && a.erledigt) return false;
-    if (filterStatus==='erledigt' && !a.erledigt) return false;
+    if (filterKat  && a.kategorie !== filterKat) return false;
+    if (filterLief && (a.lieferant||'') !== filterLief) return false;
+    if (filterStatus === 'offen'    &&  a.erledigt) return false;
+    if (filterStatus === 'erledigt' && !a.erledigt) return false;
     return true;
   });
 
-  const offenCount = artikel.filter(a=>!a.erledigt).length;
-  const dringlichCount = artikel.filter(a=>a.dringlich&&!a.erledigt).length;
+  const offenCount    = artikel.filter(a => !a.erledigt).length;
+  const dringlichCount = artikel.filter(a => a.dringlich && !a.erledigt).length;
 
-  const rows = visible.length ? visible.map(a => {
-    const ks = (KAT_STYLE[a.kategorie]||KAT_STYLE['Sonstiges']).split(';');
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:1.5px solid ${a.dringlich&&!a.erledigt?'#ef9a9a':a.erledigt?'#e0e0e0':'#e3beb8'};background:${a.dringlich&&!a.erledigt?'#ffebee':a.erledigt?'#fafafa':'#fff8f6'};margin-bottom:8px;opacity:${a.erledigt?'.6':'1'}">
-      <input type="checkbox" ${a.erledigt?'checked':''} onchange="bestellungToggle(${a.id})" style="width:18px;height:18px;cursor:pointer;accent-color:#8B0000">
+  function buildRow(a) {
+    const kc     = KAT_COLORS[a.kategorie] || KAT_COLORS['Sonstiges'];
+    const border = a.dringlich && !a.erledigt ? '#ef9a9a' : a.erledigt ? '#e0e0e0' : '#e3beb8';
+    const bg     = a.dringlich && !a.erledigt ? '#ffebee' : a.erledigt ? '#fafafa' : '#fff8f6';
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;border:1.5px solid ${border};background:${bg};margin-bottom:8px;opacity:${a.erledigt?'.55':'1'}">
+      <input type="checkbox" ${a.erledigt?'checked':''} onchange="bestellungToggle(${a.id})" style="width:18px;height:18px;cursor:pointer;accent-color:#8B0000;margin-top:2px;flex-shrink:0">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">${_esc(a.name)}${a.dringlich&&!a.erledigt?' <span style="color:#c62828;font-size:11px;font-weight:700">🔴 DRINGEND</span>':''}</div>
-        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-          <span style="font-size:11px;font-weight:600;color:#5a403c">${a.menge} ${_esc(a.einheit)}</span>
-          <span style="font-size:11px;padding:1px 7px;border-radius:6px;background:${ks[0]};color:${ks[1]};font-weight:600">${a.kategorie}</span>
+        <div style="font-weight:700;font-size:14px;color:${a.erledigt?'#9e9e9e':'#261816'};text-decoration:${a.erledigt?'line-through':'none'}">
+          ${_esc(a.name)}${a.dringlich&&!a.erledigt?' <span style="color:#c62828;font-size:11px;font-weight:800">🔴 DRINGEND</span>':''}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:12px;font-weight:700;color:#261816;background:#f0e8e6;padding:2px 8px;border-radius:6px">${_esc(String(a.menge||1))} ${_esc(a.einheit||'Stk')}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:6px;background:${kc[0]};color:${kc[1]};font-weight:600">${_esc(a.kategorie||'')}</span>
+          ${a.lieferant ? `<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:#e8eaf6;color:#283593;font-weight:600">🏪 ${_esc(a.lieferant)}</span>` : ''}
+          ${a.notiz     ? `<span style="font-size:11px;color:#8d6562;font-style:italic">💬 ${_esc(a.notiz)}</span>` : ''}
         </div>
       </div>
-      <button onclick="bestellungDringlich(${a.id})" title="Dringend" style="padding:5px 8px;border-radius:8px;border:1px solid ${a.dringlich?'#ef9a9a':'#e3beb8'};background:${a.dringlich?'#ffebee':'#fff8f6'};font-size:12px;cursor:pointer">${a.dringlich?'🔴':'⚪'}</button>
-      <button onclick="bestellungDelete(${a.id})" style="padding:5px 8px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#8B0000;font-size:12px;cursor:pointer">🗑️</button>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="bestellungDringlich(${a.id})" title="${a.dringlich?'Dringend aufheben':'Dringend'}" style="padding:5px 8px;border-radius:8px;border:1px solid ${a.dringlich?'#ef9a9a':'#e3beb8'};background:${a.dringlich?'#ffebee':'#fff'};font-size:13px;cursor:pointer">${a.dringlich?'🔴':'○'}</button>
+        <button onclick="bestellungDelete(${a.id})" style="padding:5px 8px;border-radius:8px;border:1px solid #fca5a5;background:#fff;color:#8B0000;font-size:13px;cursor:pointer">🗑️</button>
+      </div>
     </div>`;
-  }).join('') : `<div style="text-align:center;padding:40px;color:#6b6b6b;font-size:14px">Keine Artikel gefunden</div>`;
+  }
 
-  const EINHEITEN = ['kg','g','L','ml','Stück','Packung','Flasche','Karton'];
+  let rows = '';
+  if (!visible.length) {
+    rows = `<div style="text-align:center;padding:48px 20px;color:#8d6562;font-size:14px"><div style="font-size:40px;margin-bottom:10px">✅</div>Keine offenen Bestellungen</div>`;
+  } else if (grpMode === 'lieferant') {
+    const groups = {};
+    visible.forEach(a => { const k = a.lieferant||'Ohne Lieferant'; if(!groups[k]) groups[k]=[]; groups[k].push(a); });
+    Object.keys(groups).sort().forEach(k => {
+      rows += `<div style="font-size:12px;font-weight:800;color:#5a403c;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;padding-left:4px">🏪 ${_esc(k)} (${groups[k].length})</div>`;
+      rows += groups[k].map(buildRow).join('');
+    });
+  } else if (grpMode === 'kategorie') {
+    const groups = {};
+    visible.forEach(a => { const k = a.kategorie||'Sonstiges'; if(!groups[k]) groups[k]=[]; groups[k].push(a); });
+    Object.keys(groups).sort().forEach(k => {
+      const kc = KAT_COLORS[k] || KAT_COLORS['Sonstiges'];
+      rows += `<div style="font-size:12px;font-weight:800;color:${kc[1]};text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;padding-left:4px">📦 ${_esc(k)} (${groups[k].length})</div>`;
+      rows += groups[k].map(buildRow).join('');
+    });
+  } else {
+    rows = visible.map(buildRow).join('');
+  }
+
+  const liefInListe = [...new Set(artikel.map(a => a.lieferant).filter(Boolean))];
+  const iS = 'padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6;width:100%;box-sizing:border-box;outline:none';
+  const bG = 'padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px';
+
   p.innerHTML = `
-    ${_pageHdr('shopping_cart_checkout', 'Bestellliste', offenCount + ' zu bestellen' + (dringlichCount ? ' · <span style="color:#c62828;font-weight:700">' + dringlichCount + ' dringend</span>' : ''))}
-    <div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start">
-      <div>
-        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-          <select onchange="bestellungFilter('kat',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
-            <option value="">📦 Alle Kategorien</option>
-            ${KATS.map(k=>`<option value="${k}" ${filterKat===k?'selected':''}>${k}</option>`).join('')}
-          </select>
-          <select onchange="bestellungFilter('status',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
-            <option value="" ${filterStatus===''?'selected':''}>📋 Alle</option>
-            <option value="offen" ${filterStatus==='offen'?'selected':''}>🔴 Offen</option>
-            <option value="erledigt" ${filterStatus==='erledigt'?'selected':''}>✅ Gekauft</option>
-          </select>
-          <button onclick="bestellungErledigtLoeschen()" style="padding:8px 14px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff8f6;font-size:13px;font-weight:600;color:#5a403c;cursor:pointer;margin-left:auto">🗑️ Erledigte löschen</button>
-        </div>
-        ${rows}
+    ${_pageHdr('shopping_cart_checkout','Bestellliste',
+      offenCount + ' zu bestellen' + (dringlichCount ? ' &nbsp;<span style="color:#c62828;font-weight:700">🔴 ' + dringlichCount + ' dringend</span>' : ''),
+      `<div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="bestBarcodeScanner()" style="${bG}" title="Barcode scannen"><span class="material-symbols-outlined" style="font-size:16px">qr_code_scanner</span>Scannen</button>
+        <button onclick="bestellungAusLager()" style="${bG}" title="Lager-Artikel unter Mindestbestand"><span class="material-symbols-outlined" style="font-size:16px">inventory_2</span>Aus Lager</button>
+        <button onclick="bestellungPrint()" style="${bG}"><span class="material-symbols-outlined" style="font-size:16px">print</span>Drucken</button>
+        ${offenCount > 0 ? `<button onclick="bestellungErledigtLoeschen()" style="${bG};color:#c62828;border-color:#fca5a5"><span class="material-symbols-outlined" style="font-size:16px">delete_sweep</span>Erledigte</button>` : ''}
+      </div>`
+    )}
+
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select onchange="bestellungFilter('kat',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+        <option value="">📦 Alle Kategorien</option>
+        ${KATS.map(k=>`<option value="${k}" ${filterKat===k?'selected':''}>${k}</option>`).join('')}
+      </select>
+      <select onchange="bestellungFilter('lief',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+        <option value="">🏪 Alle Lieferanten</option>
+        ${liefInListe.map(l=>`<option value="${l}" ${filterLief===l?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <select onchange="bestellungFilter('status',this.value)" style="padding:8px 12px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-family:inherit;cursor:pointer">
+        <option value="" ${filterStatus===''?'selected':''}>📋 Alle</option>
+        <option value="offen"    ${filterStatus==='offen'?'selected':''}>🔴 Offen</option>
+        <option value="erledigt" ${filterStatus==='erledigt'?'selected':''}>✅ Gekauft</option>
+      </select>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        ${['alle','lieferant','kategorie'].map(m=>`<button onclick="bestellungGrp('${m}')" style="padding:7px 11px;border-radius:8px;border:1.5px solid ${grpMode===m?'#8B0000':'#e3beb8'};background:${grpMode===m?'#8B0000':'#fff'};color:${grpMode===m?'#fff':'#5a403c'};font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">${m==='alle'?'Alle':m==='lieferant'?'🏪 Lieferant':'📦 Kategorie'}</button>`).join('')}
       </div>
-      <div style="background:#fff;border-radius:16px;padding:20px;border:1px solid #e3beb8;position:sticky;top:20px">
-        <div style="font-weight:700;font-size:15px;color:#261816;margin-bottom:16px">➕ Artikel hinzufügen</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <input id="best-name" placeholder="Artikelname..." style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr min(320px,40%);gap:20px;align-items:start">
+      <div style="min-width:0">${rows}</div>
+      <div style="background:#fff;border-radius:16px;padding:20px;border:1.5px solid #e3beb8;position:sticky;top:20px">
+        <div style="font-weight:800;font-size:15px;color:#261816;margin-bottom:14px;display:flex;align-items:center;gap:7px">
+          <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">add_shopping_cart</span>Artikel hinzufügen
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <input id="best-name" placeholder="Artikelname …" onkeydown="if(event.key==='Enter')bestellungHinzufuegen()" style="${iS}">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <input id="best-menge" type="number" placeholder="Menge" min="1" value="1" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-            <select id="best-einheit" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-              ${EINHEITEN.map(e=>`<option>${e}</option>`).join('')}
-            </select>
+            <input id="best-menge" type="number" min="0.1" step="0.1" value="1" style="${iS}">
+            <select id="best-einheit" style="${iS}">${EINHEITEN.map(e=>`<option>${e}</option>`).join('')}</select>
           </div>
-          <select id="best-kat" style="padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:inherit;background:#fff8f6">
-            ${KATS.map(k=>`<option>${k}</option>`).join('')}
+          <select id="best-kat" style="${iS}">${KATS.map(k=>`<option>${k}</option>`).join('')}</select>
+          <select id="best-lief" style="${iS}">
+            <option value="">Kein Lieferant</option>
+            ${LIEFERANTEN.map(l=>`<option>${l}</option>`).join('')}
           </select>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#c62828;cursor:pointer">
-            <input id="best-dringend" type="checkbox" style="width:16px;height:16px;accent-color:#c62828"> 🔴 Dringend markieren
+          <input id="best-notiz" placeholder="Notiz (optional) …" style="${iS}">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c62828;cursor:pointer">
+            <input id="best-dringend" type="checkbox" style="width:16px;height:16px;accent-color:#c62828"> 🔴 Dringend
           </label>
-          <button onclick="bestellungHinzufuegen()" style="padding:12px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
+          <div style="display:flex;gap:8px">
+            <button onclick="bestellungHinzufuegen()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#610000,#8b0000);color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer">Hinzufügen</button>
+            <button onclick="bestBarcodeScanner()" title="Barcode" style="padding:11px 13px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;color:#610000;cursor:pointer;display:flex;align-items:center"><span class="material-symbols-outlined" style="font-size:18px">qr_code_scanner</span></button>
+          </div>
         </div>
       </div>
     </div>`;
 }
+
 function bestellungHinzufuegen() {
   const name = document.getElementById('best-name')?.value.trim();
   if (!name) { _markField('best-name', true); _showToast('Bitte Artikelname eingeben', 'error'); return; }
   let artikel = [];
   try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
-  artikel.unshift({ id:Date.now(), name, menge:document.getElementById('best-menge')?.value||'1', einheit:document.getElementById('best-einheit')?.value||'Stück', kategorie:document.getElementById('best-kat')?.value||'Küche', dringlich:document.getElementById('best-dringend')?.checked||false, erledigt:false });
+  artikel.unshift({
+    id:        Date.now(),
+    name,
+    menge:     document.getElementById('best-menge')?.value     || '1',
+    einheit:   document.getElementById('best-einheit')?.value   || 'Stück',
+    kategorie: document.getElementById('best-kat')?.value       || 'Küche',
+    lieferant: document.getElementById('best-lief')?.value      || '',
+    notiz:     document.getElementById('best-notiz')?.value.trim() || '',
+    dringlich: document.getElementById('best-dringend')?.checked || false,
+    erledigt:  false
+  });
   _syncedLocalSet('pizzeria_bestellung', JSON.stringify(artikel));
-  _showToast('Artikel hinzugefügt', 'success'); renderBestellungTab();
+  _showToast('Artikel hinzugefügt', 'success');
+  renderBestellungTab();
 }
+
 function bestellungToggle(id) {
   let a = []; try { a = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(e) {}
   const x = a.find(i=>i.id===id); if(x) x.erledigt=!x.erledigt;
@@ -4217,8 +4297,112 @@ function bestellungErledigtLoeschen() {
 }
 function bestellungFilter(type, val) {
   const p = document.getElementById('panel-bestellung');
-  if(type==='kat') p.dataset.filterKat=val; else p.dataset.filterStatus2=val;
+  if      (type === 'kat')    p.dataset.filterKat    = val;
+  else if (type === 'lief')   p.dataset.filterLief   = val;
+  else                        p.dataset.filterStatus2 = val;
   renderBestellungTab();
+}
+function bestellungGrp(mode) {
+  document.getElementById('panel-bestellung').dataset.grpMode = mode;
+  renderBestellungTab();
+}
+
+// ── Aus Lager übernehmen ────────────────────────────────────────────────────
+function bestellungAusLager() {
+  let lager = []; try { lager = JSON.parse(localStorage.getItem('pizzeria_lager')||'[]'); } catch(_) {}
+  const unterMin = lager.filter(function(a){ return typeof a.mindest === 'number' && a.menge <= a.mindest; });
+  if (!unterMin.length) { _showToast('Alle Lagerbestände über Minimum ✅', 'success'); return; }
+  let bestellung = []; try { bestellung = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(_) {}
+  let added = 0;
+  unterMin.forEach(function(l) {
+    const exists = bestellung.find(function(b){ return !b.erledigt && b.name.toLowerCase() === l.name.toLowerCase(); });
+    if (!exists) {
+      bestellung.unshift({ id: Date.now() + added, name: l.name, menge: Math.max(1, (l.mindest||1) - (l.menge||0)), einheit: l.einheit||'kg', kategorie: 'Küche', lieferant: '', notiz: '🔴 Lager unter Mindestbestand', dringlich: true, erledigt: false });
+      added++;
+    }
+  });
+  if (!added) { _showToast('Alle Lager-Artikel bereits in der Bestellliste', 'info'); return; }
+  _syncedLocalSet('pizzeria_bestellung', JSON.stringify(bestellung));
+  _showToast('✅ ' + added + ' Artikel aus Lager hinzugefügt', 'success');
+  renderBestellungTab();
+}
+
+// ── Drucken ─────────────────────────────────────────────────────────────────
+function bestellungPrint() {
+  let artikel = []; try { artikel = JSON.parse(localStorage.getItem('pizzeria_bestellung')||'[]'); } catch(_) {}
+  const offen = artikel.filter(function(a){ return !a.erledigt; });
+  if (!offen.length) { _showToast('Keine offenen Artikel zu drucken', 'info'); return; }
+  const datum = new Date().toLocaleDateString('de-AT', { day:'2-digit', month:'2-digit', year:'numeric' });
+  const gruppen = {};
+  offen.forEach(function(a){ const k = a.lieferant||'Ohne Lieferant'; if(!gruppen[k]) gruppen[k]=[]; gruppen[k].push(a); });
+  let body = '';
+  Object.keys(gruppen).sort().forEach(function(lief) {
+    body += '<h3 style="margin:20px 0 6px;font-size:15px;color:#610000;border-bottom:2px solid #610000;padding-bottom:4px">🏪 ' + lief + '</h3>';
+    body += '<table style="width:100%;border-collapse:collapse;margin-bottom:6px">';
+    body += '<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:left;font-size:12px;border:1px solid #ddd">Artikel</th><th style="padding:6px 8px;font-size:12px;border:1px solid #ddd">Menge</th><th style="padding:6px 8px;font-size:12px;border:1px solid #ddd">Kategorie</th><th style="padding:6px 8px;font-size:12px;border:1px solid #ddd">Notiz</th></tr>';
+    gruppen[lief].forEach(function(a) {
+      const dr = a.dringlich ? 'font-weight:700;color:#c62828' : '';
+      body += '<tr><td style="padding:6px 8px;border:1px solid #ddd;' + dr + '">' + (a.dringlich?'🔴 ':'') + a.name + '</td>';
+      body += '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center">' + (a.menge||1) + ' ' + (a.einheit||'') + '</td>';
+      body += '<td style="padding:6px 8px;border:1px solid #ddd">' + (a.kategorie||'') + '</td>';
+      body += '<td style="padding:6px 8px;border:1px solid #ddd;color:#666;font-size:12px">' + (a.notiz||'') + '</td></tr>';
+    });
+    body += '</table>';
+  });
+  const win = window.open('', '_blank', 'width=720,height=850');
+  if (!win) { _showToast('Popup blockiert — bitte erlauben', 'error'); return; }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bestellliste ' + datum + '</title><style>body{font-family:Arial,sans-serif;padding:24px;max-width:680px;margin:0 auto}@media print{.noprint{display:none}}</style></head><body>');
+  win.document.write('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h1 style="margin:0;font-size:22px;color:#610000">🍕 Bestellliste San Carino</h1><span style="font-size:13px;color:#666">' + datum + '</span></div>');
+  win.document.write(body);
+  win.document.write('<div class="noprint" style="margin-top:28px;text-align:center"><button onclick="window.print()" style="padding:12px 28px;background:#610000;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer">🖨️ Drucken</button></div>');
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+// ── Barcode-Scanner für Bestellliste ───────────────────────────────────────
+var _bestQrScanner = null;
+
+function bestBarcodeScanner() {
+  if (typeof _elLoadQrLib !== 'function') { _showToast('Scanner nicht verfügbar', 'error'); return; }
+  _elLoadQrLib().then(function() { _bestOpenScannerModal(); }).catch(function() { _showToast('Scanner konnte nicht geladen werden', 'error'); });
+}
+function _bestOpenScannerModal() {
+  var ex = document.getElementById('best-scanner-overlay'); if(ex) ex.remove();
+  var ov = document.createElement('div');
+  ov.id = 'best-scanner-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  ov.innerHTML = '<div style="color:#fff;font-size:18px;font-weight:700;margin-bottom:10px">📊 Barcode → Bestellliste</div>' +
+    '<div style="color:#aaa;font-size:13px;margin-bottom:16px;text-align:center">Kamera auf Produktbarcode halten</div>' +
+    '<div id="best-qr-reader" style="width:300px;max-width:90vw;border-radius:12px;overflow:hidden;border:3px solid #8B0000"></div>' +
+    '<div id="best-qr-status" style="color:#aaa;font-size:13px;margin-top:12px">Kamera wird gestartet…</div>' +
+    '<button onclick="_bestCloseScannerModal()" style="margin-top:22px;padding:12px 30px;background:#8B0000;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">✕ Abbrechen</button>';
+  document.body.appendChild(ov);
+  _bestQrScanner = new Html5Qrcode('best-qr-reader');
+  _bestQrScanner.start({ facingMode:'environment' }, { fps:10, qrbox:{width:250,height:120} },
+    function(bc){ _bestCloseScannerModal(); _bestLookupBarcode(bc); },
+    function(){}
+  ).then(function(){ var st=document.getElementById('best-qr-status'); if(st) st.textContent='Barcode halten…'; })
+   .catch(function(e){ var st=document.getElementById('best-qr-status'); if(st) st.textContent='Kamerafehler: '+(e.message||e); });
+}
+function _bestCloseScannerModal() {
+  if (_bestQrScanner) { _bestQrScanner.stop().catch(function(){}); _bestQrScanner = null; }
+  var ov = document.getElementById('best-scanner-overlay'); if(ov) ov.remove();
+}
+function _bestLookupBarcode(barcode) {
+  _showToast('🔍 Produkt wird gesucht…', 'info');
+  fetch('https://world.openfoodfacts.org/api/v0/product/' + barcode + '.json')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      var name = 'Barcode: ' + barcode;
+      if (data.status === 1) name = (data.product.product_name_de || data.product.product_name || name).trim();
+      var el = document.getElementById('best-name');
+      if (el) { el.value = name; el.focus(); }
+      _showToast('✅ ' + name, 'success');
+    })
+    .catch(function() {
+      var el = document.getElementById('best-name');
+      if (el) { el.value = 'Barcode: ' + barcode; el.focus(); }
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
