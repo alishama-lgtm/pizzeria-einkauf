@@ -1,7 +1,7 @@
 // Service Worker — Pizzeria San Carino
 // Strategie: Cache-First für App-Shell, Network-First für API
 
-const CACHE_VER   = 'pizzeria-v3';
+const CACHE_VER   = 'pizzeria-v4';
 const SHELL_CACHE = CACHE_VER + '-shell';
 const CDN_CACHE   = CACHE_VER + '-cdn';
 const API_CACHE   = CACHE_VER + '-api';
@@ -49,26 +49,36 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Nur GET-Requests cachen
+  // Nur GET-Requests
   if (req.method !== 'GET') return;
 
-  // Anthropic API: immer direkt zum Netzwerk (nicht cachen)
+  // Anthropic API: immer direkt zum Netzwerk
   if (url.hostname === 'api.anthropic.com') return;
 
-  // Lokaler Preisserver (localhost:3001): Network-First, 5min Cache-Fallback
+  // Open Food Facts (Barcode-Lookup): direkt Netzwerk
+  if (url.hostname.includes('openfoodfacts.org')) return;
+
+  // Externe APIs (localhost:3001): Network-First, 5min Cache-Fallback
   if (url.hostname === 'localhost' && url.port === '3001') {
     event.respondWith(networkFirst(req, API_CACHE, 5 * 60 * 1000));
     return;
   }
 
-  // CDN-Ressourcen (Fonts, Tailwind, SheetJS): Cache-First
+  // CDN-Ressourcen (Fonts, Tailwind, SheetJS, html5-qrcode): Cache-First (lang gecacht)
   if (CDN_HOSTS.some(h => url.hostname.includes(h))) {
     event.respondWith(cacheFirst(req, CDN_CACHE));
     return;
   }
 
-  // App-Dateien (.html, .js, .json, .png, .ico): Stale-While-Revalidate
-  if (/\.(html|js|json|png|ico|webp|svg)$/.test(url.pathname) || url.pathname === '/') {
+  // Lokale App-Dateien (JS, CSS): IMMER Network-First — keine veralteten Versionen
+  // Bei Offline → Cache als Fallback
+  if (url.hostname === 'localhost' && /\.(js|css)$/.test(url.pathname)) {
+    event.respondWith(networkFirst(req, SHELL_CACHE, 0)); // maxAgeMs=0 = immer frisch
+    return;
+  }
+
+  // HTML & Icons: Stale-While-Revalidate (Seite startet schnell, aktualisiert im Hintergrund)
+  if (/\.(html|png|ico|webp|svg|json)$/.test(url.pathname) || url.pathname === '/') {
     event.respondWith(staleWhileRevalidate(req, SHELL_CACHE));
     return;
   }
@@ -93,7 +103,8 @@ async function cacheFirst(req, cacheName) {
   }
 }
 
-// Network-First: Netzwerk versuchen, bei Fehler Cache mit TTL
+// Network-First: Netzwerk versuchen, bei Fehler Cache als Fallback
+// maxAgeMs=0 → Cache-Fallback immer erlaubt (kein TTL), aber Netzwerk hat Vorrang
 async function networkFirst(req, cacheName, maxAgeMs) {
   try {
     const res = await fetch(req);
@@ -106,10 +117,12 @@ async function networkFirst(req, cacheName, maxAgeMs) {
     }
     return res;
   } catch (_) {
+    // Netzwerk nicht erreichbar → Cache als Fallback
     const cached = await caches.match(req);
     if (cached) {
       const cachedAt = parseInt(cached.headers.get('sw-cached-at') || '0');
-      if (Date.now() - cachedAt < maxAgeMs) return cached;
+      // maxAgeMs=0 → immer Cache-Fallback erlaubt (offline-Modus)
+      if (maxAgeMs === 0 || Date.now() - cachedAt < maxAgeMs) return cached;
     }
     return new Response(JSON.stringify({ error: 'Offline', cached: false }), {
       status: 503,
