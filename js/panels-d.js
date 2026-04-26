@@ -1776,7 +1776,14 @@ function renderUmsatzTab() {
 
   var monatEin = einnahmen.filter(function(e) { return new Date(e.datum) >= firstOfMonth; });
   var monatAus = ausgaben.filter(function(e) { return new Date(e.datum) >= firstOfMonth; });
-  var monatGesamtEin = monatEin.reduce(function(s, e) { return s + (parseFloat(e.kasse) || 0) + (parseFloat(e.lieferdienst) || 0); }, 0);
+  var monatGesamtEin = monatEin.reduce(function(s, e) {
+    var kasse = parseFloat(e.kasse)||0;
+    // Neue Einträge: lieferando + wolt + mjam; Alte: lieferdienst
+    var plattform = (e.lieferando||e.wolt||e.mjam) ?
+      (parseFloat(e.lieferando)||0) + (parseFloat(e.wolt)||0) + (parseFloat(e.mjam)||0) :
+      (parseFloat(e.lieferdienst)||0);
+    return s + kasse + plattform;
+  }, 0);
   var monatGesamtAus = monatAus.reduce(function(s, e) { return s + (parseFloat(e.betrag) || 0); }, 0);
   var monatGewinn = monatGesamtEin - monatGesamtAus;
 
@@ -1819,8 +1826,10 @@ function renderUmsatzTab() {
       '<h3 style="margin:0 0 14px 0;color:#1b5e20;font-size:15px;">Einnahme eintragen</h3>' +
       '<div style="display:flex;flex-direction:column;gap:10px;">' +
         '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="ein-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Kasse &euro;</label><input type="number" id="ein-kasse" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Lieferdienst &euro;</label><input type="number" id="ein-lieferdienst" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">💵 Kasse &euro;</label><input type="number" id="ein-kasse" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;"><img src="https://cdn.worldvectorlogo.com/logos/lieferando.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px" onerror="this.style.display=\'none\'">Lieferando &euro;</label><input type="number" id="ein-lieferando" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #ff6200;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">🟦 Wolt &euro;</label><input type="number" id="ein-wolt" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #009de0;font-size:14px;box-sizing:border-box;"></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">🟠 Mjam &euro;</label><input type="number" id="ein-mjam" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #f5820a;font-size:14px;box-sizing:border-box;"></div>' +
         '<button onclick="umsatzAddEinnahme()" style="padding:9px;background:#1b5e20;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Einnahme speichern</button>' +
       '</div>' +
     '</div>' +
@@ -1841,7 +1850,14 @@ function renderUmsatzTab() {
     var wd = new Date(now);
     wd.setDate(now.getDate() - wi);
     var wds = wd.toISOString().slice(0, 10);
-    var tagEin = einnahmen.filter(function(e) { return e.datum === wds; }).reduce(function(s, e) { return s + (parseFloat(e.kasse) || 0) + (parseFloat(e.lieferdienst) || 0); }, 0);
+    var tagDaten = einnahmen.filter(function(e) { return e.datum === wds; });
+    var tagKasse = tagDaten.reduce(function(s,e){return s+(parseFloat(e.kasse)||0);},0);
+    var tagLieferando = tagDaten.reduce(function(s,e){return s+(parseFloat(e.lieferando)||0);},0);
+    var tagWolt = tagDaten.reduce(function(s,e){return s+(parseFloat(e.wolt)||0);},0);
+    var tagMjam = tagDaten.reduce(function(s,e){return s+(parseFloat(e.mjam)||0);},0);
+    // Rückwärtskomp: alte Einträge haben nur lieferdienst ohne lieferando/wolt/mjam
+    var tagLieferSonstige = tagDaten.filter(function(e){return !e.lieferando&&!e.wolt&&!e.mjam;}).reduce(function(s,e){return s+(parseFloat(e.lieferdienst)||0);},0);
+    var tagEin = tagKasse + tagLieferando + tagWolt + tagMjam + tagLieferSonstige;
     var tagAus = ausgaben.filter(function(e) { return e.datum === wds; }).reduce(function(s, e) { return s + (parseFloat(e.betrag) || 0); }, 0);
     var tagGewinn = tagEin - tagAus;
     var gColor = tagGewinn >= 0 ? '#1b5e20' : '#c62828';
@@ -1923,22 +1939,28 @@ function renderUmsatzTab() {
 function umsatzAddEinnahme() {
   var datum = document.getElementById('ein-datum').value;
   var kasse = parseFloat(document.getElementById('ein-kasse').value) || 0;
-  var lieferdienst = parseFloat(document.getElementById('ein-lieferdienst').value) || 0;
+  var ld = document.getElementById('ein-lieferando'); var lieferando = ld ? (parseFloat(ld.value)||0) : 0;
+  var we = document.getElementById('ein-wolt');      var wolt = we ? (parseFloat(we.value)||0) : 0;
+  var mj = document.getElementById('ein-mjam');      var mjam = mj ? (parseFloat(mj.value)||0) : 0;
+  var total = kasse + lieferando + wolt + mjam;
   if (!datum) { _markField('ein-datum', true); _showToast('Bitte Datum angeben', 'error'); return; }
-  if (kasse <= 0 && lieferdienst <= 0) { _markField('ein-kasse', true); _markField('ein-lieferdienst', true); _showToast('Bitte mindestens einen Betrag angeben', 'error'); return; }
+  if (total <= 0) { _markField('ein-kasse', true); _showToast('Bitte mindestens einen Betrag angeben', 'error'); return; }
   var data = [];
   try { data = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen') || '[]'); } catch(ex) {}
-  data.push({ id: Date.now().toString(), datum: datum, kasse: kasse, lieferdienst: lieferdienst });
+  data.push({ id: Date.now().toString(), datum: datum, kasse: kasse,
+    lieferando: lieferando, wolt: wolt, mjam: mjam,
+    lieferdienst: lieferando + wolt + mjam });
   localStorage.setItem('pizzeria_umsatz_einnahmen', JSON.stringify(data));
-  document.getElementById('ein-kasse').value = '';
-  document.getElementById('ein-lieferdienst').value = '';
-  _showToast('Einnahme gespeichert \u2713', 'success');
+  ['ein-kasse','ein-lieferando','ein-wolt','ein-mjam'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  _showToast('Einnahme gespeichert ✓', 'success');
   renderUmsatzTab();
-  // Auch in DB speichern (fire-and-forget — kein Fehler wenn Server offline)
   fetch('/api/umsatz/heute', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ datum: datum, kasse: kasse, lieferdienst: lieferdienst })
+    body: JSON.stringify({ datum: datum, kasse: kasse, lieferando: lieferando, wolt: wolt, mjam: mjam,
+      lieferdienst: lieferando + wolt + mjam })
   }).catch(function() {});
 }
 
