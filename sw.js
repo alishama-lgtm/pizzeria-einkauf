@@ -1,7 +1,7 @@
 // Service Worker — Pizzeria San Carino
 // Strategie: Cache-First für App-Shell, Network-First für API
 
-const CACHE_VER   = 'pizzeria-v2';
+const CACHE_VER   = 'pizzeria-v3';
 const SHELL_CACHE = CACHE_VER + '-shell';
 const CDN_CACHE   = CACHE_VER + '-cdn';
 const API_CACHE   = CACHE_VER + '-api';
