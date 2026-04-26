@@ -1,5 +1,5 @@
 # Pizzeria San Carino — MASTER PLAN & SESSION LOG
-# Letztes Update: 2026-04-26 | Session 20
+# Letztes Update: 2026-04-26 | Session 21
 
 ---
 
@@ -142,7 +142,7 @@
 |---------|--------|
 | Auth-Middleware: Alle `/api/*` ohne Login erreichbar | ✅ IP-Whitelist localhost/LAN |
 | `/db-viewer` öffentlich (zeigt alle Daten) | ✅ Route abgesichert |
-| WebSocket ohne Auth | ⬜ Token-Prüfung |
+| WebSocket ohne Auth | ✅ Token-Prüfung |
 | SQL String-Interpolation in `/api/admin/table/:name` | ✅ Whitelist vorhanden |
 | CORS `origin: '*'` | ✅ nur localhost + LAN |
 
@@ -159,8 +159,8 @@
 
 | Problem | Status |
 |---------|--------|
-| Kassenbuch: keine Zahlvalidierung | ⬜ |
-| Kein Input-Format für Datum | ⬜ YYYY-MM-DD erzwingen |
+| Kassenbuch: keine Zahlvalidierung | ✅ isFinite + max 50.000 € |
+| Kein Input-Format für Datum | ✅ YYYY-MM-DD Datepicker + Regex-Prüfung |
 | HTTPS-Cert-Pfad hardcoded | ⬜ |
 
 ---
@@ -204,6 +204,7 @@
 | 18 | 2026-04-24 | Datum-Extraktion, Kategorien-Header, Sortierung |
 | 19 | 2026-04-25 | Port-Fix (restart.ps1), Buchhaltung komplett, Sicherheits-Patches, MwSt-Korrekturen |
 | 20 | 2026-04-26 | Rate-Limiting, Heisse-Preise async, WebSocket-Auth, PDF MIME-Check, Catch-Blöcke, ICS-Export, Turso-Sync optimiert, Kassenbuch-Validierung, i18n DE/EN/NL/AR, Setup-Wizard, White-Label |
+| 21 | 2026-04-26 | Kassenbuch: Datum-Feld + JJJJ-MM-TT-Validierung + isFinite/max-50k Zahlprüfung |
 
 ---
 
