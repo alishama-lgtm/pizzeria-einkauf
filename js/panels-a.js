@@ -272,7 +272,7 @@ const SYNC_KEYS = [
   'psc_schichtzeiten', 'psc_monatsziel', 'psc_drucker_ip', 'psc_drucker_port',
   'psc_pizza_groessen', 'psc_mindest_defaults', 'psc_personal_alarm_pct',
   'psc_haccp', 'psc_haccp_geraete', 'psc_mhd',
-  'biz_fixkosten'
+  'biz_fixkosten', 'psc_role_perms'
 ];
 
 function _syncedLocalSet(key, val) {
@@ -894,14 +894,56 @@ function renderStatsDashboard() {
 // STOCK EDITING
 // ═══════════════════════════════════════════════════════════════
 
+function editStockSave(productId) {
+  const inp = document.getElementById('editstock-input');
+  if (!inp) return;
+  const product = PRODUCTS.find(p => p.id === productId);
+  if (!product) return;
+  const val = parseFloat(inp.value.replace(',', '.'));
+  const overlay = document.getElementById('editstock-overlay');
+  if (overlay) overlay.remove();
+  if (isNaN(val) || val < 0) { _showToast('Ungültiger Wert', 'error'); return; }
+  _editStockApply(productId, product, val);
+}
 function editStock(productId) {
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) return;
   const current = stockLevels[productId];
-  const input = prompt(`Aktuellen Bestand für "${product.name}" eingeben (${product.unit}):`, current);
-  if (input === null) return;
-  const val = parseFloat(input.replace(',', '.'));
-  if (isNaN(val) || val < 0) { _showToast('Ungültiger Wert', 'error'); return; }
+  // Inline-Modal statt prompt()
+  const existing = document.getElementById('editstock-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'editstock-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -4px 32px rgba(0,0,0,0.2)">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:18px;font-weight:800;color:#261816;margin-bottom:4px">${escHtml(product.name)}</div>
+        <div style="font-size:14px;color:#5a403c">Bestand anpassen (${product.unit})</div>
+      </div>
+      <input id="editstock-input" type="number" min="0" step="0.1"
+        value="${current}"
+        style="width:100%;box-sizing:border-box;font-size:22px;font-weight:700;text-align:center;
+          padding:14px;border:2px solid #610000;border-radius:12px;color:#261816;
+          margin-bottom:16px;outline:none;font-family:inherit"
+        oninput="this.value=this.value.replace(',','.')"
+        onkeydown="if(event.key==='Enter')editStockSave('${productId}');if(event.key==='Escape'){document.getElementById('editstock-overlay').remove();}">
+      <div style="display:flex;gap:12px">
+        <button onclick="document.getElementById('editstock-overlay').remove()"
+          style="flex:1;min-height:48px;padding:12px;background:#f3f4f6;color:#374151;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
+          Abbrechen
+        </button>
+        <button onclick="editStockSave('${productId}')"
+          style="flex:2;min-height:48px;padding:12px;background:#610000;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit">
+          Speichern
+        </button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  setTimeout(() => { const inp = document.getElementById('editstock-input'); if(inp){inp.focus();inp.select();} }, 80);
+}
+function _editStockApply(productId, product, val) {
   stockLevels[productId] = val;
 
   // Auto-Fehlmaterial wenn unter Minimum

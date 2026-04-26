@@ -1008,7 +1008,7 @@ function renderProductsTab() {
     html += renderPortionskontrolleSection();
   }
 
-  document.getElementById('panel-produkte').innerHTML = html;
+  document.getElementById('panel-produkte').innerHTML = `<div style="overflow-x:hidden;max-width:100%">${html}</div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1561,7 +1561,8 @@ const NAV_GROUPS = [
   { id:'lager',    icon:'inventory_2',     label:'Lager',     tabs:['lager','wareneinsatz','preisalarm','standardmaterial'], mobile:true  },
   { id:'betrieb',  icon:'checklist',       label:'Betrieb',   tabs:['heute','fehlmaterial','checkliste','bestellung','schichtcheck','haccp','mhd','kassenschnitt'], mobile:true  },
   { id:'team',     icon:'groups',          label:'Team',      tabs:['dienstplan','aufgaben','mitarbeiter','urlaub','trinkgeld'], mobile:false },
-  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','speisekarte','lieferanten','geschaefte','statistik','tagesangebote','umsatz','gewinn','buchhaltung','konkurrenz','bewertungen'], mobile:false },
+  { id:'analyse',  icon:'analytics',       label:'Analyse',   tabs:['dashboard','statistik','umsatz','gewinn','buchhaltung'], mobile:false },
+  { id:'karte',    icon:'restaurant_menu', label:'Karte',     tabs:['speisekarte','tagesangebote','lieferanten','geschaefte','konkurrenz','bewertungen'], mobile:false },
 ];
 
 function _syncNavActiveStates(tab) {
@@ -1705,7 +1706,29 @@ function renderHeuteTab() {
   }
   const teamAnzeige = wochenplanTeam.length > 0 ? wochenplanTeam : heutigeTeam.map(h => ({ ma: h.ma }));
   kachel1Html += `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:14px;color:#5a403c;font-weight:600">Team heute:</span>${teamAnzeige.length === 0 ? '<span style="font-size:14px;color:#5a6472">Noch nicht geplant</span>' : teamAnzeige.map(t=>`<span style="background:${t.ma.farbe||'#8B0000'}22;color:${t.ma.farbe||'#8B0000'};border:1px solid ${t.ma.farbe||'#8B0000'}44;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:600">${escHtml(t.ma.name)}</span>`).join('')}</div>`;
-  let html = `<div id="_heute-inbox-container"></div><div style="margin-bottom:24px"><h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px">Guten Tag — ${wochentagDE}, ${datumDE}</h2><p style="font-size:15px;color:#5a403c;margin:0">Übersicht für heute</p></div><div style="display:flex;flex-direction:column;gap:16px">`;
+  // MHD-Warnungen berechnen
+  let mhdAbgelaufenListe = [], mhdBaldListe = [];
+  try {
+    const mhdProdukte = JSON.parse(localStorage.getItem('psc_mhd') || '[]');
+    const heuteD2 = new Date(); heuteD2.setHours(0,0,0,0);
+    mhdProdukte.forEach(p => {
+      const dt = new Date(p.mhd); dt.setHours(0,0,0,0);
+      const diff = Math.round((dt - heuteD2) / 86400000);
+      if (diff < 0) mhdAbgelaufenListe.push({ ...p, diff });
+      else if (diff <= 3) mhdBaldListe.push({ ...p, diff });
+    });
+  } catch(_) {}
+  const mhdWarnHtml = (mhdAbgelaufenListe.length > 0 || mhdBaldListe.length > 0) ? `
+  <div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:2px solid #fca5a5">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:24px">⚠️</span>
+      <h3 style="font-size:18px;font-weight:800;color:#dc2626;margin:0">MHD-Warnung</h3>
+    </div>
+    ${mhdAbgelaufenListe.length > 0 ? `<div style="margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">🔴 Abgelaufen (${mhdAbgelaufenListe.length})</div>${mhdAbgelaufenListe.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fef2f2;border-radius:8px;margin-bottom:4px"><span style="font-size:14px;font-weight:600;color:#261816">${escHtml(p.name||p.produkt||'Produkt')}</span><span style="font-size:12px;font-weight:700;color:#dc2626">${Math.abs(p.diff)} Tag${Math.abs(p.diff)!==1?'e':''} überfällig</span></div>`).join('')}</div>` : ''}
+    ${mhdBaldListe.length > 0 ? `<div><div style="font-size:13px;font-weight:700;color:#d97706;margin-bottom:6px">🟡 Bald fällig (${mhdBaldListe.length})</div>${mhdBaldListe.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#fffbeb;border-radius:8px;margin-bottom:4px"><span style="font-size:14px;font-weight:600;color:#261816">${escHtml(p.name||p.produkt||'Produkt')}</span><span style="font-size:12px;font-weight:700;color:#d97706">${p.diff===0?'Heute!':p.diff+' Tag'+(p.diff!==1?'e':'')}</span></div>`).join('')}</div>` : ''}
+    <button onclick="switchTab('mhd')" style="width:100%;min-height:44px;padding:10px 16px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:12px" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">→ MHD-Verwaltung öffnen</button>
+  </div>` : '';
+  let html = `<div id="_heute-inbox-container"></div><div style="margin-bottom:24px"><h2 style="font-size:22px;font-weight:800;color:#261816;margin:0 0 4px">Guten Tag — ${wochentagDE}, ${datumDE}</h2><p style="font-size:15px;color:#5a403c;margin:0">Übersicht für heute</p></div><div style="display:flex;flex-direction:column;gap:16px">${mhdWarnHtml}`;
   html += `<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e3beb8"><div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><span style="font-size:24px">👤</span><h3 style="font-size:20px;font-weight:800;color:#261816;margin:0">Meine Schicht heute</h3></div>${kachel1Html}</div>`;
   const aufgabenBody = offeneAufgaben.length === 0
     ? `<div style="text-align:center;padding:16px 0"><span style="font-size:32px">✅</span><p style="font-size:15px;font-weight:700;color:#16a34a;margin:8px 0 4px">Alle Aufgaben erledigt!</p></div>`
@@ -5411,19 +5434,21 @@ function elQuickAdd() {
   const mengeEl  = document.getElementById('el-menge');
   const einEl    = document.getElementById('el-einheit');
   const preisEl  = document.getElementById('el-preis');
+  const katEl    = document.getElementById('el-kat');
   const shopEl   = document.getElementById('el-shop');
 
   const name  = nameEl?.value.trim();
   const menge = parseFloat(mengeEl?.value) || 1;
   const einheit = einEl?.value || 'Stk';
   const preis   = parseFloat(preisEl?.value) || null;
+  const kategorie = katEl?.value || '';
   const shopId  = shopEl?.value || '';
 
   if (!name) { _markField('el-name', true); _showToast('Bitte Artikelname eingeben', 'error'); return; }
 
   const shopObj = SHOPS.find(s => s.id === shopId);
   elAddItem({
-    name, menge, einheit, preis,
+    name, menge, einheit, preis, kategorie,
     shop:      shopObj ? shopObj.name : '',
     shopId:    shopObj ? shopObj.id   : '',
     shopColor: shopObj ? shopObj.color : '#8d6562',
@@ -5478,7 +5503,9 @@ function _buildEinkaufslisteHTML() {
   var subText = total > 0
     ? doneCount + ' von ' + total + ' erledigt' + (totalCost > 0.01 ? ' · geschätzt <strong style="color:var(--red)">' + eur(totalCost) + '</strong>' : '')
     : 'Noch keine Artikel';
+  const elGrpMode = localStorage.getItem('psc_el_grp') || 'shop'; // 'shop' | 'kategorie'
   var actionBtns = '';
+  actionBtns += `<button onclick="localStorage.setItem('psc_el_grp','${elGrpMode==='shop'?'kategorie':'shop'}');renderEinkaufslisteTab()" class="ws-btn ws-btn-ghost ws-btn-sm"><span class="material-symbols-outlined">${elGrpMode==='shop'?'category':'store'}</span>${elGrpMode==='shop'?'Nach Kategorie':'Nach Geschäft'}</button>`;
   if (doneCount > 0) actionBtns += '<button onclick="elClearDone()" class="ws-btn ws-btn-ghost ws-btn-sm"><span class="material-symbols-outlined">playlist_remove</span>Erledigte löschen</button>';
   if (total > 0) {
     actionBtns += '<button onclick="printEinkaufsliste()" class="ws-btn ws-btn-ghost ws-btn-sm"><span class="material-symbols-outlined">print</span>Drucken</button>';
@@ -5520,6 +5547,12 @@ function _buildEinkaufslisteHTML() {
   html += ' style="width:100px;padding:11px 10px;border:1.5px solid #e3beb8;border-radius:10px;font-size:14px;font-family:inherit;color:#261816;background:#fff;outline:none;box-sizing:border-box"';
   html += ' onfocus="this.style.borderColor=\'#610000\'" onblur="this.style.borderColor=\'#e3beb8\'">';
 
+  // Kategorie
+  html += '<select id="el-kat" style="width:110px;padding:11px 8px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;outline:none">';
+  html += '<option value="">Kategorie</option>';
+  html += '<option>Lebensmittel</option><option>Gemüse &amp; Obst</option><option>Fleisch &amp; Wurst</option><option>Milchprodukte</option><option>Getränke</option><option>Tiefkühl</option><option>Trockenwaren</option><option>Reinigung</option><option>Büro</option><option>Sonstiges</option>';
+  html += '</select>';
+
   // Shop
   html += '<select id="el-shop" style="flex:1;min-width:110px;padding:11px 10px;border:1.5px solid #e3beb8;border-radius:10px;font-size:13px;font-family:inherit;color:#261816;background:#fff;outline:none">';
   html += '<option value="">Kein Geschäft</option>';
@@ -5560,17 +5593,31 @@ function _buildEinkaufslisteHTML() {
     html += '</div>';
   }
 
-  // ── Gruppierung nach Geschäft ──
+  // ── Gruppierung nach Geschäft oder Kategorie ──
   var groups = {};
   var groupOrder = [];
-  for (var gi = 0; gi < list.length; gi++) {
-    var it = list[gi];
-    var gkey = it.shopId || '__none__';
-    if (!groups[gkey]) {
-      groups[gkey] = { name: it.shop || '', color: it.shopColor || '#8d6562', items: [] };
-      groupOrder.push(gkey);
+  if (elGrpMode === 'kategorie') {
+    for (var gi = 0; gi < list.length; gi++) {
+      var it = list[gi];
+      var gkey = it.kategorie || 'Sonstiges';
+      if (!groups[gkey]) {
+        groups[gkey] = { name: gkey, color: '#8B0000', items: [], isKat: true };
+        groupOrder.push(gkey);
+      }
+      groups[gkey].items.push(it);
     }
-    groups[gkey].items.push(it);
+    // Sortierung: Sonstiges ans Ende
+    groupOrder.sort(function(a,b){ if(a==='Sonstiges')return 1; if(b==='Sonstiges')return -1; return a.localeCompare(b,'de'); });
+  } else {
+    for (var gi = 0; gi < list.length; gi++) {
+      var it = list[gi];
+      var gkey = it.shopId || '__none__';
+      if (!groups[gkey]) {
+        groups[gkey] = { name: it.shop || '', color: it.shopColor || '#8d6562', items: [] };
+        groupOrder.push(gkey);
+      }
+      groups[gkey].items.push(it);
+    }
   }
 
   for (var oi = 0; oi < groupOrder.length; oi++) {

@@ -449,7 +449,10 @@ function renderDashboardTab() {
         const einnahmen = JSON.parse(localStorage.getItem('pizzeria_umsatz_einnahmen')||'[]');
         const monatPfx = today.slice(0,7);
         einnahmen.forEach(e => {
-          const sum = (e.kasse||0) + (e.lieferdienst||0);
+          const plattform = (e.lieferando||e.wolt||e.mjam)
+            ? (e.lieferando||0)+(e.wolt||0)+(e.mjam||0)
+            : (e.lieferdienst||0);
+          const sum = (e.kasse||0) + plattform;
           if (e.datum === today) umsatzHeute += sum;
           if (e.datum && e.datum.startsWith(monatPfx)) umsatzMonat += sum;
         });
@@ -2230,7 +2233,7 @@ function applyTheme(theme) {
   } else {
     html.removeAttribute('data-theme');
   }
-  _safeLocalSet('pizzeria_theme', theme);
+  _safeLocalSet('psc_theme', theme);
   // Update theme picker buttons if settings modal is open
   const btns = document.querySelectorAll('.theme-pick-btn');
   btns.forEach(b => {
@@ -2240,7 +2243,13 @@ function applyTheme(theme) {
   });
 }
 function loadSavedTheme() {
-  const t = localStorage.getItem('pizzeria_theme') || 'classic';
+  // Migration: alter Key pizzeria_theme → psc_theme
+  const oldTheme = localStorage.getItem('pizzeria_theme');
+  if (oldTheme) {
+    localStorage.setItem('psc_theme', oldTheme);
+    localStorage.removeItem('pizzeria_theme');
+  }
+  const t = localStorage.getItem('psc_theme') || 'classic';
   applyTheme(t);
 }
 
@@ -2384,25 +2393,25 @@ function openSettings() {
         </label>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
           <button class="theme-pick-btn" data-theme="classic" onclick="applyTheme('classic')"
-            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${(localStorage.getItem('pizzeria_theme')||'classic')==='classic'?'3px solid #610000':'none'};transform:${(localStorage.getItem('pizzeria_theme')||'classic')==='classic'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#fff8f6,#ffe8e3)">
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${(localStorage.getItem('psc_theme')||'classic')==='classic'?'3px solid #610000':'none'};transform:${(localStorage.getItem('psc_theme')||'classic')==='classic'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#fff8f6,#ffe8e3)">
             <div style="font-size:22px;margin-bottom:6px">☀️</div>
             <div style="font-size:12px;font-weight:700;color:#610000">Classic</div>
             <div style="font-size:10px;color:#7a6460;margin-top:2px">Rot &amp; Creme</div>
           </button>
           <button class="theme-pick-btn" data-theme="dark" onclick="applyTheme('dark')"
-            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('pizzeria_theme')==='dark'?'3px solid #610000':'none'};transform:${localStorage.getItem('pizzeria_theme')==='dark'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#1a1a2e,#0f0f1a)">
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('psc_theme')==='dark'?'3px solid #610000':'none'};transform:${localStorage.getItem('psc_theme')==='dark'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#1a1a2e,#0f0f1a)">
             <div style="font-size:22px;margin-bottom:6px">🌙</div>
             <div style="font-size:12px;font-weight:700;color:#e05555">Dark Navy</div>
             <div style="font-size:10px;color:#6868aa;margin-top:2px">Dunkel &amp; Blau</div>
           </button>
           <button class="theme-pick-btn" data-theme="dark-red" onclick="applyTheme('dark-red')"
-            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('pizzeria_theme')==='dark-red'?'3px solid #610000':'none'};transform:${localStorage.getItem('pizzeria_theme')==='dark-red'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#1e0c0c,#110808)">
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('psc_theme')==='dark-red'?'3px solid #610000':'none'};transform:${localStorage.getItem('psc_theme')==='dark-red'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#1e0c0c,#110808)">
             <div style="font-size:22px;margin-bottom:6px">🔥</div>
             <div style="font-size:12px;font-weight:700;color:#ff4444">Dark Red</div>
             <div style="font-size:10px;color:#886060;margin-top:2px">Dunkel &amp; Rot</div>
           </button>
           <button class="theme-pick-btn" data-theme="glass" onclick="applyTheme('glass')"
-            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('pizzeria_theme')==='glass'?'3px solid #e05555':'none'};transform:${localStorage.getItem('pizzeria_theme')==='glass'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#0a0b0d,#1a1020);border:1px solid rgba(255,255,255,0.08)">
+            style="border:none;border-radius:14px;padding:14px 8px;cursor:pointer;font-family:inherit;transition:all .2s;outline:${localStorage.getItem('psc_theme')==='glass'?'3px solid #e05555':'none'};transform:${localStorage.getItem('psc_theme')==='glass'?'scale(1.05)':'scale(1)'};background:linear-gradient(135deg,#0a0b0d,#1a1020);border:1px solid rgba(255,255,255,0.08)">
             <div style="font-size:22px;margin-bottom:6px">💎</div>
             <div style="font-size:12px;font-weight:700;color:#e5e7eb">Glass</div>
             <div style="font-size:10px;color:#6b7280;margin-top:2px">Stitch &amp; Dark</div>
@@ -4318,6 +4327,7 @@ function renderLagerTab() {
         // Eingang/Abfluss Buttons
         html += '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
         html += '<button onclick="lagerEingabe(' + a.id + ')" title="Menge eingeben" style="padding:5px 8px;border-radius:8px;border:1.5px solid #a5d6a7;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">+ Eingang</button>';
+        html += '<button onclick="lagerAnpassen(' + a.id + ',1)" title="+1" style="width:28px;height:28px;border-radius:8px;border:1.5px solid #a5d6a7;background:#e8f5e9;color:#2e7d32;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>';
         html += '<button onclick="lagerAnpassen(' + a.id + ',-1)" title="−1" style="width:28px;height:28px;border-radius:8px;border:1.5px solid #ef9a9a;background:#ffebee;color:#c62828;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>';
         html += '<button onclick="lagerBearbeiten(' + a.id + ')" title="Bearbeiten" style="width:28px;height:28px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#610000;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:15px">edit</span></button>';
         html += '<button onclick="lagerDelete(' + a.id + ')" title="Löschen" style="width:28px;height:28px;border-radius:8px;border:1px solid #e3beb8;background:#fff8f6;color:#b52619;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center"><span class="material-symbols-outlined" style="font-size:15px">delete</span></button>';
