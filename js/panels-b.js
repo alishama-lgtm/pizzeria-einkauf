@@ -5280,12 +5280,33 @@ function _buildLiveView() {
 
   // ── Error State ──
   if (error && !cached) {
-    html += '<div style="text-align:center;padding:48px 20px;background:#fff3cd;border-radius:16px;border:1.5px solid #ffc107">';
-    html += '<span class="material-symbols-outlined" style="font-size:48px;color:#e65100">error_outline</span>';
-    html += '<p style="font-size:15px;font-weight:700;color:#261816;margin:12px 0 6px">Prospekt konnte nicht geladen werden</p>';
-    html += '<p style="font-size:13px;color:#5a403c;margin:0 0 16px">' + escHtml(error) + '</p>';
-    html += '<button onclick="loadLiveProspekt(\'' + storeId + '\')" style="padding:10px 22px;background:' + store.color + ';color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">Erneut versuchen</button>';
-    html += '</div>';
+    var isCredits = error.toLowerCase().includes('credit') || error.toLowerCase().includes('balance') || error.toLowerCase().includes('quota') || error.toLowerCase().includes('insufficient');
+    var isNoKey   = error.toLowerCase().includes('api key') || error.toLowerCase().includes('kein api');
+    if (isCredits) {
+      html += '<div style="text-align:center;padding:40px 24px;background:#fff8e1;border-radius:16px;border:1.5px solid #ffc107">';
+      html += '<span style="font-size:48px;display:block;margin-bottom:12px">💳</span>';
+      html += '<p style="font-size:16px;font-weight:800;color:#e65100;margin:0 0 8px">Anthropic API — Guthaben aufgebraucht</p>';
+      html += '<p style="font-size:13px;color:#5a403c;margin:0 0 20px;max-width:400px;margin-left:auto;margin-right:auto">Das Live-Prospekt-Feature benötigt Anthropic API Credits. Das Guthaben ist aktuell aufgebraucht.</p>';
+      html += '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">';
+      html += '<a href="https://console.anthropic.com/settings/plans" target="_blank" style="padding:11px 22px;background:#e65100;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px">💳 Guthaben aufladen</a>';
+      html += '<button onclick="loadLiveProspekt(\'' + storeId + '\')" style="padding:11px 22px;background:#fff;color:#5a403c;border:1.5px solid #e3beb8;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">Erneut versuchen</button>';
+      html += '</div>';
+      html += '</div>';
+    } else if (isNoKey) {
+      html += '<div style="text-align:center;padding:40px 24px;background:#fce4ec;border-radius:16px;border:1.5px solid #e91e63">';
+      html += '<span style="font-size:48px;display:block;margin-bottom:12px">🔑</span>';
+      html += '<p style="font-size:16px;font-weight:800;color:#880e4f;margin:0 0 8px">Kein Anthropic API Key</p>';
+      html += '<p style="font-size:13px;color:#5a403c;margin:0 0 20px">Bitte API Key in Einstellungen ⚙️ → API → Anthropic eintragen.</p>';
+      html += '<button onclick="switchTab(\'business\')" style="padding:11px 22px;background:#880e4f;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">→ Einstellungen öffnen</button>';
+      html += '</div>';
+    } else {
+      html += '<div style="text-align:center;padding:48px 20px;background:#fff3cd;border-radius:16px;border:1.5px solid #ffc107">';
+      html += '<span class="material-symbols-outlined" style="font-size:48px;color:#e65100">error_outline</span>';
+      html += '<p style="font-size:15px;font-weight:700;color:#261816;margin:12px 0 6px">Prospekt konnte nicht geladen werden</p>';
+      html += '<p style="font-size:13px;color:#5a403c;margin:0 0 16px">' + escHtml(error) + '</p>';
+      html += '<button onclick="loadLiveProspekt(\'' + storeId + '\')" style="padding:10px 22px;background:' + store.color + ';color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700">Erneut versuchen</button>';
+      html += '</div>';
+    }
     return html;
   }
 
