@@ -3374,6 +3374,7 @@ function renderDienstplanTab() {
         </div>
         <button onclick="window.print()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;font-size:13px;font-weight:600;color:#610000;cursor:pointer">🖨️ Drucken</button>
         <button onclick="dienstplanIcsExport()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #4285f4;background:#fff;font-size:13px;font-weight:600;color:#4285f4;cursor:pointer" title="Als .ics exportieren — importierbar in Google Calendar, Apple Calendar, Outlook">📅 Kalender .ics</button>
+        <button onclick="dienstplanVorwocheKopieren()" style="padding:9px 16px;border-radius:10px;border:1.5px solid #7b1fa2;background:#f3e5f5;font-size:13px;font-weight:600;color:#6a1b9a;cursor:pointer" title="Dienstplan der Vorwoche in diese Woche kopieren">📋 Vorwoche kopieren</button>
         <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <input type="month" id="abr-monat" value="${new Date().toISOString().slice(0,7)}" style="padding:7px 10px;border-radius:8px;border:1.5px solid #e3beb8;font-size:12px;font-family:inherit">
           <button onclick="personalAbrechnungPdf()" style="padding:9px 14px;border-radius:8px;border:none;background:#610000;color:#fff;font-size:12px;font-weight:700;cursor:pointer">💰 Abrechnung PDF</button>
@@ -3390,6 +3391,38 @@ function renderDienstplanTab() {
       <!-- Abteilungs-Sektionen -->
       ${sektionen}
     </div>`;
+}
+function dienstplanVorwocheKopieren() {
+  const p = document.getElementById('panel-dienstplan');
+  const offset = parseInt(p.dataset.weekOffset || '0');
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
+  monday.setHours(0,0,0,0);
+  const toLocalISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const weekKey = toLocalISO(monday);
+  const prevMonday = new Date(monday);
+  prevMonday.setDate(monday.getDate() - 7);
+  const prevWeekKey = toLocalISO(prevMonday);
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem('pizzeria_dienstplan')||'{}'); } catch(e) {}
+  const vorwoche = plan[prevWeekKey];
+  if (!vorwoche || !Object.keys(vorwoche).length) {
+    _showToast('Keine Daten in der Vorwoche vorhanden', 'warning'); return;
+  }
+  if (plan[weekKey] && Object.keys(plan[weekKey]).length > 0) {
+    _showConfirm('Diese Woche hat bereits Einträge. Trotzdem mit Vorwoche überschreiben?', function() {
+      plan[weekKey] = JSON.parse(JSON.stringify(vorwoche));
+      localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+      _showToast('Vorwoche kopiert ✅', 'success');
+      renderDienstplanTab();
+    }, { okLabel: 'Überschreiben' });
+  } else {
+    plan[weekKey] = JSON.parse(JSON.stringify(vorwoche));
+    localStorage.setItem('pizzeria_dienstplan', JSON.stringify(plan));
+    _showToast('Vorwoche kopiert ✅', 'success');
+    renderDienstplanTab();
+  }
 }
 function dienstplanSet(weekKey, ma, day, schicht) {
   let plan = {};

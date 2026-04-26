@@ -1837,7 +1837,7 @@ function renderUmsatzTab() {
       '<h3 style="margin:0 0 14px 0;color:#c62828;font-size:15px;">Ausgabe eintragen</h3>' +
       '<div style="display:flex;flex-direction:column;gap:10px;">' +
         '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Datum</label><input type="date" id="aus-datum" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
-        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Kategorie</label><select id="aus-kategorie" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"><option value="Einkauf">Einkauf</option><option value="Personal">Personal</option><option value="Miete">Miete</option><option value="Sonstiges">Sonstiges</option></select></div>' +
+        '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Kategorie</label><select id="aus-kategorie" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"><option value="Einkauf">Einkauf</option><option value="Personal">Personal</option><option value="Miete">Miete</option><option value="Strom/Gas">Strom/Gas</option><option value="Versicherung">Versicherung</option><option value="Buchhaltung">Buchhaltung</option><option value="Lieferando Provision">🟠 Lieferando Provision</option><option value="Wolt Provision">🟦 Wolt Provision</option><option value="Mjam Provision">🟠 Mjam Provision</option><option value="Sonstiges">Sonstiges</option></select></div>' +
         '<div><label style="font-size:12px;color:#5a403c;font-weight:600;display:block;margin-bottom:4px;">Betrag &euro;</label><input type="number" id="aus-betrag" min="0" step="0.01" placeholder="0.00" style="width:100%;padding:8px;border-radius:8px;border:1.5px solid #e3beb8;font-size:14px;box-sizing:border-box;"></div>' +
         '<button onclick="umsatzAddAusgabe()" style="padding:9px;background:#c62828;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;">+ Ausgabe speichern</button>' +
       '</div>' +
@@ -1930,10 +1930,59 @@ function renderUmsatzTab() {
     ausgabenTabelleHtml = '<p style="color:#9b8b87;font-style:italic;padding:8px 0;">Noch keine Ausgaben eingetragen.</p>';
   }
 
+  // Plattform-Daten für Chart (aktueller Monat)
+  var chartKasse = 0, chartLD = 0, chartWolt = 0, chartMjam = 0, chartAlt = 0;
+  monatEin.forEach(function(e) {
+    chartKasse += parseFloat(e.kasse)||0;
+    if (e.lieferando||e.wolt||e.mjam) {
+      chartLD   += parseFloat(e.lieferando)||0;
+      chartWolt += parseFloat(e.wolt)||0;
+      chartMjam += parseFloat(e.mjam)||0;
+    } else {
+      chartAlt += parseFloat(e.lieferdienst)||0;
+    }
+  });
+  var chartPlatformHtml = '<div style="background:#fff;border-radius:14px;border:1.5px solid #e3beb8;padding:20px;margin-bottom:18px;">' +
+    '<h3 style="margin:0 0 14px 0;color:#8B0000;font-size:16px;">&#x1F4CA; Plattform-Vergleich — ' + new Date().toLocaleDateString('de-AT', {month:'long',year:'numeric'}) + '</h3>' +
+    '<canvas id="umsatz-platform-chart" height="120"></canvas>' +
+    '</div>';
+
   panel.innerHTML = '<div style="padding:16px;max-width:900px;margin:0 auto">' +
     _pageHdr('payments', 'Umsatz-Dashboard', new Date().toLocaleDateString('de-AT', {month:'long', year:'numeric'})) +
-    dbBannerHtml + zielHtml + kpiHtml + formHtml + wocheHtml + einnahmenTabelleHtml + ausgabenTabelleHtml +
+    dbBannerHtml + zielHtml + kpiHtml + chartPlatformHtml + formHtml + wocheHtml + einnahmenTabelleHtml + ausgabenTabelleHtml +
     '</div>';
+
+  // Chart.js Balkendiagramm initialisieren
+  (function() {
+    var ctx = document.getElementById('umsatz-platform-chart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (window._umsatzPlatformChart) { try { window._umsatzPlatformChart.destroy(); } catch(_) {} }
+    var ldLabel = chartAlt > 0 && chartLD === 0 ? 'Lieferdienst (alt)' : 'Lieferando';
+    var ldVal   = chartLD > 0 ? chartLD : chartAlt;
+    window._umsatzPlatformChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['💵 Kasse', '🟠 ' + ldLabel, '🟦 Wolt', '🟠 Mjam'],
+        datasets: [{
+          label: 'Umsatz ' + new Date().toLocaleDateString('de-AT', {month:'long',year:'numeric'}),
+          data: [chartKasse, ldVal, chartWolt, chartMjam],
+          backgroundColor: ['#2e7d32','#ff6200','#009de0','#f5820a'],
+          borderRadius: 8,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(ctx) { return '€' + ctx.raw.toFixed(2); } } }
+        },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: function(v) { return '€' + v; } } }
+        }
+      }
+    });
+  })();
 }
 
 function umsatzAddEinnahme() {
@@ -4035,11 +4084,84 @@ function renderUrlaubTab() {
       <button onclick="urlaubSpeichern()" style="background:#8B0000;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:15px;font-weight:700;cursor:pointer;width:100%">+ Urlaub speichern</button>
     </div>
 
+    <!-- Jahres-Kalender Toggle -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="font-weight:700;color:#261816;font-size:15px">Jahresübersicht ${new Date().getFullYear()}</div>
+      <button onclick="urlaubKalenderToggle()" id="url-kal-btn" style="padding:6px 14px;border-radius:8px;border:1.5px solid #8B0000;background:#fff;color:#8B0000;font-size:12px;font-weight:700;cursor:pointer">📅 Kalender anzeigen</button>
+    </div>
+    <div id="url-jahreskal" style="display:none;margin-bottom:18px">${_buildUrlaubJahreskalender(eintraege, mitarbeiter)}</div>
+
     <div style="font-weight:700;color:#261816;margin-bottom:10px;font-size:15px">Aktuell & geplant (${aktiv.length})</div>
     <div id="urlaub-aktiv">${aktivHtml}</div>
 
     ${archiv.length ? `<details style="margin-top:16px"><summary style="cursor:pointer;font-size:13px;color:#5a403c;font-weight:600;padding:8px 0">Archiv (${archiv.length})</summary><div style="margin-top:10px">${archivHtml}</div></details>` : ''}
   </div>`;
+}
+
+function urlaubKalenderToggle() {
+  const kal = document.getElementById('url-jahreskal');
+  const btn = document.getElementById('url-kal-btn');
+  if (!kal) return;
+  const visible = kal.style.display !== 'none';
+  kal.style.display = visible ? 'none' : 'block';
+  if (btn) btn.textContent = visible ? '📅 Kalender anzeigen' : '📅 Kalender ausblenden';
+}
+
+function _buildUrlaubJahreskalender(eintraege, mitarbeiter) {
+  const MONATE = ['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const TAGS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+  const today = new Date();
+  const year = today.getFullYear();
+
+  // Urlaubs-Tage Index: ISO-Datum → [{farbe, name}]
+  const urlaubIndex = {};
+  eintraege.forEach(e => {
+    const farbe = (mitarbeiter.find(m=>m.id===e.maId)||{}).farbe || '#8B0000';
+    const name  = (mitarbeiter.find(m=>m.id===e.maId)||{}).name || e.maId;
+    const von = new Date(e.von), bis = new Date(e.bis);
+    for (let d = new Date(von); d <= bis; d.setDate(d.getDate()+1)) {
+      const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (!urlaubIndex[iso]) urlaubIndex[iso] = [];
+      urlaubIndex[iso].push({ farbe, name });
+    }
+  });
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">';
+  for (let m = 0; m < 12; m++) {
+    const firstDay = new Date(year, m, 1);
+    const lastDay  = new Date(year, m+1, 0);
+    // Wochentag des 1. (Mo=0)
+    const startWd = (firstDay.getDay() + 6) % 7;
+    html += `<div style="background:#fff;border:1px solid #e3beb8;border-radius:12px;padding:10px;font-size:11px">`;
+    html += `<div style="font-weight:800;color:#8B0000;margin-bottom:6px;font-size:12px">${MONATE[m]} ${year}</div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center">`;
+    TAGS.forEach(t => { html += `<div style="color:#9e6b62;font-weight:700;padding:2px 0">${t[0]}</div>`; });
+    // leere Tage am Anfang
+    for (let i = 0; i < startWd; i++) html += '<div></div>';
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const iso = `${year}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isToday = iso === today.toISOString().slice(0,10);
+      const ue = urlaubIndex[iso] || [];
+      const bg = ue.length > 0 ? ue[0].farbe : isToday ? '#8B0000' : 'transparent';
+      const clr = (ue.length > 0 || isToday) ? '#fff' : '#261816';
+      const title = ue.map(u=>u.name).join(', ');
+      html += `<div title="${title}" style="width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;background:${bg};color:${clr};font-weight:${isToday?'800':'400'};font-size:10px;cursor:${ue.length?'pointer':'default'}">${d}</div>`;
+    }
+    html += '</div></div>';
+  }
+  // Legende
+  const names = [...new Set(eintraege.map(e=>e.maId))];
+  if (names.length) {
+    html += '<div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;padding:6px 0">';
+    names.forEach(id => {
+      const m = mitarbeiter.find(x=>x.id===id);
+      if (!m) return;
+      html += `<span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#261816"><span style="width:12px;height:12px;border-radius:3px;background:${m.farbe||'#8B0000'};display:inline-block"></span>${_esc(m.name)}</span>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function urlaubSpeichern() {
@@ -4254,7 +4376,7 @@ function renderMhdTab() {
         <div style="font-size:13px;font-weight:700;color:${st.clr};margin-top:3px">MHD: ${p.mhd} — ${st.label}</div>
         ${p.menge ? `<div style="font-size:12px;color:#6b6b6b;margin-top:2px">Menge: ${_esc(p.menge)}</div>` : ''}
       </div>
-      <button onclick="mhdLoeschen(${idx})" style="padding:6px 12px;border-radius:8px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:12px;cursor:pointer;flex-shrink:0">Löschen</button>
+      <button onclick="mhdLoeschen(${p.id !== undefined ? p.id : idx})" style="padding:6px 12px;border-radius:8px;border:1px solid #e3beb8;background:#fff;color:#8B0000;font-size:12px;cursor:pointer;flex-shrink:0">Löschen</button>
     </div>`;
   }).join('') : `<div style="text-align:center;padding:40px;color:#6b6b6b;font-size:14px">Noch keine Produkte eingetragen</div>`;
 
@@ -4322,10 +4444,19 @@ function mhdSpeichern() {
   renderMhdTab();
 }
 
-function mhdLoeschen(idx) {
+function mhdLoeschen(idOrIdx) {
   let produkte = [];
   try { produkte = JSON.parse(localStorage.getItem('psc_mhd') || '[]'); } catch(e) {}
-  produkte.splice(idx, 1);
+  // Zuerst nach eindeutiger ID löschen (neu), Fallback auf Index (alt)
+  const numeric = typeof idOrIdx === 'number' || /^\d+$/.test(String(idOrIdx));
+  const byId = numeric ? produkte.filter(p => String(p.id) !== String(idOrIdx)) : null;
+  if (byId && byId.length < produkte.length) {
+    produkte = byId; // ID-basiertes Löschen erfolgreich
+  } else {
+    // Fallback: Index-basiertes Löschen (abwärtskompatibel)
+    const idx = parseInt(idOrIdx);
+    if (!isNaN(idx) && idx >= 0 && idx < produkte.length) produkte.splice(idx, 1);
+  }
   localStorage.setItem('psc_mhd', JSON.stringify(produkte));
   renderMhdTab();
 }
