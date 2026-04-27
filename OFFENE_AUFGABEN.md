@@ -1,5 +1,5 @@
 # OFFENE AUFGABEN — Pizzeria San Carino App
-# Erstellt: 2026-04-26 | Letztes Update: 2026-04-26
+# Erstellt: 2026-04-26 | Letztes Update: 2026-04-27
 # REGEL: Priorität von oben nach unten — zuerst 🔴 dann 🟡 dann 🔵
 
 ---
@@ -22,12 +22,12 @@
 
 | # | Aufgabe | Datei / Wo | Status |
 |---|---------|-----------|--------|
-| 6 | **WebSocket Token-Auth fertigstellen** | server.js — WS-Verbindung prüft noch keinen Token | ⬜ |
-| 7 | **Datum-Validierung im Kassenbuch** | Eingabe erzwingt YYYY-MM-DD Format | ⬜ |
+| 6 | **WebSocket Token-Auth fertigstellen** | server.js — WS-Verbindung prüft noch keinen Token | ✅ (Session 20) |
+| 7 | **Datum-Validierung im Kassenbuch** | Eingabe erzwingt YYYY-MM-DD Format | ✅ (Session 22) |
 | 8 | **HTTPS mkcert einrichten** | Für iPhone PWA nötig — `mkcert localhost` + HTTPS in server.js | ⬜ |
 | 9 | **Turso-Sync optimieren** | Nur bei echten Änderungen syncen, nicht beim jedem Start | ⬜ |
-| 10 | **Gewinn-Tab: Plattform-Aufschlüsselung** | Lieferando/Wolt/Mjam Provision automatisch abziehen im Gewinn-Tab | ⬜ |
-| 11 | **Kassenbuch: Betrag-Validierung im Frontend** | 0–999.999 € erzwingen, keine negativen Werte | ⬜ |
+| 10 | **Gewinn-Tab: Plattform-Aufschlüsselung** | Lieferando/Wolt/Mjam Provision automatisch abziehen im Gewinn-Tab | ✅ (Session 22) |
+| 11 | **Kassenbuch: Betrag-Validierung im Frontend** | 0–999.999 € erzwingen, keine negativen Werte | ✅ (Session 22) |
 
 ### Features
 
