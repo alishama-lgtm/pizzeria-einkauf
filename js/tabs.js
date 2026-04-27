@@ -1500,7 +1500,7 @@ function printCombo(comboId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// VERLAUF — Helpers
+// VERLAUF — Helpers (Legacy — aktive Version in panels-b.js)
 // ═══════════════════════════════════════════════════════════════
 
 function calcWeeklyConsumption() {
@@ -1645,7 +1645,7 @@ function importUMTradeRechnung93722() {
   renderVerlaufTab();
 }
 
-function renderVerlaufTab() {
+function _renderVerlaufTab_LEGACY() { // ← deaktiviert, aktive Version in panels-b.js
   const panel = document.getElementById('panel-verlauf');
   const now = new Date();
   const todayYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;

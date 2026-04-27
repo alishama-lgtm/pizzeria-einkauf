@@ -75,7 +75,7 @@ function addHistoryEntry(entry) {
   saveHistory();
 }
 
-const VERLAUF_FILTER = { shop: '', produkt: '', monat: '' };
+const VERLAUF_FILTER = { shop: '', produkt: '', monat: '', sortBy: 'datum-desc', limit: 50 };
 
 const SUCHE_STATE = {
   results: [],

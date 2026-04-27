@@ -2940,6 +2940,59 @@ function exportMonthAsText() {
   }
 }
 
+// Einzelnen Eintrag aus der History löschen
+function verlaufDeleteEntry(idx) {
+  if (idx < 0 || idx >= HISTORY.length) return;
+  const e = HISTORY[idx];
+  _showConfirm(
+    `Eintrag löschen?\n${e.produktName} · ${fmtDate(e.datum)}`,
+    function() {
+      HISTORY.splice(idx, 1);
+      saveHistory();
+      renderVerlaufTab();
+    },
+    { okLabel: 'Löschen', okClass: 'danger' }
+  );
+}
+
+// CSV-Export der aktuellen gefilterten Verlauf-Daten
+function exportVerlaufCSV() {
+  const mKey = VERLAUF_FILTER.monat;
+  const entries = HISTORY.filter(e => {
+    if (VERLAUF_FILTER.shop    && e.shopName !== VERLAUF_FILTER.shop) return false;
+    if (VERLAUF_FILTER.produkt && !e.produktName.toLowerCase().includes(VERLAUF_FILTER.produkt.toLowerCase())) return false;
+    if (mKey && !e.datum.startsWith(mKey)) return false;
+    return true;
+  });
+
+  if (entries.length === 0) { _showToast('Keine Daten für den aktuellen Filter', 'warn'); return; }
+
+  const header = 'Datum;Produkt;Menge;Einheit;Preis (€);Gesamt (€);Geschäft;Quelle';
+  const rows = entries.map(e => [
+    e.datum || '',
+    `"${(e.produktName||'').replace(/"/g,'""')}"`,
+    e.menge != null ? String(e.menge).replace('.',',') : '',
+    e.einheit || '',
+    e.preis != null ? String(e.preis.toFixed(2)).replace('.',',') : '',
+    (e.preis != null && e.menge != null) ? String((e.preis*e.menge).toFixed(2)).replace('.',',') : '',
+    `"${(e.shopName||'').replace(/"/g,'""')}"`,
+    e.quelle || '',
+  ].join(';'));
+
+  const csv = '﻿' + header + '\n' + rows.join('\n'); // BOM für Excel-Kompatibilität
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const monat = mKey ? mKey : 'gesamt';
+  a.href = url;
+  a.download = `verlauf_${monat}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  _showToast(`${entries.length} Einträge als CSV exportiert`, 'success');
+}
+
 // ═══════════════════════════════════════════════════════════════
 // VERLAUF TAB — Render
 // ═══════════════════════════════════════════════════════════════
@@ -3017,6 +3070,17 @@ function renderVerlaufTab() {
     if (VERLAUF_FILTER.produkt && !e.produktName.toLowerCase().includes(VERLAUF_FILTER.produkt.toLowerCase())) return false;
     if (VERLAUF_FILTER.monat   && !e.datum.startsWith(VERLAUF_FILTER.monat))                                  return false;
     return true;
+  });
+
+  // ── Sortierung ──
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    switch (VERLAUF_FILTER.sortBy) {
+      case 'datum-asc':  return (a.datum||'').localeCompare(b.datum||'');
+      case 'preis-desc': return ((b.preis||0)*(b.menge||1)) - ((a.preis||0)*(a.menge||1));
+      case 'preis-asc':  return ((a.preis||0)*(a.menge||1)) - ((b.preis||0)*(b.menge||1));
+      case 'name-asc':   return (a.produktName||'').localeCompare(b.produktName||'', 'de');
+      default:           return (b.datum||'').localeCompare(a.datum||''); // datum-desc
+    }
   });
 
   // ── Monthly totals ──
@@ -3111,8 +3175,16 @@ function renderVerlaufTab() {
         ${allShops.map(s => `<option value="${s}" ${VERLAUF_FILTER.shop===s?'selected':''}>${escHtml(s)}</option>`).join('')}
       </select>
       <input type="text" placeholder="Produkt suchen…" value="${escHtml(VERLAUF_FILTER.produkt)}"
-        oninput="VERLAUF_FILTER.produkt=this.value;renderVerlaufTab()"
+        oninput="VERLAUF_FILTER.produkt=this.value;VERLAUF_FILTER.limit=50;renderVerlaufTab()"
         style="padding:9px 14px;border:1.5px solid #e3beb8;border-radius:12px;font-size:13px;font-family:inherit;flex:1;min-width:130px;color:#261816">
+      <select onchange="VERLAUF_FILTER.sortBy=this.value;renderVerlaufTab()"
+        style="padding:9px 12px;border:1.5px solid #e3beb8;border-radius:12px;font-size:13px;font-family:inherit;background:#fff;color:#261816;cursor:pointer;min-width:110px">
+        <option value="datum-desc" ${VERLAUF_FILTER.sortBy==='datum-desc'?'selected':''}>Datum ↓</option>
+        <option value="datum-asc"  ${VERLAUF_FILTER.sortBy==='datum-asc' ?'selected':''}>Datum ↑</option>
+        <option value="preis-desc" ${VERLAUF_FILTER.sortBy==='preis-desc'?'selected':''}>Preis ↓</option>
+        <option value="preis-asc"  ${VERLAUF_FILTER.sortBy==='preis-asc' ?'selected':''}>Preis ↑</option>
+        <option value="name-asc"   ${VERLAUF_FILTER.sortBy==='name-asc'  ?'selected':''}>A – Z</option>
+      </select>
       <span style="font-size:12px;color:#8d6562;white-space:nowrap">${filtered.length} Einträge</span>
     </div>`;
 
@@ -3124,10 +3196,18 @@ function renderVerlaufTab() {
           <span class="material-symbols-outlined" style="font-size:22px;color:#610000">calendar_month</span>
           <span style="font-size:16px;font-weight:700;color:#261816">Monatsauswertung</span>
         </div>
-        <button onclick="exportMonthAsText()"
-          style="padding:8px 16px;border-radius:10px;border:1px solid #e3beb8;background:#fff;font-size:13px;color:#610000;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;font-weight:600">
-          <span class="material-symbols-outlined" style="font-size:16px">content_copy</span> Als Text kopieren
-        </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="exportMonthAsText()"
+            style="padding:8px 14px;border-radius:10px;border:1px solid #e3beb8;background:#fff;font-size:13px;color:#610000;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;font-weight:600">
+            <span class="material-symbols-outlined" style="font-size:16px">content_copy</span>
+            <span class="btn-label">Text</span>
+          </button>
+          <button onclick="exportVerlaufCSV()"
+            style="padding:8px 14px;border-radius:10px;border:1px solid #e3beb8;background:#fff;font-size:13px;color:#386a20;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;font-weight:600">
+            <span class="material-symbols-outlined" style="font-size:16px">download</span>
+            <span class="btn-label">CSV</span>
+          </button>
+        </div>
       </div>
       <div style="padding:18px 20px">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px;margin-bottom:${shopBars.length?'20px':'0'}">
@@ -3263,23 +3343,29 @@ function renderVerlaufTab() {
   }
 
   // ─── HISTORY LIST ───
+  const lim = VERLAUF_FILTER.limit || 50;
+  const shown = sortedFiltered.slice(0, lim);
+  const totalIdx = HISTORY.indexOf.bind(HISTORY); // helper für delete
+
   html += `
     <div style="background:#fff;border:1px solid #e3beb866;border-radius:18px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)">
-      <div style="padding:14px 20px;border-bottom:1px solid #e3beb844;background:#f8dcd8;display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:15px;font-weight:700;color:#261816">Alle Einkäufe</span>
+      <div style="padding:14px 20px;border-bottom:1px solid #e3beb844;background:#f8dcd8;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="font-size:15px;font-weight:700;color:#261816">
+          Alle Einkäufe
+          <span style="font-size:12px;font-weight:400;color:#8d6562;margin-left:6px">(${sortedFiltered.length} gefiltert)</span>
+        </span>
         <button onclick="_showConfirm('Gesamte Einkaufshistorie löschen?',function(){HISTORY=[];saveHistory();renderVerlaufTab()},{okLabel:'Leeren'})"
           style="padding:5px 12px;border-radius:8px;border:1px solid #e3beb8;background:#fff;font-size:11px;color:#8d6562;cursor:pointer;font-family:inherit">
-          Löschen
+          🗑 Alle löschen
         </button>
       </div>`;
 
-  if (filtered.length === 0) {
+  if (sortedFiltered.length === 0) {
     html += `<div style="padding:32px;text-align:center;color:#8d6562;font-size:13px">Keine Einträge für diesen Filter</div>`;
   } else {
-    const shown = filtered.slice(0, 100);
     html += `
       <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;min-width:380px">
+        <table style="width:100%;border-collapse:collapse;min-width:400px">
           <thead>
             <tr style="background:#fff8f6">
               <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap">Datum</th>
@@ -3287,21 +3373,42 @@ function renderVerlaufTab() {
               <th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap">Menge</th>
               <th style="padding:9px 16px;text-align:left;font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.07em">Geschäft</th>
               <th style="padding:9px 16px;text-align:right;font-size:11px;font-weight:700;color:#5a403c;text-transform:uppercase;letter-spacing:.07em">Preis</th>
+              <th style="padding:9px 10px;width:36px"></th>
             </tr>
           </thead>
           <tbody>
-            ${shown.map((e, i) => `
+            ${shown.map((e, i) => {
+              const realIdx = HISTORY.findIndex(h => h === e);
+              return `
               <tr style="border-bottom:1px solid #e3beb833;background:${i%2===0?'#fff':'#fff8f6'}">
                 <td style="padding:10px 16px;font-size:12px;color:#8d6562;white-space:nowrap">${fmtDate(e.datum)}</td>
                 <td style="padding:10px 16px;font-size:13px;font-weight:600;color:#261816">${escHtml(e.produktName)}</td>
                 <td style="padding:10px 12px;text-align:center;font-size:13px;color:#5a403c;white-space:nowrap">${e.menge != null ? e.menge : '—'} ${escHtml(e.einheit||'')}</td>
                 <td style="padding:10px 16px;font-size:13px;color:#5a403c">${e.shopName ? escHtml(e.shopName) : '—'}</td>
                 <td style="padding:10px 16px;text-align:right;font-size:13px;font-weight:600;color:#610000;white-space:nowrap">${e.preis != null ? eur(e.preis) : '—'}</td>
-              </tr>`).join('')}
+                <td style="padding:10px 8px;text-align:center">
+                  <button onclick="verlaufDeleteEntry(${realIdx})" title="Eintrag löschen"
+                    style="border:none;background:none;cursor:pointer;color:#e3beb8;font-size:16px;padding:2px 4px;border-radius:6px;line-height:1;transition:color .15s"
+                    onmouseover="this.style.color='#ba1a1a'" onmouseout="this.style.color='#e3beb8'">✕</button>
+                </td>
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
-      ${filtered.length > 100 ? `<div style="padding:12px 20px;text-align:center;font-size:12px;color:#8d6562;border-top:1px solid #e3beb833">Zeige 100 von ${filtered.length} Einträgen</div>` : ''}`;
+      ${sortedFiltered.length > lim ? `
+        <div style="padding:14px 20px;text-align:center;border-top:1px solid #e3beb833;display:flex;align-items:center;justify-content:center;gap:12px">
+          <span style="font-size:12px;color:#8d6562">Zeige ${lim} von ${sortedFiltered.length} Einträgen</span>
+          <button onclick="VERLAUF_FILTER.limit=${lim+50};renderVerlaufTab()"
+            style="padding:8px 20px;border-radius:10px;border:1px solid #e3beb8;background:#fff;font-size:13px;color:#610000;cursor:pointer;font-family:inherit;font-weight:600">
+            + 50 mehr laden
+          </button>
+          ${sortedFiltered.length > lim + 50 ? `
+          <button onclick="VERLAUF_FILTER.limit=${sortedFiltered.length};renderVerlaufTab()"
+            style="padding:8px 16px;border-radius:10px;border:1px solid #e3beb8;background:#f8dcd8;font-size:13px;color:#610000;cursor:pointer;font-family:inherit;font-weight:600">
+            Alle anzeigen
+          </button>` : ''}
+        </div>` : ''}`;
   }
 
   html += `</div>`;
