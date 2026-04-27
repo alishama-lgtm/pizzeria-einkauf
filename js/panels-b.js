@@ -2981,23 +2981,45 @@ function exportVerlaufCSV() {
   });
 
   // CSV aufbauen (Semikolon = österr./dt. Excel-Standard)
-  const header = 'Datum;Produkt;Menge;Einheit;Einzelpreis (€);Gesamt (€);Geschäft;Quelle';
-  const _n = v => v != null ? String(v.toFixed ? v.toFixed(2) : v).replace('.', ',') : '';
+  const header = 'Datum;Produkt;Menge;Einheit;Netto EP (€);Netto Gesamt (€);MwSt %;MwSt (€);Brutto (€);Geschäft;Quelle';
+  const _n = v => v != null ? String((+v).toFixed(2)).replace('.', ',') : '';
 
-  const rows = entries.map(e => [
-    e.datum || '',
-    '"' + (e.produktName||'').replace(/"/g,'""') + '"',
-    e.menge != null ? String(e.menge).replace('.', ',') : '',
-    e.einheit || '',
-    e.preis != null ? _n(e.preis) : '',
-    (e.preis != null && e.menge != null) ? _n(e.preis * e.menge) : '',
-    '"' + (e.shopName||'').replace(/"/g,'""') + '"',
-    e.quelle || '',
-  ].join(';'));
+  // MwSt-Rate pro Kategorie — Standard 10% (Speisen AT), Getränke 20%
+  const _mwstRate = e => {
+    const kat = (e.kategorie||e.kat||'').toLowerCase();
+    if (kat.includes('getränk') || kat.includes('drink') || kat.includes('bier') || kat.includes('wein') || kat.includes('alkohol')) return 0.20;
+    return 0.10; // Standardmäßig 10% für Lebensmittel AT
+  };
 
-  // Summenzeile
-  const gesamt = entries.reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge : 0), 0);
-  const sumRow = `;;;;;;GESAMT:;${_n(gesamt)} €`;
+  const rows = entries.map(e => {
+    const nettoEP  = e.preis != null ? e.preis : null;
+    const menge    = e.menge != null ? e.menge : null;
+    const nettoGes = (nettoEP != null && menge != null) ? nettoEP * menge : null;
+    const rate     = _mwstRate(e);
+    const mwstBet  = nettoGes != null ? nettoGes * rate : null;
+    const brutto   = nettoGes != null ? nettoGes + mwstBet : null;
+    return [
+      e.datum || '',
+      '"' + (e.produktName||'').replace(/"/g,'""') + '"',
+      menge != null ? String(menge).replace('.', ',') : '',
+      e.einheit || '',
+      nettoEP  != null ? _n(nettoEP)  : '',
+      nettoGes != null ? _n(nettoGes) : '',
+      _n(rate * 100) + '%',
+      mwstBet  != null ? _n(mwstBet)  : '',
+      brutto   != null ? _n(brutto)   : '',
+      '"' + (e.shopName||'').replace(/"/g,'""') + '"',
+      e.quelle || '',
+    ].join(';');
+  });
+
+  // Summenzeilen Netto + MwSt + Brutto
+  const sumNetto  = entries.reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge : 0), 0);
+  const sumMwst   = entries.reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge * _mwstRate(e) : 0), 0);
+  const sumBrutto = sumNetto + sumMwst;
+  const sumRow = `;;;;;;SUMME NETTO:;;${_n(sumNetto)} €;;`
+    + `\n;;;;;;MwSt (Ø):;;${_n(sumMwst)} €;;`
+    + `\n;;;;;;SUMME BRUTTO:;;${_n(sumBrutto)} €;;`;
 
   const csv = '﻿' + header + '\n' + rows.join('\n') + '\n' + sumRow;
 
