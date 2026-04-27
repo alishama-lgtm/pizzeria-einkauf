@@ -101,7 +101,10 @@ function loginByCode(inputValue) {
   // Erfolg: direkt einloggen
   currentUser = foundUser;
   _pinUser = foundUser;
-  try { sessionStorage.setItem('pizzeria_user', JSON.stringify(foundUser)); } catch(_) {}
+  try {
+    localStorage.setItem('pizzeria_session', JSON.stringify({ username: foundUser.username, ts: Date.now(), ttl: 24 * 60 * 60 * 1000 }));
+    sessionStorage.setItem('pizzeria_user', JSON.stringify(foundUser));
+  } catch(_) {}
   showApp();
 }
 
@@ -179,13 +182,11 @@ function pinConfirm() {
   }
   // Erfolg
   currentUser = _pinUser;
-  const remember = document.getElementById('login-remember').checked;
+  const remember = document.getElementById('login-remember')?.checked !== false;
   try {
-    if (remember) {
-      localStorage.setItem('pizzeria_session', JSON.stringify({ username: _pinUser.username, ts: Date.now() }));
-    } else {
-      localStorage.removeItem('pizzeria_session');
-    }
+    // Immer in localStorage speichern (Checkbox bestimmt nur die TTL)
+    const ttl = remember ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // 7 Tage oder 24h
+    localStorage.setItem('pizzeria_session', JSON.stringify({ username: _pinUser.username, ts: Date.now(), ttl }));
     sessionStorage.setItem('pizzeria_user', JSON.stringify(_pinUser));
   } catch(_) {}
   showApp();
@@ -196,9 +197,9 @@ function checkPersistentLogin() {
   try {
     const saved = localStorage.getItem('pizzeria_session');
     if (!saved) return false;
-    const { username, ts } = JSON.parse(saved);
-    // Max. 7 Tage gültig
-    if (Date.now() - ts > 7 * 24 * 60 * 60 * 1000) {
+    const { username, ts, ttl } = JSON.parse(saved);
+    const maxAge = ttl || 7 * 24 * 60 * 60 * 1000; // Fallback 7 Tage
+    if (Date.now() - ts > maxAge) {
       localStorage.removeItem('pizzeria_session');
       return false;
     }
