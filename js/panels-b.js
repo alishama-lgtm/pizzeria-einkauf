@@ -2958,39 +2958,68 @@ function verlaufDeleteEntry(idx) {
 // CSV-Export der aktuellen gefilterten Verlauf-Daten
 function exportVerlaufCSV() {
   const mKey = VERLAUF_FILTER.monat;
-  const entries = HISTORY.filter(e => {
+
+  // Gleicher Filter wie in der Anzeige
+  let entries = HISTORY.filter(e => {
     if (VERLAUF_FILTER.shop    && e.shopName !== VERLAUF_FILTER.shop) return false;
     if (VERLAUF_FILTER.produkt && !e.produktName.toLowerCase().includes(VERLAUF_FILTER.produkt.toLowerCase())) return false;
     if (mKey && !e.datum.startsWith(mKey)) return false;
     return true;
   });
 
-  if (entries.length === 0) { _showToast('Keine Daten für den aktuellen Filter', 'warn'); return; }
+  if (entries.length === 0) { _showToast('Keine Daten für den aktuellen Filter', 'warning'); return; }
 
-  const header = 'Datum;Produkt;Menge;Einheit;Preis (€);Gesamt (€);Geschäft;Quelle';
+  // Gleiche Sortierung wie in der Anzeige
+  entries = [...entries].sort((a, b) => {
+    switch (VERLAUF_FILTER.sortBy) {
+      case 'datum-asc':  return (a.datum||'').localeCompare(b.datum||'');
+      case 'preis-desc': return ((b.preis||0)*(b.menge||1)) - ((a.preis||0)*(a.menge||1));
+      case 'preis-asc':  return ((a.preis||0)*(a.menge||1)) - ((b.preis||0)*(b.menge||1));
+      case 'name-asc':   return (a.produktName||'').localeCompare(b.produktName||'', 'de');
+      default:           return (b.datum||'').localeCompare(a.datum||'');
+    }
+  });
+
+  // CSV aufbauen (Semikolon = österr./dt. Excel-Standard)
+  const header = 'Datum;Produkt;Menge;Einheit;Einzelpreis (€);Gesamt (€);Geschäft;Quelle';
+  const _n = v => v != null ? String(v.toFixed ? v.toFixed(2) : v).replace('.', ',') : '';
+
   const rows = entries.map(e => [
     e.datum || '',
-    `"${(e.produktName||'').replace(/"/g,'""')}"`,
-    e.menge != null ? String(e.menge).replace('.',',') : '',
+    '"' + (e.produktName||'').replace(/"/g,'""') + '"',
+    e.menge != null ? String(e.menge).replace('.', ',') : '',
     e.einheit || '',
-    e.preis != null ? String(e.preis.toFixed(2)).replace('.',',') : '',
-    (e.preis != null && e.menge != null) ? String((e.preis*e.menge).toFixed(2)).replace('.',',') : '',
-    `"${(e.shopName||'').replace(/"/g,'""')}"`,
+    e.preis != null ? _n(e.preis) : '',
+    (e.preis != null && e.menge != null) ? _n(e.preis * e.menge) : '',
+    '"' + (e.shopName||'').replace(/"/g,'""') + '"',
     e.quelle || '',
   ].join(';'));
 
-  const csv = '﻿' + header + '\n' + rows.join('\n'); // BOM für Excel-Kompatibilität
+  // Summenzeile
+  const gesamt = entries.reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge : 0), 0);
+  const sumRow = `;;;;;;GESAMT:;${_n(gesamt)} €`;
+
+  const csv = '﻿' + header + '\n' + rows.join('\n') + '\n' + sumRow;
+
+  // Download
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const monat = mKey ? mKey : 'gesamt';
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+
+  // Dateiname: verlauf_2026-03.csv oder verlauf_2026-03_UM-Trade.csv
+  let fname = 'verlauf_' + (mKey || 'gesamt');
+  if (VERLAUF_FILTER.shop) fname += '_' + VERLAUF_FILTER.shop.replace(/\s+/g, '-');
+  if (VERLAUF_FILTER.produkt) fname += '_' + VERLAUF_FILTER.produkt.slice(0, 20).replace(/\s+/g, '-');
+  fname += '.csv';
+
   a.href = url;
-  a.download = `verlauf_${monat}.csv`;
+  a.download = fname;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  _showToast(`${entries.length} Einträge als CSV exportiert`, 'success');
+
+  _showToast(`${entries.length} Einträge exportiert → ${fname}`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
