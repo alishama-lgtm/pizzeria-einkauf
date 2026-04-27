@@ -2957,19 +2957,20 @@ function verlaufDeleteEntry(idx) {
 
 // CSV-Export der aktuellen gefilterten Verlauf-Daten
 function exportVerlaufCSV() {
+  if (typeof XLSX === 'undefined') { _showToast('Excel-Library lädt noch…', 'warning'); return; }
+
   const mKey = VERLAUF_FILTER.monat;
 
-  // Gleicher Filter wie in der Anzeige
+  // ── Filter ──
   let entries = HISTORY.filter(e => {
     if (VERLAUF_FILTER.shop    && e.shopName !== VERLAUF_FILTER.shop) return false;
     if (VERLAUF_FILTER.produkt && !e.produktName.toLowerCase().includes(VERLAUF_FILTER.produkt.toLowerCase())) return false;
     if (mKey && !e.datum.startsWith(mKey)) return false;
     return true;
   });
-
   if (entries.length === 0) { _showToast('Keine Daten für den aktuellen Filter', 'warning'); return; }
 
-  // Gleiche Sortierung wie in der Anzeige
+  // ── Sortierung ──
   entries = [...entries].sort((a, b) => {
     switch (VERLAUF_FILTER.sortBy) {
       case 'datum-asc':  return (a.datum||'').localeCompare(b.datum||'');
@@ -2980,67 +2981,80 @@ function exportVerlaufCSV() {
     }
   });
 
-  // CSV aufbauen (Semikolon = österr./dt. Excel-Standard)
-  const header = 'Datum;Produkt;Menge;Einheit;Netto EP (€);Netto Gesamt (€);MwSt %;MwSt (€);Brutto (€);Geschäft;Quelle';
-  const _n = v => v != null ? String((+v).toFixed(2)).replace('.', ',') : '';
-
-  // MwSt-Rate pro Kategorie — Standard 10% (Speisen AT), Getränke 20%
+  // ── MwSt-Rate (AT) ──
   const _mwstRate = e => {
-    const kat = (e.kategorie||e.kat||'').toLowerCase();
-    if (kat.includes('getränk') || kat.includes('drink') || kat.includes('bier') || kat.includes('wein') || kat.includes('alkohol')) return 0.20;
-    return 0.10; // Standardmäßig 10% für Lebensmittel AT
+    const kat = (e.kategorie||e.kat||e.produktName||'').toLowerCase();
+    if (/getränk|bier|wein|alkohol|drink|cola|limonade|saft/.test(kat)) return 0.20;
+    return 0.10;
   };
 
-  const rows = entries.map(e => {
-    const nettoEP  = e.preis != null ? e.preis : null;
-    const menge    = e.menge != null ? e.menge : null;
-    const nettoGes = (nettoEP != null && menge != null) ? nettoEP * menge : null;
-    const rate     = _mwstRate(e);
-    const mwstBet  = nettoGes != null ? nettoGes * rate : null;
-    const brutto   = nettoGes != null ? nettoGes + mwstBet : null;
-    return [
-      e.datum || '',
-      '"' + (e.produktName||'').replace(/"/g,'""') + '"',
-      menge != null ? String(menge).replace('.', ',') : '',
-      e.einheit || '',
-      nettoEP  != null ? _n(nettoEP)  : '',
-      nettoGes != null ? _n(nettoGes) : '',
-      _n(rate * 100) + '%',
-      mwstBet  != null ? _n(mwstBet)  : '',
-      brutto   != null ? _n(brutto)   : '',
-      '"' + (e.shopName||'').replace(/"/g,'""') + '"',
-      e.quelle || '',
-    ].join(';');
+  // ── Datenzeilen aufbauen ──
+  const dataRows = entries.map(e => {
+    const nEP  = e.preis != null ? +e.preis : null;
+    const mng  = e.menge != null ? +e.menge : null;
+    const nGes = (nEP != null && mng != null) ? +(nEP * mng).toFixed(4) : null;
+    const rate = _mwstRate(e);
+    const mwst = nGes != null ? +(nGes * rate).toFixed(4) : null;
+    const brut = nGes != null ? +(nGes + mwst).toFixed(4) : null;
+    return {
+      Datum:              e.datum || '',
+      Produkt:            e.produktName || '',
+      Menge:              mng,
+      Einheit:            e.einheit || '',
+      'Netto EP (€)':     nEP,
+      'Netto Ges. (€)':   nGes,
+      'MwSt %':           rate,
+      'MwSt (€)':         mwst,
+      'Brutto (€)':       brut,
+      Geschäft:           e.shopName || '',
+      Quelle:             e.quelle || '',
+    };
   });
 
-  // Summenzeilen Netto + MwSt + Brutto
-  const sumNetto  = entries.reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge : 0), 0);
-  const sumMwst   = entries.reduce((s, e) => s + (e.preis != null && e.menge != null ? e.preis * e.menge * _mwstRate(e) : 0), 0);
-  const sumBrutto = sumNetto + sumMwst;
-  const sumRow = `;;;;;;SUMME NETTO:;;${_n(sumNetto)} €;;`
-    + `\n;;;;;;MwSt (Ø):;;${_n(sumMwst)} €;;`
-    + `\n;;;;;;SUMME BRUTTO:;;${_n(sumBrutto)} €;;`;
+  // ── Summen ──
+  const sumNetto  = +entries.reduce((s,e)=>s+(e.preis&&e.menge?e.preis*e.menge:0),0).toFixed(2);
+  const sumMwst   = +entries.reduce((s,e)=>s+(e.preis&&e.menge?e.preis*e.menge*_mwstRate(e):0),0).toFixed(2);
+  const sumBrutto = +(sumNetto + sumMwst).toFixed(2);
 
-  const csv = '﻿' + header + '\n' + rows.join('\n') + '\n' + sumRow;
+  // ── Worksheet ──
+  const ws = XLSX.utils.json_to_sheet(dataRows, { header: Object.keys(dataRows[0]) });
 
-  // Download
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+  // Leerzeile + Summen-Block
+  const nextRow = entries.length + 2; // +1 Header, +1 leer
+  XLSX.utils.sheet_add_aoa(ws, [
+    [],
+    ['', '', '', '', '', 'SUMME NETTO',  '', '', sumNetto,  '', ''],
+    ['', '', '', '', '', 'MwSt (AT)',    '', '', sumMwst,   '', ''],
+    ['', '', '', '', '', 'SUMME BRUTTO', '', '', sumBrutto, '', ''],
+  ], { origin: { r: entries.length + 1, c: 0 } });
 
-  // Dateiname: verlauf_2026-03.csv oder verlauf_2026-03_UM-Trade.csv
+  // ── Spaltenbreiten ──
+  ws['!cols'] = [
+    { wch: 12 }, // Datum
+    { wch: 30 }, // Produkt
+    { wch:  8 }, // Menge
+    { wch:  8 }, // Einheit
+    { wch: 14 }, // Netto EP
+    { wch: 14 }, // Netto Ges
+    { wch:  8 }, // MwSt %
+    { wch: 12 }, // MwSt €
+    { wch: 14 }, // Brutto
+    { wch: 16 }, // Geschäft
+    { wch: 18 }, // Quelle
+  ];
+
+  // ── Workbook + Download ──
+  const wb = XLSX.utils.book_new();
+  const monatLabel = mKey
+    ? new Date(mKey + '-01').toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
+    : 'Gesamt';
+  XLSX.utils.book_append_sheet(wb, ws, monatLabel.slice(0, 31));
+
   let fname = 'verlauf_' + (mKey || 'gesamt');
   if (VERLAUF_FILTER.shop) fname += '_' + VERLAUF_FILTER.shop.replace(/\s+/g, '-');
-  if (VERLAUF_FILTER.produkt) fname += '_' + VERLAUF_FILTER.produkt.slice(0, 20).replace(/\s+/g, '-');
-  fname += '.csv';
+  fname += '.xlsx';
 
-  a.href = url;
-  a.download = fname;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-
+  XLSX.writeFile(wb, fname);
   _showToast(`${entries.length} Einträge exportiert → ${fname}`, 'success');
 }
 
@@ -3254,9 +3268,9 @@ function renderVerlaufTab() {
             <span class="btn-label">Text</span>
           </button>
           <button onclick="exportVerlaufCSV()"
-            style="padding:8px 14px;border-radius:10px;border:1px solid #e3beb8;background:#fff;font-size:13px;color:#386a20;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;font-weight:600">
-            <span class="material-symbols-outlined" style="font-size:16px">download</span>
-            <span class="btn-label">CSV</span>
+            style="padding:8px 14px;border-radius:10px;border:1px solid #c8e6c9;background:#f1f8e9;font-size:13px;color:#2e7d32;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;font-weight:600">
+            <span class="material-symbols-outlined" style="font-size:16px">table_chart</span>
+            <span class="btn-label">Excel</span>
           </button>
         </div>
       </div>
