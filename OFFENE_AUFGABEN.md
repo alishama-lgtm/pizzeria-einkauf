@@ -22,12 +22,12 @@
 
 | # | Aufgabe | Datei / Wo | Status |
 |---|---------|-----------|--------|
-| 6 | **WebSocket Token-Auth fertigstellen** | server.js — WS-Verbindung prüft noch keinen Token | ⬜ |
-| 7 | **Datum-Validierung im Kassenbuch** | Eingabe erzwingt YYYY-MM-DD Format | ⬜ |
+| 6 | **WebSocket Token-Auth fertigstellen** | server.js — WS-Verbindung prüft noch keinen Token | ✅ |
+| 7 | **Datum-Validierung im Kassenbuch** | Eingabe erzwingt YYYY-MM-DD Format | ✅ |
 | 8 | **HTTPS mkcert einrichten** | Für iPhone PWA nötig — `mkcert localhost` + HTTPS in server.js | ⬜ |
 | 9 | **Turso-Sync optimieren** | Nur bei echten Änderungen syncen, nicht beim jedem Start | ⬜ |
 | 10 | **Gewinn-Tab: Plattform-Aufschlüsselung** | Lieferando/Wolt/Mjam Provision automatisch abziehen im Gewinn-Tab | ⬜ |
-| 11 | **Kassenbuch: Betrag-Validierung im Frontend** | 0–999.999 € erzwingen, keine negativen Werte | ⬜ |
+| 11 | **Kassenbuch: Betrag-Validierung im Frontend** | 0–999.999 € erzwingen, keine negativen Werte | ✅ |
 
 ### Features
 
@@ -37,7 +37,7 @@
 | 13 | **Google Calendar Sync** | Dienstplan → Schichten automatisch in Google Calendar exportieren | ⬜ |
 | 14 | **Google Drive PDF-Backup** | Alle PDFs automatisch in Drive sichern (Buchhaltung → Drive) | ⬜ |
 | 15 | **Statistik-Tab: Monat-Vergleich Chart** | Letzter Monat vs. diesen Monat als Balkendiagramm | ⬜ |
-| 16 | **Kassenschnitt: Differenz-Alarm** | Wenn Soll/Ist-Differenz > €20 → rote Warnung + Notification | ⬜ |
+| 16 | **Kassenschnitt: Differenz-Alarm** | Wenn Soll/Ist-Differenz > €20 → rote Warnung + Notification | ✅ |
 | 17 | **Mitarbeiter-Tab: Geburtstag-Erinnerung** | Im Heute-Tab anzeigen wenn Mitarbeiter heute Geburtstag hat | ⬜ |
 | 18 | **Bestellung-Tab: Auto-Bestellliste** | Wenn Lager unter Minimum → automatisch in Bestellliste eintragen | ⬜ |
 | 19 | **Einkaufsliste: QR-Code Teilen** | Liste als QR-Code anzeigen → mit Handy scannen und mitnehmen | ⬜ |
@@ -92,6 +92,12 @@
 ---
 
 ## ✅ BEREITS ERLEDIGT (zur Referenz)
+
+### Session 22 — 2026-04-28
+- ✅ psc_role_perms in server.js SYNC_KEYS ergänzt (fehlte vorher)
+- ✅ Kassenbuch: Datum-Input + YYYY-MM-DD Validierung (Benutzer wählt das Datum)
+- ✅ Kassenbuch: Betrag-Validierung max. 999.999 € (panels-d.js)
+- ✅ Kassenschnitt: Differenz-Alarm wenn Soll/Ist-Abweichung > €20 + Notification
 
 ### Session 21 — ANALYSE_PLAN alle 15 Schritte
 - ✅ Dashboard Umsatz-Bug (Lieferando/Wolt/Mjam)

@@ -142,7 +142,7 @@
 |---------|--------|
 | Auth-Middleware: Alle `/api/*` ohne Login erreichbar | ✅ IP-Whitelist localhost/LAN |
 | `/db-viewer` öffentlich (zeigt alle Daten) | ✅ Route abgesichert |
-| WebSocket ohne Auth | ⬜ Token-Prüfung |
+| WebSocket ohne Auth | ✅ Token + IP-Whitelist (seit Session 20/22) |
 | SQL String-Interpolation in `/api/admin/table/:name` | ✅ Whitelist vorhanden |
 | CORS `origin: '*'` | ✅ nur localhost + LAN |
 
@@ -159,8 +159,8 @@
 
 | Problem | Status |
 |---------|--------|
-| Kassenbuch: keine Zahlvalidierung | ⬜ |
-| Kein Input-Format für Datum | ⬜ YYYY-MM-DD erzwingen |
+| Kassenbuch: keine Zahlvalidierung | ✅ Max 999.999 €, keine negativen Werte (Session 22) |
+| Kein Input-Format für Datum | ✅ Datum-Input + YYYY-MM-DD Validierung (Session 22) |
 | HTTPS-Cert-Pfad hardcoded | ⬜ |
 
 ---
@@ -205,6 +205,7 @@
 | 19 | 2026-04-25 | Port-Fix (restart.ps1), Buchhaltung komplett, Sicherheits-Patches, MwSt-Korrekturen |
 | 20 | 2026-04-26 | Rate-Limiting, Heisse-Preise async, WebSocket-Auth, PDF MIME-Check, Catch-Blöcke, ICS-Export, Turso-Sync optimiert, Kassenbuch-Validierung, i18n DE/EN/NL/AR, Setup-Wizard, White-Label |
 | 21 | 2026-04-26 | index.html aufgeteilt (22.986 → 574 Zeilen), CSS+JS in js/panels-a/b/c/d.js, Rollen-Berechtigungen konfigurierbar im Business-Tab, Lieferando/Wolt/Mjam im Umsatz-Tab |
+| 22 | 2026-04-28 | psc_role_perms in server.js SYNC_KEYS, Kassenbuch Datum-Input + YYYY-MM-DD Validierung, Betrag-Validierung max 999.999 €, Kassenschnitt Differenz-Alarm > €20 |
 
 ---
 

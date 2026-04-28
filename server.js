@@ -675,7 +675,7 @@ const SYNC_KEYS = [
   'psc_schichtzeiten', 'psc_monatsziel', 'psc_drucker_ip', 'psc_drucker_port',
   'psc_pizza_groessen', 'psc_mindest_defaults', 'psc_personal_alarm_pct',
   'psc_haccp', 'psc_haccp_geraete', 'psc_mhd',
-  'biz_fixkosten'
+  'biz_fixkosten', 'psc_role_perms'
 ];
 
 const syncStore = new Map();

@@ -2790,14 +2790,19 @@ async function kbMigrateIfNeeded() {
   } catch(_) {}
 }
 async function kassenbuchAdd() {
+  var datum = (document.getElementById('kb-datum')?.value || '').trim();
   var typ   = document.getElementById('kb-typ')?.value;
   var desc  = document.getElementById('kb-desc')?.value.trim();
   var netto = parseFloat(document.getElementById('kb-netto')?.value||0)||0;
   var satz  = parseFloat(document.getElementById('kb-mwst')?.value||0)||0;
+  // Datum-Validierung: YYYY-MM-DD Format erzwingen
+  if (!datum || !/^\d{4}-\d{2}-\d{2}$/.test(datum)) { _showToast('Datum im Format YYYY-MM-DD eingeben', 'error'); return; }
   if (!desc) { _showToast('Bitte Beschreibung eingeben', 'error'); return; }
   if (netto <= 0) { _showToast('Bitte Netto-Betrag eingeben', 'error'); return; }
+  // Betrag-Validierung: max 999.999 €, keine negativen Werte
+  if (netto > 999999) { _showToast('Betrag darf max. 999.999 € sein', 'error'); return; }
   var brutto = netto * (1 + satz/100);
-  var entry = { id: Date.now().toString(36), datum: new Date().toISOString(), typ, beschreibung: desc, netto: netto.toFixed(2), mwst_satz: satz, mwst_betrag: (brutto-netto).toFixed(2), brutto: brutto.toFixed(2) };
+  var entry = { id: Date.now().toString(36), datum: datum + 'T12:00:00.000Z', typ, beschreibung: desc, netto: netto.toFixed(2), mwst_satz: satz, mwst_betrag: (brutto-netto).toFixed(2), brutto: brutto.toFixed(2) };
   try {
     await fetch('/api/kassenbuch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(entry) });
   } catch(_) {}
@@ -3053,7 +3058,9 @@ async function renderBuchhaltungTab() {
   // ── Kassenbuch-Formular ──
   html += '<div style="background:var(--surface);border-radius:16px;padding:20px;border:1px solid var(--border);margin-bottom:16px">';
   html += '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">➕ Eintrag manuell erfassen</div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+  var kbHeute = new Date().toISOString().slice(0,10);
+  html += '<div style="display:grid;grid-template-columns:160px 1fr 2fr;gap:10px;margin-bottom:10px">';
+  html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Datum</div><input id="kb-datum" type="date" value="'+kbHeute+'" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box"></div>';
   html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Typ</div><select id="kb-typ" onchange="kbMwstUpdate()" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)"><option value="einnahme">Einnahme</option><option value="ausgabe">Ausgabe</option></select></div>';
   html += '<div><div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:4px">Beschreibung</div><input id="kb-desc" type="text" placeholder="z.B. Tageseinnahme" style="width:100%;padding:10px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);box-sizing:border-box"></div>';
   html += '</div>';
@@ -4570,7 +4577,20 @@ function kassenschnittSpeichern() {
   if (idx >= 0) eintraege[idx] = eintrag;
   else eintraege.push(eintrag);
   localStorage.setItem('psc_kassenschnitt', JSON.stringify(eintraege));
-  _showToast('Kassenschnitt gespeichert ✓', 'success');
+  const _ksDiff = ist - soll;
+  const _ksAbsDiff = Math.abs(_ksDiff);
+  if (_ksAbsDiff > 20) {
+    // Rote Warnung + Notification bei Differenz über €20
+    _showToast('⚠️ Große Differenz: ' + (_ksDiff >= 0 ? '+' : '') + _ksDiff.toFixed(2).replace('.',',') + ' €', 'warning');
+    if (typeof notifAdd === 'function') {
+      notifAdd('kassenschnitt_diff_' + datum,
+        '⚠️ Kassenschnitt Differenz ' + datum,
+        'Soll: €' + soll.toFixed(2).replace('.',',') + ' — Ist: €' + ist.toFixed(2).replace('.',',') + ' — Differenz: ' + (_ksDiff >= 0 ? '+' : '') + _ksDiff.toFixed(2).replace('.',',') + ' €',
+        'warning', 'kassenschnitt');
+    }
+  } else {
+    _showToast('Kassenschnitt gespeichert ✓', 'success');
+  }
   renderKassenschnittTab();
 }
 
